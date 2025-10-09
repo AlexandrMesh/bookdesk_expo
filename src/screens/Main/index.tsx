@@ -100,7 +100,7 @@ const StatNavigator = () => {
           backgroundColor: colors.primary_dark,
           shadowColor: 'transparent',
           borderBottomWidth: 1,
-          borderColor: colors.neutral_medium,
+          borderBottomColor: colors.neutral_medium,
         },
         headerTintColor: colors.neutral_light,
       }}
@@ -132,7 +132,7 @@ const GoalsNavigator: FC<GoalsNavigatorProps> = ({ hasGoal, goalType }) => {
           backgroundColor: colors.primary_dark,
           shadowColor: 'transparent',
           borderBottomWidth: 1,
-          borderColor: colors.neutral_medium,
+          borderBottomColor: colors.neutral_medium,
         },
         headerTintColor: colors.neutral_light,
       }}
@@ -196,7 +196,7 @@ const HomeNavigator = () => {
           backgroundColor: colors.primary_dark,
           shadowColor: 'transparent',
           borderBottomWidth: 1,
-          borderColor: colors.neutral_medium,
+          borderBottomColor: colors.neutral_medium,
         },
         presentation: 'modal',
         headerTintColor: colors.neutral_light,
@@ -258,7 +258,7 @@ const AddCustomBookNavigator: FC = () => {
             backgroundColor: colors.primary_dark,
             shadowColor: 'transparent',
             borderBottomWidth: 1,
-            borderColor: colors.neutral_medium,
+            borderBottomColor: colors.neutral_medium,
           },
           headerTintColor: colors.neutral_light,
           presentation: 'modal',
@@ -290,7 +290,7 @@ const ProfileNavigator: FC<ProfileNavigatorProps> = ({ isTheLatestAppVersion, go
           backgroundColor: colors.primary_dark,
           shadowColor: 'transparent',
           borderBottomWidth: 1,
-          borderColor: colors.neutral_medium,
+          borderBottomColor: colors.neutral_medium,
         },
         headerTintColor: colors.neutral_light,
       }}
@@ -355,7 +355,7 @@ const TabNavigator: FC<MainNavigatorProps> = ({ isTheLatestAppVersion, googlePla
       initialRouteName={HOME_NAVIGATOR_ROUTE}
       backBehavior='history'
       screenOptions={({ route }) => ({
-        tabBarStyle: { backgroundColor: colors.primary_dark, elevation: 0, borderTopWidth: 1, borderColor: colors.neutral_medium },
+        tabBarStyle: { backgroundColor: colors.primary_dark, elevation: 0, borderTopWidth: 1, borderTopColor: colors.neutral_medium },
         tabBarShowLabel: false,
         headerShown: false,
         tabBarIcon: ({ focused }) => getIcon(focused, route),
@@ -389,7 +389,7 @@ const MainNavigator: FC<MainNavigatorProps> = ({ isTheLatestAppVersion, googlePl
           backgroundColor: colors.primary_dark,
           shadowColor: 'transparent',
           borderBottomWidth: 1,
-          borderColor: colors.neutral_medium,
+          borderBottomColor: colors.neutral_medium,
         },
         headerTintColor: colors.neutral_light,
         presentation: 'modal',
