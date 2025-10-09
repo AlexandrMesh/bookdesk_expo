@@ -1,14 +1,15 @@
-import React, { FC } from 'react';
-import { Dimensions, View, Text } from 'react-native';
-import { TFunction } from 'i18next';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
-import colors from '~styles/colors';
-import { BOOKS_STATISTIC_ROUTE, PAGES_STATISTIC_ROUTE, RATING_STATISTIC_ROUTE } from '~constants/routes';
+import { TFunction } from 'i18next';
+import React, { FC } from 'react';
 import { useTranslation } from 'react-i18next';
-import styles from './styles';
+import { Dimensions, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { BOOKS_STATISTIC_ROUTE, PAGES_STATISTIC_ROUTE, RATING_STATISTIC_ROUTE } from '~constants/routes';
+import colors from '~styles/colors';
 import Books from './Books';
 import Pages from './Pages';
 import Rating from './Rating';
+import styles from './styles';
 
 type Props = {
   t: TFunction;
@@ -52,9 +53,9 @@ const HeaderTabs: FC<Props> = ({ t }) => (
 const Statistic = () => {
   const { t } = useTranslation('statistic');
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <HeaderTabs t={t} />
-    </View>
+    </SafeAreaView>
   );
 };
 

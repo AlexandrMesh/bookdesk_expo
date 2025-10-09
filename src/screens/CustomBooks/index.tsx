@@ -3,6 +3,7 @@ import { TFunction } from 'i18next';
 import React, { FC } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dimensions, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ADD_CUSTOM_BOOK_ROUTE, CUSTOM_BOOKS_LIST_ROUTE } from '~constants/routes';
 import colors from '~styles/colors';
 import AddCustomBook from './AddCustomBook';
@@ -57,9 +58,9 @@ const HeaderTabs: FC<Props> = ({ t }) => (
 const CustomBooks = () => {
   const { t } = useTranslation('customBook');
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <HeaderTabs t={t} />
-    </View>
+    </SafeAreaView>
   );
 };
 

@@ -1,14 +1,15 @@
-import React, { FC } from 'react';
-import { View, Text, Dimensions } from 'react-native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
-import colors from '~styles/colors';
 import { TFunction } from 'i18next';
+import React, { FC } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ALL_BOOKS_ROUTE, PLANNED_BOOKS_ROUTE, IN_PROGRESS_BOOKS_ROUTE, COMPLETED_BOOKS_ROUTE } from '~constants/routes';
+import { Dimensions, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ALL_BOOKS_ROUTE, COMPLETED_BOOKS_ROUTE, IN_PROGRESS_BOOKS_ROUTE, PLANNED_BOOKS_ROUTE } from '~constants/routes';
+import colors from '~styles/colors';
 import AllBooks from './AllBooks';
-import PlannedBooks from './PlannedBooks';
-import InProgressBooks from './InProgressBooks';
 import CompletedBooks from './CompletedBooks';
+import InProgressBooks from './InProgressBooks';
+import PlannedBooks from './PlannedBooks';
 import styles from './styles';
 
 const Tab = createMaterialTopTabNavigator();
@@ -61,9 +62,9 @@ const HeaderTabs: FC<Props> = ({ t }) => (
 const Home = () => {
   const { t } = useTranslation('books');
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <HeaderTabs t={t} />
-    </View>
+    </SafeAreaView>
   );
 };
 

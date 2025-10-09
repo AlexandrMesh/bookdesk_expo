@@ -1,12 +1,13 @@
-import React, { FC } from 'react';
-import { ScrollView, View, Text, Linking } from 'react-native';
-import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
+import React, { FC } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Linking, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ABOUT_ROUTE } from '~constants/routes';
 import { SECONDARY } from '~constants/themes';
-import { getUserEmail, getRegistered } from '~redux/selectors/auth';
-import { signOut } from '~redux/actions/authActions';
 import { useAppDispatch, useAppSelector } from '~hooks';
+import { signOut } from '~redux/actions/authActions';
+import { getRegistered, getUserEmail } from '~redux/selectors/auth';
 import Button from '~UI/Button';
 import LanguageSettings from './LanguageSettings';
 import styles from './styles';
@@ -29,7 +30,7 @@ const Profile: FC<Props> = ({ isTheLatestAppVersion, googlePlayUrl }) => {
   const registered = useAppSelector(getRegistered);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.profile}>
         <Text style={styles.label}>
           {t('email')} <Text style={styles.value}>{email}</Text>
@@ -56,7 +57,7 @@ const Profile: FC<Props> = ({ isTheLatestAppVersion, googlePlayUrl }) => {
           </ScrollView>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
