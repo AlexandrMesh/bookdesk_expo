@@ -3,7 +3,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, Text, View } from 'react-native';
 import { BarChart } from 'react-native-gifted-charts';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Spinner } from '~UI/Spinner';
 import { COMPLETED } from '~constants/boardType';
 import { useAppDispatch, useAppSelector } from '~hooks';
@@ -58,7 +57,7 @@ const Books = () => {
   const maxValueToLimitBarChartMaxWidth = 6;
 
   return (
-    <SafeAreaView style={styles.wrapper}>
+    <View style={styles.wrapper}>
       <ScrollView keyboardShouldPersistTaps='handled'>
         <View style={styles.statBlock}>
           {isLoadingStat ? (
@@ -102,7 +101,7 @@ const Books = () => {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

@@ -3,7 +3,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, Text, View } from 'react-native';
 import { BarChart } from 'react-native-gifted-charts';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Spinner } from '~UI/Spinner';
 import { useAppDispatch, useAppSelector } from '~hooks';
 import { loadPagesStat } from '~redux/actions/statisticActions';
@@ -57,7 +56,7 @@ const Pages = () => {
   const maxValueToLimitBarChartMaxWidth = 6;
 
   return (
-    <SafeAreaView style={styles.wrapper}>
+    <View style={styles.wrapper}>
       <ScrollView keyboardShouldPersistTaps='handled'>
         <View style={styles.statBlock}>
           {isLoadingPagesStat ? (
@@ -101,7 +100,7 @@ const Pages = () => {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

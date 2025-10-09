@@ -37,7 +37,7 @@ export default StyleSheet.create({
     fontWeight: 'bold',
     paddingHorizontal: 15,
     paddingVertical: 10,
-    marginTop: 15,
+    marginTop: 5,
     color: colors.neutral_light,
     backgroundColor: colors.primary_darkest,
     borderRadius: 5,
@@ -48,7 +48,7 @@ export default StyleSheet.create({
     color: colors.neutral_light,
   },
   chartWrapper: {
-    marginTop: 15,
+    marginTop: 10,
   },
   info: {
     marginTop: 10,
