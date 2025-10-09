@@ -1,10 +1,10 @@
-import React, { FC, useRef, useState, useCallback, memo } from 'react';
-import { FlatList, Animated, Text, TouchableOpacity, Modal, View, useWindowDimensions, StyleProp, ViewStyle, TextStyle } from 'react-native';
+import React, { FC, memo, useCallback, useRef, useState } from 'react';
+import { Animated, FlatList, Modal, StyleProp, Text, TextStyle, TouchableOpacity, View, ViewStyle, useWindowDimensions } from 'react-native';
+import DropdownIcon from '~assets/dropdown.svg';
 import { DROPDOWN_ICON } from '~constants/dimensions';
 import useGetAnimatedPlaceholderStyle from '~hooks/useGetAnimatedPlaceholderStyle';
-import DropdownIcon from '~assets/dropdown.svg';
-import { BookStatus } from '~types/books';
 import colors from '~styles/colors';
+import { BookStatus } from '~types/books';
 import styles from './styles';
 
 export type Props = {
@@ -34,7 +34,7 @@ const Dropdown: FC<Props> = ({
   isLoading,
 }) => {
   const { height } = useWindowDimensions();
-  const dropdownButton = useRef<any>();
+  const dropdownButton = useRef<any>(null);
   const [visible, setVisible] = useState(false);
   const dropdownTop = useRef<number | null>(0);
   const dropdownBottom = useRef<number | null>(0);
@@ -50,13 +50,13 @@ const Dropdown: FC<Props> = ({
   );
 
   const openDropdown = useCallback(() => {
-    dropdownButton.current?.measure((_fx: number, _fy: number, _w: number, h: number, px: number, py: number) => {
+    dropdownButton.current?.measure((_fx: number, _fy: number, w: number, h: number, px: number, py: number) => {
       if (height - py < dropdownHeight + 60) {
         dropdownTop.current = null;
         dropdownBottom.current = height - py;
       } else {
         dropdownBottom.current = null;
-        dropdownTop.current = py + h;
+        dropdownTop.current = py + h - 30;
       }
       dropdownLeft.current = dropdownLeftPosition || px;
       setVisible(true);
