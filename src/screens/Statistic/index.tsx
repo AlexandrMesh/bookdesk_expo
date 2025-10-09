@@ -3,7 +3,6 @@ import { TFunction } from 'i18next';
 import React, { FC } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dimensions, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { BOOKS_STATISTIC_ROUTE, PAGES_STATISTIC_ROUTE, RATING_STATISTIC_ROUTE } from '~constants/routes';
 import colors from '~styles/colors';
 import Books from './Books';
@@ -53,9 +52,9 @@ const HeaderTabs: FC<Props> = ({ t }) => (
 const Statistic = () => {
   const { t } = useTranslation('statistic');
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.container}>
       <HeaderTabs t={t} />
-    </SafeAreaView>
+    </View>
   );
 };
 
