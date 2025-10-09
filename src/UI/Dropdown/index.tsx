@@ -36,6 +36,7 @@ const Dropdown: FC<Props> = ({
   const { height } = useWindowDimensions();
   const dropdownButton = useRef<any>(null);
   const [visible, setVisible] = useState(false);
+  const [isPositioned, setIsPositioned] = useState(false);
   const dropdownTop = useRef<number | null>(0);
   const dropdownBottom = useRef<number | null>(0);
   const dropdownLeft = useRef<number | null>(0);
@@ -45,6 +46,7 @@ const Dropdown: FC<Props> = ({
   const handleChange = useCallback(
     (value: string) => {
       setVisible(false);
+      setIsPositioned(false);
       onChange(value);
     },
     [onChange],
@@ -52,14 +54,10 @@ const Dropdown: FC<Props> = ({
 
   const openDropdown = useCallback(() => {
     dropdownButton.current?.measureInWindow((x: number, y: number, w: number, h: number) => {
-      console.log('Dropdown button measurements:', { x, y, w, h, screenHeight: height });
-      
       const spaceBelow = height - (y + h);
       const spaceAbove = y;
       const padding = 20; // Дополнительный отступ от краев экрана
       const borderOverlap = 1; // Перекрытие на 1px для визуального соединения
-      
-      console.log('Space calculations:', { spaceBelow, spaceAbove, dropdownHeight });
       
       // Проверяем, есть ли достаточно места снизу для дропдауна
       if (spaceBelow >= dropdownHeight) {
@@ -67,34 +65,42 @@ const Dropdown: FC<Props> = ({
         dropdownBottom.current = null;
         dropdownTop.current = y + h - borderOverlap;
         setMaxDropdownHeight(undefined);
-        console.log('Positioning below button:', y + h - borderOverlap);
       } else if (spaceAbove >= dropdownHeight) {
         // Показываем над кнопкой - перекрываем на 1px для бесшовного соединения
         dropdownTop.current = null;
         dropdownBottom.current = height - y + borderOverlap;
         setMaxDropdownHeight(undefined);
-        console.log('Positioning above button:', height - y + borderOverlap);
       } else {
         // Если места мало с обеих сторон, показываем там где больше места
         if (spaceBelow > spaceAbove) {
           dropdownBottom.current = null;
           dropdownTop.current = y + h - borderOverlap;
           setMaxDropdownHeight(Math.max(spaceBelow - padding, 100));
-          console.log('Positioning below (limited):', y + h - borderOverlap, 'maxHeight:', Math.max(spaceBelow - padding, 100));
         } else {
           dropdownTop.current = null;
           dropdownBottom.current = height - y + borderOverlap;
           setMaxDropdownHeight(Math.max(spaceAbove - padding, 100));
-          console.log('Positioning above (limited):', height - y + borderOverlap, 'maxHeight:', Math.max(spaceAbove - padding, 100));
         }
       }
       
       dropdownLeft.current = dropdownLeftPosition ?? x;
+      
+      // Сначала показываем модал с opacity 0, затем делаем видимым
       setVisible(true);
+      setImmediate(() => {
+        setIsPositioned(true);
+      });
     });
   }, [dropdownHeight, dropdownLeftPosition, height]);
 
-  const toggleDropdown = useCallback(() => (visible ? setVisible(false) : openDropdown()), [openDropdown, visible]);
+  const toggleDropdown = useCallback(() => {
+    if (visible) {
+      setVisible(false);
+      setIsPositioned(false);
+    } else {
+      openDropdown();
+    }
+  }, [openDropdown, visible]);
 
   const renderItem = useCallback(
     ({ item }: any) => (
@@ -116,7 +122,7 @@ const Dropdown: FC<Props> = ({
   const renderDropdown = useCallback(() => {
     return (
       <Modal visible={visible} transparent animationType='none'>
-        <TouchableOpacity style={styles.overlay} onPress={() => setVisible(false)} />
+        <TouchableOpacity style={styles.overlay} onPress={() => { setVisible(false); setIsPositioned(false); }} />
         <View
           style={[
             styles.dropdown,
@@ -125,6 +131,7 @@ const Dropdown: FC<Props> = ({
               ...(dropdownBottom.current && { bottom: dropdownBottom.current }),
               left: dropdownLeft.current,
               ...(maxDropdownHeight && { maxHeight: maxDropdownHeight }),
+              opacity: isPositioned ? 1 : 0,
             },
           ]}
         >
@@ -132,7 +139,7 @@ const Dropdown: FC<Props> = ({
         </View>
       </Modal>
     );
-  }, [items, getKeyExtractor, renderItem, visible, maxDropdownHeight]);
+  }, [items, getKeyExtractor, renderItem, visible, isPositioned, maxDropdownHeight]);
 
   return (
     <Animated.View style={isLoading ? { opacity: animatedStyle } : {}}>
