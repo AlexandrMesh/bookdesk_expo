@@ -1,34 +1,41 @@
 import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
-import intersection from 'lodash/intersection';
 import difference from 'lodash/difference';
+import intersection from 'lodash/intersection';
 import { PAGE_SIZE } from '~constants/bookList';
 import DataService from '~http/services/books';
 import {
+  deriveBookListData,
   deriveBookListHasNextPage,
   deriveBookListPageIndex,
-  deriveBookListTotalItems,
-  deriveSearchQuery,
   deriveBookListSortParams,
-  deriveBookListData,
+  deriveBookListTotalItems,
+  deriveFilterBookCategoryPaths,
+  deriveManageTopLevelCategorySelection,
+  deriveNestedCategories,
+  deriveSearchQuery,
+  getBookToUpdate,
+  getCategoriesData,
+  getSearchQuery,
+  getSearchResults,
   getSearchResultsHasNextPage,
   getSearchResultsPageIndex,
-  getSearchResults,
-  deriveNestedCategories,
-  deriveManageTopLevelCategorySelection,
-  deriveFilterBookCategoryPaths,
-  getCategoriesData,
   getSearchSortParams,
-  getSearchQuery,
   getShouldReloadCategories,
-  getBookToUpdate,
 } from '~redux/selectors/books';
 
-import { updateSuggestedBook, updateBookVotesInSuggestedBook, updateCustomBook, updateBookVotesInCustomBook } from '~redux/actions/customBookActions';
-import { triggerReloadStat } from '~redux/actions/statisticActions';
 import { ALL } from '~constants/boardType';
+import {
+  triggerReloadBookList as sharedTriggerReloadBookList,
+  updateBookOnBoardAndSearch as sharedUpdateBookOnBoardAndSearch,
+  updateBookVotesInCustomBook,
+  updateBookVotesInSuggestedBook,
+  updateCustomBook,
+  updateSuggestedBook,
+} from '~redux/actions/sharedActions';
+import { triggerReloadStat } from '~redux/actions/statisticActions';
+import { AppThunkAPI } from '~redux/store/configureStore';
 import i18n from '~translations/i18n';
 import { BookStatus, IBook, IBookNote, IRating, IVote } from '~types/books';
-import { AppThunkAPI } from '~redux/store/configureStore';
 
 const PREFIX = 'BOOKS';
 
@@ -40,7 +47,6 @@ export const hideModal = createAction(`${PREFIX}/hideModal`);
 export const searchCategory = createAction<{ boardType: BookStatus; query: string }>(`${PREFIX}/searchCategory`);
 export const clearSearchQueryForCategory = createAction<BookStatus>(`${PREFIX}/clearSearchQueryForCategory`);
 export const resetCategories = createAction<BookStatus>(`${PREFIX}/resetCategories`);
-export const triggerReloadBookList = createAction<BookStatus>(`${PREFIX}/triggerReloadBookList`);
 export const clearBookDetails = createAction(`${PREFIX}/clearBookDetails`);
 export const toggleExpandedCategoryBooks = createAction<{ path: string; boardType: BookStatus }>(`${PREFIX}/toggleExpandedCategoryBooks`);
 export const addToIndeterminatedCategories = createAction<{ boardType: BookStatus; value: string }>(`${PREFIX}/addToIndeterminatedCategories`);
@@ -51,13 +57,6 @@ export const triggerReloadSearchResults = createAction(`${PREFIX}/triggerReloadS
 export const clearBooksData = createAction(`${PREFIX}/clearBooksData`);
 export const clearDataForChangeLanguage = createAction(`${PREFIX}/clearDataForChangeLanguage`);
 export const clearSearchResults = createAction(`${PREFIX}/clearSearchResults`);
-export const updateBookOnBoardAndSearch = createAction<{
-  bookId: string;
-  bookStatus: BookStatus;
-  title: string;
-  pages: number;
-  authorsList: string[];
-}>(`${PREFIX}/updateBookOnBoardAndSearch`);
 export const triggerShouldNotClearSearchQuery = createAction(`${PREFIX}/triggerShouldNotClearSearchQuery`);
 export const addFilterValue = createAction<{ boardType: BookStatus; filterParam: string; value: string | string[] }>(`${PREFIX}/addFilterValue`);
 export const removeFilterValue = createAction<{ boardType: BookStatus; filterParam: string; value: string | string[] }>(
@@ -415,3 +414,7 @@ export const updateBookVotes = createAsyncThunk(
     }
   },
 );
+
+// Re-export shared actions for backward compatibility
+export const triggerReloadBookList = sharedTriggerReloadBookList;
+export const updateBookOnBoardAndSearch = sharedUpdateBookOnBoardAndSearch;

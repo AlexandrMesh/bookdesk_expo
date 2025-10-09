@@ -1,10 +1,10 @@
-import React, { FC } from 'react';
-import { Dimensions, View, Text } from 'react-native';
-import { TFunction } from 'i18next';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
-import colors from '~styles/colors';
-import { ADD_CUSTOM_BOOK_ROUTE, BOOKS_STATISTIC_ROUTE, CUSTOM_BOOKS_LIST_ROUTE } from '~constants/routes';
+import { TFunction } from 'i18next';
+import React, { FC } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Dimensions, Text, View } from 'react-native';
+import { ADD_CUSTOM_BOOK_ROUTE, CUSTOM_BOOKS_LIST_ROUTE } from '~constants/routes';
+import colors from '~styles/colors';
 import AddCustomBook from './AddCustomBook';
 import CustomBooksList from './CustomBooksList';
 import styles from './styles';
@@ -25,7 +25,7 @@ const renderLabel = (label: string, focused: boolean) => (
 
 const HeaderTabs: FC<Props> = ({ t }) => (
   <Tab.Navigator
-    initialRouteName={BOOKS_STATISTIC_ROUTE}
+    initialRouteName={ADD_CUSTOM_BOOK_ROUTE}
     initialLayout={{
       width: Dimensions.get('window').width,
     }}

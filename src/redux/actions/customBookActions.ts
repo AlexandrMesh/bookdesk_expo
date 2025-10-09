@@ -1,22 +1,29 @@
 import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
 import {
-  getNewCustomBookNameValue,
-  getSuggestedBooksSortParams,
-  deriveCustomBookParams,
-  getStatus,
-  getCustomBooksPageIndex,
-  getCustomBooksHasNextPage,
-  getCustomBooksData,
+    deriveCustomBookParams,
+    getCustomBooksData,
+    getCustomBooksHasNextPage,
+    getCustomBooksPageIndex,
+    getNewCustomBookNameValue,
+    getStatus,
+    getSuggestedBooksSortParams,
 } from '~redux/selectors/customBook';
 
-import { triggerReloadBookList, updateBookOnBoardAndSearch } from '~redux/actions/booksActions';
 import { ALL } from '~constants/boardType';
+import { PAGE_SIZE } from '~constants/bookList';
 import DataService from '~http/services/books';
 import CustomBooksService from '~http/services/customBooks';
+import {
+    updateBookVotesInCustomBook as sharedUpdateBookVotesInCustomBook,
+    updateBookVotesInSuggestedBook as sharedUpdateBookVotesInSuggestedBook,
+    updateCustomBook as sharedUpdateCustomBook,
+    updateSuggestedBook as sharedUpdateSuggestedBook,
+    triggerReloadBookList,
+    updateBookOnBoardAndSearch,
+} from '~redux/actions/sharedActions';
+import { AppThunkAPI } from '~redux/store/configureStore';
 import i18n from '~translations/i18n';
 import { BookStatus } from '~types/books';
-import { AppThunkAPI } from '~redux/store/configureStore';
-import { PAGE_SIZE } from '~constants/bookList';
 
 const PREFIX = 'CUSTOM_BOOKS';
 
@@ -43,10 +50,6 @@ export const clearSuggestedBooks = createAction(`${PREFIX}/clearSuggestedBooks`)
 export const toggleExpandedCategoryCustomBooks = createAction<string>(`${PREFIX}/toggleExpandedCategoryCustomBooks`);
 export const selectCategory = createAction<{ path: string; label: string }>(`${PREFIX}/selectCategory`);
 export const setStatus = createAction<BookStatus>(`${PREFIX}/setStatus`);
-export const updateSuggestedBook = createAction<{ bookId: string; bookStatus: BookStatus; added: number }>(`${PREFIX}/updateSuggestedBook`);
-export const updateCustomBook = createAction<{ bookId: string; bookStatus: BookStatus; added: number }>(`${PREFIX}/updateCustomBook`);
-export const updateBookVotesInSuggestedBook = createAction<{ bookId: string; votesCount: number }>(`${PREFIX}/updateBookVotesInSuggestedBook`);
-export const updateBookVotesInCustomBook = createAction<{ bookId: string; votesCount: number }>(`${PREFIX}/updateBookVotesInCustomBook`);
 export const triggerReloadCustomBookList = createAction(`${PREFIX}/triggerReloadCustomBookList`);
 export const clearData = createAction(`${PREFIX}/clearData`);
 
@@ -199,3 +202,9 @@ export const updateUserCustomBook = createAsyncThunk(
     }
   },
 );
+
+// Re-export shared actions for backward compatibility
+export const updateSuggestedBook = sharedUpdateSuggestedBook;
+export const updateCustomBook = sharedUpdateCustomBook;
+export const updateBookVotesInSuggestedBook = sharedUpdateBookVotesInSuggestedBook;
+export const updateBookVotesInCustomBook = sharedUpdateBookVotesInCustomBook;

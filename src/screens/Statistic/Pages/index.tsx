@@ -1,12 +1,13 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { SafeAreaView, ScrollView, View, Text } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { BarChart } from 'react-native-gifted-charts';
 import { useIsFocused } from '@react-navigation/native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ScrollView, Text, View } from 'react-native';
+import { BarChart } from 'react-native-gifted-charts';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Spinner } from '~UI/Spinner';
+import { useAppDispatch, useAppSelector } from '~hooks';
 import { loadPagesStat } from '~redux/actions/statisticActions';
 import { getShouldReloadStat } from '~redux/selectors/statistic';
-import { useAppDispatch, useAppSelector } from '~hooks';
 import colors from '~styles/colors';
 import styles from '../styles';
 
