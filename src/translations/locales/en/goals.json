@@ -1,0 +1,21 @@
+{
+  "readingTracker": "Reading tracker",
+  "addGoal": "Add Goal",
+  "enterPagesCount": "Enter pages count",
+  "pagesCount": "Pages count",
+  "add": "Add",
+  "goalFor": "Goal for: {{date}}",
+  "editGoal": "Edit Goal",
+  "goalsDescription": "Want to develop a regular reading habit? Add a goal and the tracker will help you monitor your progress.",
+  "howManyPagesDoYouWantReadDescription": "Pages count",
+  "pagesDone": "Have read (pages)",
+  "goalInPages": "Goal (pages)",
+  "goalAchieved": "Goal achieved!",
+  "achievementsJournal": "Achievements Journal",
+  "addedPageCountDescription": "Enter the number of pages read. Can be added in parts.",
+  "daily": "Daily",
+  "monthly": "Monthly",
+  "goalType": "Goal type",
+  "displayingRecords": "Showing the last {{count}} entries.",
+  "detailsInTheStat": "Go to the statistics to see more details."
+}

@@ -1,0 +1,22 @@
+{
+  "hasNoValue": "Must not be empty",
+  "isTooLong": "Must be no more than {{maxLength}} characters",
+  "isNotValidEmailPattern": "Invalid email format",
+  "isTooShort": "Must be at least {{minLength}} characters",
+  "noToken": "A token must be provided",
+  "somethingWentWrong": "Something went wrong",
+  "incorrectToken": "Incorrect token",
+  "noEmail": "Email must be provided",
+  "incorrectEmail": "Incorrect email",
+  "noPassword": "A password must be provided",
+  "emailExists": "Email exists",
+  "invalidGoogleEmail": "Invalid Google Email",
+  "noUser": "No such user exists",
+  "wrongEmailOrPassword": "Invalid email or password",
+  "serverNotAvailable": "Server is not available. Please try again later.",
+  "mustContainOnlyLetters": "Only letters can be used",
+  "mustContainOnlyNumbers": "Only integers can be used",
+  "containsSpecialCharacters": "Unacceptable symbols @^&/#+$~%;~`*<>=%[]{}_|",
+  "isMoreThan": "Shouldn't be more than {{moreComparedValue}}",
+  "isLessThan": "Shouldn't be less than {{lessComparedValue}}"
+}

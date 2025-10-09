@@ -1,0 +1,21 @@
+{
+  "readingTracker": "Трекер чтения",
+  "addGoal": "Добавить цель",
+  "enterPagesCount": "Введите кол-во страниц",
+  "pagesCount": "Кол-во страниц",
+  "add": "Внести",
+  "goalFor": "Цель на: {{date}}",
+  "editGoal": "Изменить цель",
+  "goalsDescription": "Хотите развить привычку регулярного чтения? Добавьте себе цель и трекер поможет Вам следить за достижением результатов.",
+  "howManyPagesDoYouWantReadDescription": "Кол-во страниц",
+  "pagesDone": "Прочитано (страниц)",
+  "goalInPages": "Цель (страниц)",
+  "goalAchieved": "Цель достигнута!",
+  "achievementsJournal": "Журнал достижений",
+  "addedPageCountDescription": "Внесите количество прочитанных страниц. Можно вносить частями.",
+  "daily": "Ежедневная",
+  "monthly": "Ежемесячная",
+  "goalType": "Тип цели",
+  "displayingRecords": "Показаны последние {{count}} записей.",
+  "detailsInTheStat": "Перейдите в статистику чтобы посмотреть детальнее."
+}

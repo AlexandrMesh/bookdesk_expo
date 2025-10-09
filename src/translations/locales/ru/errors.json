@@ -1,0 +1,22 @@
+{
+  "hasNoValue": "Заполните это поле",
+  "isTooLong": "Должно быть символов не более: {{maxLength}}",
+  "isNotValidEmailPattern": "Неверный формат email",
+  "isTooShort": "Должно быть символов не менее: {{minLength}}",
+  "noToken": "Должен быть предоставлен токен",
+  "somethingWentWrong": "Что-то пошло не так",
+  "incorrectToken": "Неверный токен",
+  "noEmail": "Должен быть предоставлен email",
+  "incorrectEmail": "Неверный email",
+  "noPassword": "Должен быть предоставлен пароль",
+  "emailExists": "Email существует",
+  "invalidGoogleEmail": "Неверный Google Email",
+  "noUser": "Такого пользователя не существует",
+  "wrongEmailOrPassword": "Неверный email или пароль",
+  "serverNotAvailable": "Сервер недоступен. Попробуйте позже.",
+  "mustContainOnlyLetters": "Можно использовать только буквы",
+  "mustContainOnlyNumbers": "Можно использовать только целые числа",
+  "containsSpecialCharacters": "Недопустимые символы @^&/#+$~%;~`*<>=%[]{}_|",
+  "isMoreThan": "Не должно быть больше чем {{moreComparedValue}}",
+  "isLessThan": "Не должно быть меньше чем {{lessComparedValue}}"
+}
