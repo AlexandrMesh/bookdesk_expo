@@ -1,0 +1,49 @@
+# dependencies
+node_modules/
+.expo/
+.expo-shared/
+
+# build output
+dist/
+build/
+.next/
+out/
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+.env
+
+# vercel
+.vercel
+
+# package manager
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# generated files
+*.d.ts
+*.map
+
+# assets
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.webp
+*.ico
+*.woff
+*.woff2
+*.ttf
+*.eot
+

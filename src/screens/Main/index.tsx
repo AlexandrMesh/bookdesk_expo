@@ -96,7 +96,6 @@ const StatNavigator = () => {
   return (
     <Stack.Navigator
       screenOptions={{
-        animationEnabled: false,
         headerStyle: {
           backgroundColor: colors.primary_dark,
           shadowColor: 'transparent',
@@ -287,7 +286,6 @@ const ProfileNavigator: FC<ProfileNavigatorProps> = ({ isTheLatestAppVersion, go
   return (
     <Stack.Navigator
       screenOptions={{
-        animationEnabled: false,
         headerStyle: {
           backgroundColor: colors.primary_dark,
           shadowColor: 'transparent',
@@ -524,15 +522,15 @@ const Main = () => {
             </InSuspense>
           </>
         ) : (
-          <Stack.Navigator screenOptions={{ animationEnabled: false }}>
-            <Stack.Screen name={SIGN_IN_ROUTE} options={{ headerShown: false }}>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name={SIGN_IN_ROUTE}>
               {() => (
                 <InSuspense>
                   <SignIn />
                 </InSuspense>
               )}
             </Stack.Screen>
-            <Stack.Screen name={SIGN_UP_ROUTE} options={{ headerShown: false }}>
+            <Stack.Screen name={SIGN_UP_ROUTE}>
               {() => (
                 <InSuspense>
                   <SignUp />
