@@ -39,6 +39,7 @@ const Dropdown: FC<Props> = ({
   const dropdownTop = useRef<number | null>(0);
   const dropdownBottom = useRef<number | null>(0);
   const dropdownLeft = useRef<number | null>(0);
+  const [maxDropdownHeight, setMaxDropdownHeight] = useState<number | undefined>(undefined);
   const animatedStyle = useGetAnimatedPlaceholderStyle(isLoading as boolean);
 
   const handleChange = useCallback(
@@ -50,15 +51,45 @@ const Dropdown: FC<Props> = ({
   );
 
   const openDropdown = useCallback(() => {
-    dropdownButton.current?.measure((_fx: number, _fy: number, w: number, h: number, px: number, py: number) => {
-      if (height - py < dropdownHeight + 60) {
-        dropdownTop.current = null;
-        dropdownBottom.current = height - py;
-      } else {
+    dropdownButton.current?.measureInWindow((x: number, y: number, w: number, h: number) => {
+      console.log('Dropdown button measurements:', { x, y, w, h, screenHeight: height });
+      
+      const spaceBelow = height - (y + h);
+      const spaceAbove = y;
+      const padding = 20; // Дополнительный отступ от краев экрана
+      const borderOverlap = 1; // Перекрытие на 1px для визуального соединения
+      
+      console.log('Space calculations:', { spaceBelow, spaceAbove, dropdownHeight });
+      
+      // Проверяем, есть ли достаточно места снизу для дропдауна
+      if (spaceBelow >= dropdownHeight) {
+        // Показываем под кнопкой - перекрываем на 1px для бесшовного соединения
         dropdownBottom.current = null;
-        dropdownTop.current = py + h - 30;
+        dropdownTop.current = y + h - borderOverlap;
+        setMaxDropdownHeight(undefined);
+        console.log('Positioning below button:', y + h - borderOverlap);
+      } else if (spaceAbove >= dropdownHeight) {
+        // Показываем над кнопкой - перекрываем на 1px для бесшовного соединения
+        dropdownTop.current = null;
+        dropdownBottom.current = height - y + borderOverlap;
+        setMaxDropdownHeight(undefined);
+        console.log('Positioning above button:', height - y + borderOverlap);
+      } else {
+        // Если места мало с обеих сторон, показываем там где больше места
+        if (spaceBelow > spaceAbove) {
+          dropdownBottom.current = null;
+          dropdownTop.current = y + h - borderOverlap;
+          setMaxDropdownHeight(Math.max(spaceBelow - padding, 100));
+          console.log('Positioning below (limited):', y + h - borderOverlap, 'maxHeight:', Math.max(spaceBelow - padding, 100));
+        } else {
+          dropdownTop.current = null;
+          dropdownBottom.current = height - y + borderOverlap;
+          setMaxDropdownHeight(Math.max(spaceAbove - padding, 100));
+          console.log('Positioning above (limited):', height - y + borderOverlap, 'maxHeight:', Math.max(spaceAbove - padding, 100));
+        }
       }
-      dropdownLeft.current = dropdownLeftPosition || px;
+      
+      dropdownLeft.current = dropdownLeftPosition ?? x;
       setVisible(true);
     });
   }, [dropdownHeight, dropdownLeftPosition, height]);
@@ -93,6 +124,7 @@ const Dropdown: FC<Props> = ({
               ...(dropdownTop.current && { top: dropdownTop.current }),
               ...(dropdownBottom.current && { bottom: dropdownBottom.current }),
               left: dropdownLeft.current,
+              ...(maxDropdownHeight && { maxHeight: maxDropdownHeight }),
             },
           ]}
         >
@@ -100,7 +132,7 @@ const Dropdown: FC<Props> = ({
         </View>
       </Modal>
     );
-  }, [items, getKeyExtractor, renderItem, visible]);
+  }, [items, getKeyExtractor, renderItem, visible, maxDropdownHeight]);
 
   return (
     <Animated.View style={isLoading ? { opacity: animatedStyle } : {}}>

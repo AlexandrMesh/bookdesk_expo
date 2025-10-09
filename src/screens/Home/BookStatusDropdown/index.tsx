@@ -1,13 +1,13 @@
-import React, { FC, useState, useCallback, useMemo, memo } from 'react';
-import { StyleProp, ViewStyle, TextStyle } from 'react-native';
+import React, { FC, memo, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppSelector, useAppDispatch } from '~hooks';
+import { StyleProp, TextStyle, ViewStyle } from 'react-native';
+import { ALL, COMPLETED, IN_PROGRESS, PLANNED } from '~constants/boardType';
+import { useAppDispatch, useAppSelector } from '~hooks';
 import { updateUserBook } from '~redux/actions/booksActions';
 import { getBoardType } from '~redux/selectors/books';
-import { ALL, PLANNED, IN_PROGRESS, COMPLETED } from '~constants/boardType';
+import colors from '~styles/colors';
 import { BookStatus } from '~types/books';
 import Dropdown from '~UI/Dropdown';
-import colors from '~styles/colors';
 
 export type Props = {
   bookId: string;
