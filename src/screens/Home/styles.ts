@@ -8,7 +8,7 @@ export default StyleSheet.create({
   },
   tabBarLabel: {
     fontWeight: 'bold',
-    fontSize: 13,
+    fontSize: 15,
     textTransform: 'uppercase',
   },
 });

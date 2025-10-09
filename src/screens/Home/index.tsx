@@ -1,10 +1,8 @@
-import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
-import { TFunction } from 'i18next';
-import React, { FC } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dimensions, Text, View } from 'react-native';
+import { Dimensions, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ALL_BOOKS_ROUTE, COMPLETED_BOOKS_ROUTE, IN_PROGRESS_BOOKS_ROUTE, PLANNED_BOOKS_ROUTE } from '~constants/routes';
+import { SceneMap, TabBar, TabView } from 'react-native-tab-view';
 import colors from '~styles/colors';
 import AllBooks from './AllBooks';
 import CompletedBooks from './CompletedBooks';
@@ -12,60 +10,71 @@ import InProgressBooks from './InProgressBooks';
 import PlannedBooks from './PlannedBooks';
 import styles from './styles';
 
-const Tab = createMaterialTopTabNavigator();
+const { width: screenWidth } = Dimensions.get('window');
 
-const renderLabel = (label: string, focused: boolean) => (
-  <View>
-    <Text style={[styles.tabBarLabel, { color: focused ? colors.neutral_light : colors.neutral_medium }]}>{label}</Text>
-  </View>
-);
+const renderLazyPlaceholder = () => <View style={{ flex: 1, backgroundColor: colors.primary_dark }} />;
 
-type Props = {
-  t: TFunction;
-};
-
-const renderLazyPlaceholder = () => <View style={{ width: '100%', height: '100%', backgroundColor: colors.primary_dark }} />;
-
-const HeaderTabs: FC<Props> = ({ t }) => (
-  <Tab.Navigator
-    initialRouteName={ALL_BOOKS_ROUTE}
-    initialLayout={{
-      width: Dimensions.get('window').width,
-    }}
-    screenOptions={{
-      tabBarItemStyle: { width: 'auto' },
-      lazy: true,
-      lazyPlaceholder: renderLazyPlaceholder,
-      tabBarStyle: {
-        backgroundColor: colors.primary_dark,
-        borderBottomWidth: 1,
-        borderColor: colors.neutral_medium,
-      },
-      tabBarIndicatorStyle: { backgroundColor: colors.neutral_light },
-    }}
-  >
-    <Tab.Screen name={ALL_BOOKS_ROUTE} component={AllBooks} options={{ tabBarLabel: ({ focused }) => renderLabel(t('recommended'), focused) }} />
-    <Tab.Screen name={PLANNED_BOOKS_ROUTE} component={PlannedBooks} options={{ tabBarLabel: ({ focused }) => renderLabel(t('planned'), focused) }} />
-    <Tab.Screen
-      name={IN_PROGRESS_BOOKS_ROUTE}
-      component={InProgressBooks}
-      options={{ tabBarLabel: ({ focused }) => renderLabel(t('inProgress'), focused) }}
-    />
-    <Tab.Screen
-      name={COMPLETED_BOOKS_ROUTE}
-      component={CompletedBooks}
-      options={{ tabBarLabel: ({ focused }) => renderLabel(t('completed'), focused) }}
-    />
-  </Tab.Navigator>
-);
+const renderScene = SceneMap({
+  all: AllBooks,
+  planned: PlannedBooks,
+  inProgress: InProgressBooks,
+  completed: CompletedBooks,
+});
 
 const Home = () => {
   const { t } = useTranslation('books');
+  const [index, setIndex] = useState(0);
+  
+  const routes = [
+    { key: 'all', title: t('recommended') },
+    { key: 'planned', title: t('planned') },
+    { key: 'inProgress', title: t('inProgress') },
+    { key: 'completed', title: t('completed') },
+  ];
+
+  const renderTabBar = (props: any) => (
+    <TabBar
+      {...props}
+      indicatorStyle={tabBarStyles.indicator}
+      style={tabBarStyles.tabBar}
+      tabStyle={tabBarStyles.tab}
+      labelStyle={styles.tabBarLabel}
+      activeColor={colors.neutral_light}
+      inactiveColor={colors.neutral_medium}
+      pressColor="transparent"
+      scrollEnabled={true}
+    />
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <HeaderTabs t={t} />
+      <TabView
+        navigationState={{ index, routes }}
+        renderScene={renderScene}
+        onIndexChange={setIndex}
+        initialLayout={{ width: screenWidth }}
+        renderTabBar={renderTabBar}
+        lazy
+        renderLazyPlaceholder={renderLazyPlaceholder}
+        lazyPreloadDistance={0}
+      />
     </SafeAreaView>
   );
 };
+
+const tabBarStyles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: colors.primary_dark,
+    borderBottomWidth: 1,
+    borderColor: colors.neutral_medium,
+  },
+  tab: {
+    paddingHorizontal: 8,
+  },
+  indicator: {
+    backgroundColor: colors.neutral_light,
+    height: 2,
+  },
+});
 
 export default Home;
