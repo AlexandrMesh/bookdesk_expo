@@ -17,28 +17,28 @@ import { BOTTOM_BAR_ADD_ICON, BOTTOM_BAR_ICON } from '~constants/dimensions';
 import { DAILY } from '~constants/goals';
 import { IDLE, PENDING } from '~constants/loadingStatuses';
 import {
-    ABOUT_ROUTE,
-    ADD_CUSTOM_BOOK_NAVIGATOR_ROUTE,
-    ADD_GOAL,
-    BOOK_DETAILS_ROUTE,
-    BOOK_NOTE_ROUTE,
-    CUSTOM_BOOKS_ROUTE,
-    CUSTOM_CATEGORY_CHOOSER_ROUTE,
-    EDIT_CUSTOM_BOOK_ROUTE,
-    EDIT_GOAL,
-    FITLERING_ROUTE,
-    GOALS_NAVIGATOR_ROUTE,
-    GOALS_ROUTE,
-    GOAL_DETAILS,
-    HOME_NAVIGATOR_ROUTE,
-    HOME_ROUTE,
-    PROFILE_NAVIGATOR_ROUTE,
-    PROFILE_ROUTE,
-    SEARCH_ROUTE,
-    SIGN_IN_ROUTE,
-    SIGN_UP_ROUTE,
-    STAT_NAVIGATOR_ROUTE,
-    STAT_ROUTE,
+  ABOUT_ROUTE,
+  ADD_CUSTOM_BOOK_NAVIGATOR_ROUTE,
+  ADD_GOAL,
+  BOOK_DETAILS_ROUTE,
+  BOOK_NOTE_ROUTE,
+  CUSTOM_BOOKS_ROUTE,
+  CUSTOM_CATEGORY_CHOOSER_ROUTE,
+  EDIT_CUSTOM_BOOK_ROUTE,
+  EDIT_GOAL,
+  FITLERING_ROUTE,
+  GOALS_NAVIGATOR_ROUTE,
+  GOALS_ROUTE,
+  GOAL_DETAILS,
+  HOME_NAVIGATOR_ROUTE,
+  HOME_ROUTE,
+  PROFILE_NAVIGATOR_ROUTE,
+  PROFILE_ROUTE,
+  SEARCH_ROUTE,
+  SIGN_IN_ROUTE,
+  SIGN_UP_ROUTE,
+  STAT_NAVIGATOR_ROUTE,
+  STAT_ROUTE,
 } from '~constants/routes';
 import { useAppDispatch, useAppSelector } from '~hooks';
 import { checkAuth, getConfig } from '~redux/actions/authActions';
@@ -349,15 +349,15 @@ const getIcon = (focused: boolean, route: any) => {
   return (icon as any)[route.name];
 };
 
-const MainNavigator: FC<MainNavigatorProps> = ({ isTheLatestAppVersion, googlePlayUrl, hasGoal, goalType }) => {
-  const { t } = useTranslation(['common', 'books']);
+const TabNavigator: FC<MainNavigatorProps> = ({ isTheLatestAppVersion, googlePlayUrl, hasGoal, goalType }) => {
+  const { t } = useTranslation(['common']);
 
   return (
     <Tab.Navigator
       initialRouteName={HOME_NAVIGATOR_ROUTE}
       backBehavior='history'
       screenOptions={({ route }) => ({
-        tabBarStyle: { backgroundColor: colors.primary_dark, elevation: 0, borderColor: colors.neutral_medium },
+        tabBarStyle: { backgroundColor: colors.primary_dark, elevation: 0, borderTopWidth: 1, borderColor: colors.neutral_medium },
         tabBarShowLabel: false,
         headerShown: false,
         tabBarIcon: ({ focused }) => getIcon(focused, route),
@@ -377,20 +377,34 @@ const MainNavigator: FC<MainNavigatorProps> = ({ isTheLatestAppVersion, googlePl
       >
         {() => <ProfileNavigator isTheLatestAppVersion={isTheLatestAppVersion} googlePlayUrl={googlePlayUrl} />}
       </Tab.Screen>
-      <Tab.Screen
+    </Tab.Navigator>
+  );
+};
+
+const MainNavigator: FC<MainNavigatorProps> = ({ isTheLatestAppVersion, googlePlayUrl, hasGoal, goalType }) => {
+  const { t } = useTranslation(['books']);
+
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: colors.primary_dark,
+          shadowColor: 'transparent',
+          borderBottomWidth: 1,
+          borderColor: colors.neutral_medium,
+        },
+        headerTintColor: colors.neutral_light,
+        presentation: 'modal',
+      }}
+    >
+      <Stack.Screen name="MainTabs" options={{ headerShown: false }}>
+        {() => <TabNavigator isTheLatestAppVersion={isTheLatestAppVersion} googlePlayUrl={googlePlayUrl} goalType={goalType} hasGoal={hasGoal} />}
+      </Stack.Screen>
+      <Stack.Screen
         name={BOOK_DETAILS_ROUTE}
         options={{
-          headerShown: true,
           headerRight: CloseComponent,
           title: t('books:bookDetails'),
-          tabBarButton: () => null,
-          headerStyle: {
-            backgroundColor: colors.primary_dark,
-            shadowColor: 'transparent',
-            borderBottomWidth: 1,
-            borderColor: colors.neutral_medium,
-          },
-          headerTintColor: colors.neutral_light,
         }}
       >
         {() => (
@@ -398,22 +412,12 @@ const MainNavigator: FC<MainNavigatorProps> = ({ isTheLatestAppVersion, googlePl
             <BookDetails />
           </InSuspense>
         )}
-      </Tab.Screen>
-      <Tab.Screen
+      </Stack.Screen>
+      <Stack.Screen
         name={BOOK_NOTE_ROUTE}
         options={{
-          headerShown: true,
-          unmountOnBlur: true,
           headerRight: CloseComponent,
           title: t('books:bookNote'),
-          tabBarButton: () => null,
-          headerStyle: {
-            backgroundColor: colors.primary_dark,
-            shadowColor: 'transparent',
-            borderBottomWidth: 1,
-            borderColor: colors.neutral_medium,
-          },
-          headerTintColor: colors.neutral_light,
         }}
       >
         {() => (
@@ -421,8 +425,8 @@ const MainNavigator: FC<MainNavigatorProps> = ({ isTheLatestAppVersion, googlePl
             <BookNote />
           </InSuspense>
         )}
-      </Tab.Screen>
-    </Tab.Navigator>
+      </Stack.Screen>
+    </Stack.Navigator>
   );
 };
 
