@@ -3,7 +3,7 @@ import { I18nextProvider } from 'react-i18next';
 import 'react-native-gesture-handler';
 import { Provider } from 'react-redux';
 // import { GoogleSignin } from '@react-native-google-signin/google-signin';
-// import { MobileAds } from 'yandex-mobile-ads';
+import { MobileAds } from 'yandex-mobile-ads';
 import configureStore from './src/redux/store/configureStore';
 import Main from './src/screens/Main';
 import i18n from './src/translations/i18n';
@@ -14,11 +14,11 @@ import i18n from './src/translations/i18n';
 // });
 
 const App = () => {
-  // React.useEffect(() => {
-  //   (async () => {
-  //     await MobileAds.initialize();
-  //   })();
-  // }, []);
+  React.useEffect(() => {
+    (async () => {
+      await MobileAds.initialize();
+    })();
+  }, []);
 
   return (
     <I18nextProvider i18n={i18n}>
