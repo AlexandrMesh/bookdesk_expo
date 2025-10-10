@@ -34,35 +34,43 @@ const Home = () => {
   const scrollViewRef = useRef<ScrollView>(null);
   const layoutTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   
-  const routes = [
+  const routes = useMemo(() => [
     { key: 'all', title: t('recommended') },
     { key: 'planned', title: t('planned') },
     { key: 'inProgress', title: t('inProgress') },
     { key: 'completed', title: t('completed') },
-  ];
+  ], [t]);
 
   const handleTabLayout = useCallback((tabIndex: number, event: LayoutChangeEvent) => {
     const { x, width } = event.nativeEvent.layout;
+    
+    // Округляем значения чтобы избежать микро-изменений
+    const roundedX = Math.round(x * 100) / 100;
+    const roundedWidth = Math.round(width * 100) / 100;
     
     setTabMeasurements((prev) => {
       const updated = new Map(prev);
       const existingMeasurement = prev.get(tabIndex);
       
-      // Обновляем только если значения изменились
-      if (!existingMeasurement || existingMeasurement.x !== x || existingMeasurement.width !== width) {
-        updated.set(tabIndex, { x, width });
+      // Обновляем только если значения значительно изменились (больше 0.5px)
+      const shouldUpdate = !existingMeasurement || 
+        Math.abs(existingMeasurement.x - roundedX) > 0.5 || 
+        Math.abs(existingMeasurement.width - roundedWidth) > 0.5;
+      
+      if (shouldUpdate) {
+        updated.set(tabIndex, { x: roundedX, width: roundedWidth });
         
         // Сбрасываем предыдущий таймаут
         if (layoutTimeoutRef.current) {
           clearTimeout(layoutTimeoutRef.current);
         }
         
-        // Даем небольшую задержку чтобы убедиться что все измерения завершились
+        // Даем время чтобы убедиться что все измерения завершились
         layoutTimeoutRef.current = setTimeout(() => {
           if (updated.size === routes.length) {
             setMeasurementsReady(true);
           }
-        }, 50);
+        }, 100);
         
         return updated;
       }
@@ -71,6 +79,12 @@ const Home = () => {
     });
   }, [routes.length]);
 
+  // Сбрасываем измерения при изменении routes (например, при смене языка)
+  useEffect(() => {
+    setMeasurementsReady(false);
+    setTabMeasurements(new Map());
+  }, [routes]);
+
   useEffect(() => {
     return () => {
       if (layoutTimeoutRef.current) {
@@ -78,6 +92,34 @@ const Home = () => {
       }
     };
   }, []);
+
+  // Автоматический скролл к активному табу
+  useEffect(() => {
+    if (!measurementsReady || !scrollViewRef.current) return;
+
+    const measurement = tabMeasurements.get(index);
+    if (!measurement) return;
+
+    // Используем requestAnimationFrame для отложенного скролла
+    const rafId = requestAnimationFrame(() => {
+      if (!scrollViewRef.current) return;
+      
+      const scrollViewWidth = screenWidth;
+      const tabX = measurement.x;
+      const tabWidth = measurement.width;
+      const tabCenter = tabX + tabWidth / 2;
+
+      // Скроллим так чтобы таб был примерно в центре видимой области
+      const targetScrollX = Math.max(0, tabCenter - scrollViewWidth / 2);
+
+      scrollViewRef.current.scrollTo({
+        x: targetScrollX,
+        animated: true,
+      });
+    });
+
+    return () => cancelAnimationFrame(rafId);
+  }, [index, measurementsReady]);
 
   const handleTabPress = useCallback((tabIndex: number) => {
     setIndex(tabIndex);
@@ -248,10 +290,10 @@ const tabBarStyles = StyleSheet.create({
     flexGrow: 0,
   },
   scrollContent: {
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
   },
   tab: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     paddingVertical: 12,
     justifyContent: 'center',
     alignItems: 'center',
