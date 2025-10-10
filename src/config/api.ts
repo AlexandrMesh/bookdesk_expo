@@ -15,5 +15,8 @@ export const getImgUrl = async () => {
 
 export const getApiUrl = async () => {
   const apiUrl = await AsyncStorage.getItem('apiUrl');
-  return __DEV__ ? apiUrl : apiUrl;
+  if (!apiUrl) {
+    console.warn('API URL is not set in AsyncStorage');
+  }
+  return apiUrl || '';
 };

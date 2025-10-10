@@ -56,6 +56,7 @@ export const setSignUpError = createAction<{ fieldName: string; error: string | 
 
 export const getConfig = createAsyncThunk(`${PREFIX}/getConfig`, async (url: string) => {
   try {
+    console.log('Fetching config from:', url);
     const { data } = await axios({
       method: 'get',
       url,
@@ -66,6 +67,7 @@ export const getConfig = createAsyncThunk(`${PREFIX}/getConfig`, async (url: str
       },
       timeout: 5000,
     });
+    console.log('Config data received:', { apiUrl: data?.apiUrl, imgUrl: data?.imgUrl });
     const {
       apiUrl,
       imgUrl,
@@ -94,6 +96,7 @@ export const getConfig = createAsyncThunk(`${PREFIX}/getConfig`, async (url: str
     await AsyncStorage.setItem('appName', appName);
     await AsyncStorage.setItem('email', email);
     await AsyncStorage.setItem('description', i18n.language === RU ? description : descriptionEn);
+    console.log('Config saved to AsyncStorage. API URL:', apiUrl);
 
     return {
       apiUrl: data?.apiUrl,
@@ -104,7 +107,7 @@ export const getConfig = createAsyncThunk(`${PREFIX}/getConfig`, async (url: str
       appVersion: data?.appVersion,
     };
   } catch (error) {
-    console.error(error);
+    console.error('Error fetching config:', error);
     throw error;
   }
 });

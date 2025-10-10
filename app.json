@@ -20,7 +20,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.meshok.bookdesk"
+      "package": "com.meshok.bookdesk",
+      "usesCleartextTraffic": true
     },
     "web": {
       "output": "static",
@@ -28,6 +29,7 @@
     },
     "plugins": [
       "./plugins/remove-adid-permission",
+      "./plugins/withAndroidNetworkSecurityConfig",
       [
         "expo-splash-screen",
         {
