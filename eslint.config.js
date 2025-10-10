@@ -1,51 +1,218 @@
-module.exports = {
-  root: true,
-  env: {
-    browser: true,
-    es6: true,
-    jest: true,
-  },
-  extends: ['@react-native', 'airbnb', 'plugin:prettier/recommended', 'plugin:react/recommended'],
-  globals: {
-    Atomics: 'readonly',
-    SharedArrayBuffer: 'readonly',
-    __DEV__: 'readonly',
-  },
-  parserOptions: {
-    ecmaFeatures: {
-      tsx: true,
-    },
-    ecmaVersion: 2020,
-    sourceType: 'module',
-  },
-  plugins: ['react', 'prettier'],
-  rules: {
-    'no-shadow': 'off',
-    'global-require': 0,
-    'arrow-parens': ['error'],
-    'object-curly-newline': ['error', { consistent: true }],
-    'react/jsx-filename-extension': ['error', { extensions: ['.ts', '.tsx'] }],
-    'react/require-default-props': 0,
-    'react/prop-types': ['error', { ignore: ['navigation'] }],
-    'linebreak-style': 0,
-    'import/extensions': 0,
-    'no-underscore-dangle': 0,
-    'consistent-return': 0,
-    'no-param-reassign': 0,
-    'react-native/no-inline-styles': 0,
-    'max-len': ['error', { code: 150 }],
-    'no-unused-expressions': ['error', { allowShortCircuit: true }],
-    'react/function-component-definition': [2, { namedComponents: 'arrow-function' }],
-    'prettier/prettier': [
-      'error',
-      {
-        endOfLine: 'auto',
+const js = require('@eslint/js');
+const tsPlugin = require('@typescript-eslint/eslint-plugin');
+const tsParser = require('@typescript-eslint/parser');
+const reactPlugin = require('eslint-plugin-react');
+const reactHooksPlugin = require('eslint-plugin-react-hooks');
+const reactNativePlugin = require('eslint-plugin-react-native');
+const prettierPlugin = require('eslint-plugin-prettier');
+const prettierConfig = require('eslint-config-prettier');
+
+module.exports = [
+  // Базовая конфигурация для всех файлов
+  js.configs.recommended,
+
+  // Основные настройки
+  {
+    files: ['**/*.{js,jsx,ts,tsx}'],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: 2020,
+        sourceType: 'module',
+        ecmaFeatures: {
+          jsx: true,
+        },
       },
+      globals: {
+        __DEV__: 'readonly',
+        Atomics: 'readonly',
+        SharedArrayBuffer: 'readonly',
+        // Browser globals
+        window: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
+        console: 'readonly',
+        // Node.js globals
+        module: 'readonly',
+        require: 'readonly',
+        process: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        // Jest globals
+        describe: 'readonly',
+        it: 'readonly',
+        test: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        jest: 'readonly',
+        // React Native globals
+        alert: 'readonly',
+        setImmediate: 'readonly',
+        clearImmediate: 'readonly',
+        cancelAnimationFrame: 'readonly',
+        requestAnimationFrame: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        // TypeScript/React globals
+        JSX: 'readonly',
+        React: 'readonly',
+      },
+    },
+    plugins: {
+      '@typescript-eslint': tsPlugin,
+      react: reactPlugin,
+      'react-hooks': reactHooksPlugin,
+      'react-native': reactNativePlugin,
+      prettier: prettierPlugin,
+    },
+    settings: {
+      react: {
+        version: 'detect',
+      },
+    },
+    rules: {
+      // TypeScript rules
+      ...tsPlugin.configs['recommended'].rules,
+      '@typescript-eslint/no-shadow': 'off',
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
+      '@typescript-eslint/no-require-imports': 'off',
+
+      // React rules
+      ...reactPlugin.configs['recommended'].rules,
+      'react/react-in-jsx-scope': 'off', // Не требуется в React Native
+      'react/prop-types': ['error', { ignore: ['navigation'] }],
+      'react/require-default-props': 'off',
+      'react/jsx-filename-extension': ['error', { extensions: ['.tsx', '.jsx'] }],
+      'react/function-component-definition': [
+        'warn',
+        {
+          namedComponents: 'arrow-function',
+          unnamedComponents: 'arrow-function',
+        },
+      ],
+      'react/jsx-props-no-spreading': 'off',
+      'react/jsx-curly-newline': [
+        'error',
+        {
+          multiline: 'consistent',
+          singleline: 'consistent',
+        },
+      ],
+      'react/jsx-wrap-multilines': [
+        'error',
+        {
+          declaration: 'parens-new-line',
+          assignment: 'parens-new-line',
+          return: 'parens-new-line',
+          arrow: 'parens-new-line',
+          condition: 'parens-new-line',
+          logical: 'parens-new-line',
+          prop: 'parens-new-line',
+        },
+      ],
+
+      // React Hooks rules
+      ...reactHooksPlugin.configs.recommended.rules,
+      'react-hooks/exhaustive-deps': 'warn',
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/immutability': 'warn',
+      'react-hooks/refs': 'warn',
+
+      // React Native rules
+      'react-native/no-unused-styles': 'error',
+      'react-native/no-inline-styles': 'off',
+      'react-native/no-color-literals': 'off',
+
+      // General rules
+      'no-shadow': 'off',
+      'global-require': 'off',
+      'arrow-parens': ['error', 'always'],
+      'object-curly-newline': ['error', { consistent: true }],
+      'linebreak-style': 'off',
+      'no-underscore-dangle': 'off',
+      'consistent-return': 'off',
+      'no-param-reassign': 'off',
+      'max-len': [
+        'error',
+        {
+          code: 150,
+          ignoreUrls: true,
+          ignoreStrings: true,
+          ignoreTemplateLiterals: true,
+          ignoreRegExpLiterals: true,
+        },
+      ],
+      'no-unused-expressions': [
+        'error',
+        {
+          allowShortCircuit: true,
+          allowTernary: true,
+        },
+      ],
+      'no-use-before-define': 'off',
+      '@typescript-eslint/no-use-before-define': [
+        'warn',
+        {
+          functions: false,
+          classes: true,
+          variables: false,
+          ignoreTypeReferences: true,
+        },
+      ],
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'prefer-const': 'error',
+      'no-var': 'error',
+
+      // Prettier integration
+      'prettier/prettier': [
+        'error',
+        {
+          singleQuote: true,
+          trailingComma: 'all',
+          printWidth: 150,
+          endOfLine: 'auto',
+          htmlWhitespaceSensitivity: 'css',
+          jsxSingleQuote: true,
+          quoteProps: 'as-needed',
+          semi: true,
+          tabWidth: 2,
+        },
+      ],
+    },
+  },
+
+  // Игнорируем сгенерированные файлы
+  {
+    ignores: [
+      'node_modules/**',
+      '.expo/**',
+      '.expo-shared/**',
+      'android/**',
+      'ios/**',
+      'dist/**',
+      'build/**',
+      'coverage/**',
+      '.next/**',
+      'out/**',
+      '*.min.js',
+      'scripts/**',
+      '*.lock',
+      '.env*',
     ],
   },
-  settings: {
-    'import/resolver': {
-      'babel-module': {},
-    },
-  },
-};
+
+  // Применяем prettier config в конце для отключения конфликтующих правил
+  prettierConfig,
+];

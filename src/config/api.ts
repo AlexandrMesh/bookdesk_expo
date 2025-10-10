@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const URL = {
+const _URL = {
   development: 'http://localhost:3000',
   // development: 'http://10.9.249.81:3000',
 };

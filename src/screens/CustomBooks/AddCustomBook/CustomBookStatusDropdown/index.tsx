@@ -14,7 +14,7 @@ const getStatusColor = (bookStatus: BookStatus) =>
     [IN_PROGRESS]: colors.in_progress,
     [COMPLETED]: colors.completed,
     [ALL]: colors.neutral_light,
-  }[bookStatus] || colors.neutral_light);
+  })[bookStatus] || colors.neutral_light;
 
 const CustomBookStatusDropdown = () => {
   const { t } = useTranslation(['customBook', 'books', 'common']);

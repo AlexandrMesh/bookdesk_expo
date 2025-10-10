@@ -32,22 +32,11 @@ const DateUpdater = () => {
   };
 
   return (
-    <Modal
-      visible={isVisible}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={_hideDateUpdater}
-    >
+    <Modal visible={isVisible} transparent={true} animationType='fade' onRequestClose={_hideDateUpdater}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <Text style={styles.title}>{t('common:selectDate')}</Text>
-          <DateTimePicker
-            value={selectedDate}
-            mode="date"
-            display="spinner"
-            onChange={handleDateChange}
-            textColor="#FFFFFF"
-          />
+          <DateTimePicker value={selectedDate} mode='date' display='spinner' onChange={handleDateChange} textColor='#FFFFFF' />
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.button} onPress={_hideDateUpdater}>
               <Text style={styles.buttonText}>{t('common:cancel')}</Text>

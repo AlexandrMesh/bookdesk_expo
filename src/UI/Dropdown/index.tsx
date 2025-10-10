@@ -10,7 +10,7 @@ import styles from './styles';
 export type Props = {
   items: { title: string; value: any }[];
   selectedItem: string;
-  // eslint-disable-next-line no-unused-vars
+
   onChange: (value: any) => void;
   buttonLabel: string;
   wrapperStyle?: StyleProp<ViewStyle>;
@@ -58,7 +58,7 @@ const Dropdown: FC<Props> = ({
       const spaceAbove = y;
       const padding = 20; // Дополнительный отступ от краев экрана
       const borderOverlap = 1; // Перекрытие на 1px для визуального соединения
-      
+
       // Проверяем, есть ли достаточно места снизу для дропдауна
       if (spaceBelow >= dropdownHeight) {
         // Показываем под кнопкой - перекрываем на 1px для бесшовного соединения
@@ -82,9 +82,9 @@ const Dropdown: FC<Props> = ({
           setMaxDropdownHeight(Math.max(spaceAbove - padding, 100));
         }
       }
-      
+
       dropdownLeft.current = dropdownLeftPosition ?? x;
-      
+
       // Сначала показываем модал с opacity 0, затем делаем видимым
       setVisible(true);
       setImmediate(() => {
@@ -122,7 +122,13 @@ const Dropdown: FC<Props> = ({
   const renderDropdown = useCallback(() => {
     return (
       <Modal visible={visible} transparent animationType='none'>
-        <TouchableOpacity style={styles.overlay} onPress={() => { setVisible(false); setIsPositioned(false); }} />
+        <TouchableOpacity
+          style={styles.overlay}
+          onPress={() => {
+            setVisible(false);
+            setIsPositioned(false);
+          }}
+        />
         <View
           style={[
             styles.dropdown,

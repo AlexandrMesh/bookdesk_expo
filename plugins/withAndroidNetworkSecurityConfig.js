@@ -29,14 +29,7 @@ module.exports = function withAndroidNetworkSecurityConfig(config) {
     application.$['android:networkSecurityConfig'] = '@xml/network_security_config';
 
     // Write network_security_config.xml file
-    const resourcePath = path.join(
-      config.modRequest.platformProjectRoot,
-      'app',
-      'src',
-      'main',
-      'res',
-      'xml'
-    );
+    const resourcePath = path.join(config.modRequest.platformProjectRoot, 'app', 'src', 'main', 'res', 'xml');
 
     // Create directory if it doesn't exist
     if (!fs.existsSync(resourcePath)) {
@@ -50,4 +43,3 @@ module.exports = function withAndroidNetworkSecurityConfig(config) {
     return config;
   });
 };
-

@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
-import { ScrollView, View, Text } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import isEmpty from 'lodash/isEmpty';
 import { useNavigation } from '@react-navigation/native';
-import { getValidationFailure, validationTypes } from '~utils/validation';
-import { signUp, setSignUpError } from '~redux/actions/authActions';
-import { getSignUpLoadingDataStatus, getSignUpErrors } from '~redux/selectors/auth';
-import { SIGN_IN_ROUTE } from '~constants/routes';
-import { useAppDispatch, useAppSelector } from '~hooks';
-import Button from '~UI/Button';
-import Logo from '~screens/Auth/Logo';
-import Input from '~UI/TextInput';
-import { Spinner } from '~UI/Spinner';
-import { SECONDARY } from '~constants/themes';
+import isEmpty from 'lodash/isEmpty';
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { PENDING } from '~constants/loadingStatuses';
+import { SIGN_IN_ROUTE } from '~constants/routes';
+import { SECONDARY } from '~constants/themes';
+import { useAppDispatch, useAppSelector } from '~hooks';
+import { setSignUpError, signUp } from '~redux/actions/authActions';
+import { getSignUpErrors, getSignUpLoadingDataStatus } from '~redux/selectors/auth';
+import Logo from '~screens/Auth/Logo';
+import Button from '~UI/Button';
+import { Spinner } from '~UI/Spinner';
+import Input from '~UI/TextInput';
+import { getValidationFailure, validationTypes } from '~utils/validation';
 import styles from './styles';
 
 const SignUp = () => {
@@ -40,12 +40,12 @@ const SignUp = () => {
   };
 
   const handleSetEmail = (email: string) => {
-    !isEmpty(errors.email) && _setSignUpError('email', '');
+    if (!isEmpty(errors.email)) _setSignUpError('email', '');
     setEmail(email);
   };
 
   const handleSetPassword = (password: string) => {
-    !isEmpty(errors.password) && _setSignUpError('password', '');
+    if (!isEmpty(errors.password)) _setSignUpError('password', '');
     setPassword(password);
   };
 
@@ -62,9 +62,14 @@ const SignUp = () => {
   };
 
   return (
-    <View style={styles.wrapper}>
-      <View style={styles.content}>
-        <ScrollView keyboardShouldPersistTaps='handled'>
+    <KeyboardAvoidingView style={styles.wrapper} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps='handled'
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={styles.content}>
           <Logo />
           <View style={styles.formWrapper}>
             <Input
@@ -105,9 +110,9 @@ const SignUp = () => {
               </View>
             </View>
           </View>
-        </ScrollView>
-      </View>
-    </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 

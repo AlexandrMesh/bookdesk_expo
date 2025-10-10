@@ -15,4 +15,3 @@ const getAddCustomBookSteps = (state: StateWithCustomBook) => getAddCustomBook(s
 const getAddCustomBookStep3 = (state: StateWithCustomBook) => getAddCustomBookSteps(state)[3];
 const getEditableCategory = (state: StateWithCustomBook) => getAddCustomBookStep3(state).editableCategory;
 export const getExpandedCategories = (state: StateWithCustomBook) => getEditableCategory(state).expanded;
-

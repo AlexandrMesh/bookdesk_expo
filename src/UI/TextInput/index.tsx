@@ -10,7 +10,7 @@ export type Props = {
   className?: StyleProp<TextStyle>;
   wrapperClassName?: StyleProp<ViewStyle>;
   errorWrapperClassName?: StyleProp<ViewStyle>;
-  // eslint-disable-next-line no-unused-vars
+
   onChangeText: (value: string) => void;
   value: string;
   placeholder?: string;

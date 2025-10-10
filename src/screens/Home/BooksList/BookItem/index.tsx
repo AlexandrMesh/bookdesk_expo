@@ -74,7 +74,6 @@ const BookItem: FC<Props> = memo(
               authorsList?.map(
                 (author, index) =>
                   index < 2 && (
-                     
                     <View key={`${author}_${index}`}>
                       <Text style={[styles.item, styles.mediumColor]}>{author}</Text>
                     </View>

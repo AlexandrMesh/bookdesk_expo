@@ -10,7 +10,7 @@ http.interceptors.request.use(
   async (config: any) => {
     try {
       const value = await AsyncStorage.getItem('token');
-      // eslint-disable-next-line no-param-reassign
+
       if (value) {
         config.headers.Authorization = `Bearer ${value}`;
       }

@@ -1,12 +1,12 @@
 import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
 import {
-    deriveCustomBookParams,
-    getCustomBooksData,
-    getCustomBooksHasNextPage,
-    getCustomBooksPageIndex,
-    getNewCustomBookNameValue,
-    getStatus,
-    getSuggestedBooksSortParams,
+  deriveCustomBookParams,
+  getCustomBooksData,
+  getCustomBooksHasNextPage,
+  getCustomBooksPageIndex,
+  getNewCustomBookNameValue,
+  getStatus,
+  getSuggestedBooksSortParams,
 } from '~redux/selectors/customBook';
 
 import { ALL } from '~constants/boardType';
@@ -14,12 +14,12 @@ import { PAGE_SIZE } from '~constants/bookList';
 import DataService from '~http/services/books';
 import CustomBooksService from '~http/services/customBooks';
 import {
-    updateBookVotesInCustomBook as sharedUpdateBookVotesInCustomBook,
-    updateBookVotesInSuggestedBook as sharedUpdateBookVotesInSuggestedBook,
-    updateCustomBook as sharedUpdateCustomBook,
-    updateSuggestedBook as sharedUpdateSuggestedBook,
-    triggerReloadBookList,
-    updateBookOnBoardAndSearch,
+  updateBookVotesInCustomBook as sharedUpdateBookVotesInCustomBook,
+  updateBookVotesInSuggestedBook as sharedUpdateBookVotesInSuggestedBook,
+  updateCustomBook as sharedUpdateCustomBook,
+  updateSuggestedBook as sharedUpdateSuggestedBook,
+  triggerReloadBookList,
+  updateBookOnBoardAndSearch,
 } from '~redux/actions/sharedActions';
 import { AppThunkAPI } from '~redux/store/configureStore';
 import i18n from '~translations/i18n';

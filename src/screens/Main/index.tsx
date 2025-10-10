@@ -85,7 +85,7 @@ const Stack = createStackNavigator();
 const TabBarWithBanner = (props: any) => (
   <>
     <BannerAd />
-    { }
+    {}
     <BottomTabBar {...props} />
   </>
 );
@@ -395,7 +395,7 @@ const MainNavigator: FC<MainNavigatorProps> = ({ isTheLatestAppVersion, googlePl
         presentation: 'modal',
       }}
     >
-      <Stack.Screen name="MainTabs" options={{ headerShown: false }}>
+      <Stack.Screen name='MainTabs' options={{ headerShown: false }}>
         {() => <TabNavigator isTheLatestAppVersion={isTheLatestAppVersion} googlePlayUrl={googlePlayUrl} goalType={goalType} hasGoal={hasGoal} />}
       </Stack.Screen>
       <Stack.Screen

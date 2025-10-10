@@ -11,7 +11,7 @@ import i18n from './src/translations/i18n';
 // Работает только в production build, не в Expo Go
 const initializeNativeModules = async () => {
   const isExpoGo = Constants.appOwnership === 'expo';
-  
+
   if (!isExpoGo) {
     try {
       // Google Sign In

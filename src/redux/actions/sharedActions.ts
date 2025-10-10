@@ -16,4 +16,3 @@ export const updateBookOnBoardAndSearch = createAction<{
   authorsList: string[];
 }>(`${PREFIX}/updateBookOnBoardAndSearch`);
 export const triggerReloadBookList = createAction<BookStatus>(`${PREFIX}/triggerReloadBookList`);
-

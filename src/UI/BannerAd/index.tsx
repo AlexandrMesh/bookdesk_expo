@@ -6,7 +6,7 @@ const BannerAd: React.FC = () => {
   const [adSize, setAdSize] = React.useState<any>(null);
   const [BannerViewComponent, setBannerViewComponent] = React.useState<any>(null);
   const [adRequest, setAdRequest] = React.useState<any>(null);
-  
+
   const isExpoGo = Constants.appOwnership === 'expo';
 
   React.useEffect(() => {
@@ -15,7 +15,7 @@ const BannerAd: React.FC = () => {
       (async () => {
         try {
           const { AdRequest, AdTheme, BannerAdSize, BannerView, Gender, Location } = await import('yandex-mobile-ads');
-          
+
           const request = new AdRequest({
             age: '20',
             contextQuery: 'context-query',
@@ -28,9 +28,9 @@ const BannerAd: React.FC = () => {
               ['param2', 'value2'],
             ]),
           });
-          
+
           const size = await BannerAdSize.stickySize(Dimensions.get('window').width);
-          
+
           setAdRequest(request);
           setAdSize(size);
           setBannerViewComponent(() => BannerView);
@@ -47,7 +47,7 @@ const BannerAd: React.FC = () => {
   }
 
   const BannerViewComp = BannerViewComponent;
-  
+
   return (
     <BannerViewComp
       size={adSize}

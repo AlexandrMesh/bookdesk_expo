@@ -16,7 +16,6 @@ export const getGoalNumberOfPages = (state: StateWithGoals) => getGoal(state).nu
 export const getGoalType = (state: StateWithGoals) => getGoal(state).type;
 
 export const deriveNumberOfPagesDoneToday = createSelector([getGoalsData], (pages) =>
-  // eslint-disable-next-line camelcase
   sum(pages.filter(({ added_at }) => new Date(added_at).toDateString() === new Date().toDateString()).map(({ pages }) => Number(pages))),
 );
 

@@ -7,7 +7,7 @@ export type Props = {
     step: number;
     component: JSX.Element;
   }[];
-  // eslint-disable-next-line no-unused-vars
+
   onStepPress: (step: number) => void;
   lastAvailableStep: number;
   currentStep: number;

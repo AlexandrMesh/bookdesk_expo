@@ -26,7 +26,7 @@ const getBoardRoute = (bookStatus: BookStatus) =>
     [IN_PROGRESS]: IN_PROGRESS_BOOKS_ROUTE,
     [COMPLETED]: COMPLETED_BOOKS_ROUTE,
     [ALL]: ALL_BOOKS_ROUTE,
-  }[bookStatus] || ALL_BOOKS_ROUTE);
+  })[bookStatus] || ALL_BOOKS_ROUTE;
 
 const AddCustomBook = () => {
   const { t } = useTranslation('customBook');

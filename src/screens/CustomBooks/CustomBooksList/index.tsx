@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect } from 'react';
 import { View } from 'react-native';
-import EmptyBoard from '~screens/Home/EmptyBoard';
-import TotalCount from '~screens/Home/ActionBar/TotalCount';
 import { IDLE, PENDING, SUCCEEDED } from '~constants/loadingStatuses';
 import { useAppDispatch, useAppSelector } from '~hooks';
 import { loadCustomBookList, loadMoreBooks } from '~redux/actions/customBookActions';
@@ -11,6 +9,8 @@ import {
   getCustomBooksShouldReloadData,
   getCustomBooksTotalItems,
 } from '~redux/selectors/customBook';
+import TotalCount from '~screens/Home/ActionBar/TotalCount';
+import EmptyBoard from '~screens/Home/EmptyBoard';
 import BooksList from '../../Home/BooksList';
 import styles from './styles';
 

@@ -1,21 +1,21 @@
-import React, { useState } from 'react';
-import { ScrollView, View, Text } from 'react-native';
-import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import isEmpty from 'lodash/isEmpty';
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import Button from '~UI/Button';
+import { Spinner } from '~UI/Spinner';
+import Input from '~UI/TextInput';
 import GoogleIcon from '~assets/google.svg';
-import { getValidationFailure, validationTypes } from '~utils/validation';
+import { GOOGLE_ICON } from '~constants/dimensions';
+import { PENDING } from '~constants/loadingStatuses';
 import { SIGN_UP_ROUTE } from '~constants/routes';
 import { SECONDARY } from '~constants/themes';
-import { GOOGLE_ICON } from '~constants/dimensions';
 import { useAppDispatch, useAppSelector } from '~hooks';
-import { getSignInLoadingDataStatus, getSignInErrors } from '~redux/selectors/auth';
-import { signIn, setSignInError } from '~redux/actions/authActions';
+import { setSignInError, signIn } from '~redux/actions/authActions';
+import { getSignInErrors, getSignInLoadingDataStatus } from '~redux/selectors/auth';
 import Logo from '~screens/Auth/Logo';
-import Input from '~UI/TextInput';
-import { Spinner } from '~UI/Spinner';
-import { PENDING } from '~constants/loadingStatuses';
+import { getValidationFailure, validationTypes } from '~utils/validation';
 import styles from './styles';
 
 const SignIn = () => {
@@ -43,12 +43,12 @@ const SignIn = () => {
   };
 
   const handleSetEmail = (email: string) => {
-    !isEmpty(errors.email) && _setSignInError('email', '');
+    if (!isEmpty(errors.email)) _setSignInError('email', '');
     setEmail(email);
   };
 
   const handleSetPassword = (password: string) => {
-    !isEmpty(errors.password) && _setSignInError('password', '');
+    if (!isEmpty(errors.password)) _setSignInError('password', '');
     setPassword(password);
   };
 
@@ -67,9 +67,14 @@ const SignIn = () => {
   };
 
   return (
-    <View style={styles.wrapper}>
-      <View style={styles.content}>
-        <ScrollView keyboardShouldPersistTaps='handled'>
+    <KeyboardAvoidingView style={styles.wrapper} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps='handled'
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={styles.content}>
           <Logo />
           <View style={styles.formWrapper}>
             <Input
@@ -122,9 +127,9 @@ const SignIn = () => {
               </View>
             </View>
           </View>
-        </ScrollView>
-      </View>
-    </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 

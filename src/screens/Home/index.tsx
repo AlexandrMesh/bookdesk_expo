@@ -33,51 +33,56 @@ const Home = () => {
   const [measurementsReady, setMeasurementsReady] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const layoutTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  
-  const routes = useMemo(() => [
-    { key: 'all', title: t('recommended') },
-    { key: 'planned', title: t('planned') },
-    { key: 'inProgress', title: t('inProgress') },
-    { key: 'completed', title: t('completed') },
-  ], [t]);
 
-  const handleTabLayout = useCallback((tabIndex: number, event: LayoutChangeEvent) => {
-    const { x, width } = event.nativeEvent.layout;
-    
-    // Округляем значения чтобы избежать микро-изменений
-    const roundedX = Math.round(x * 100) / 100;
-    const roundedWidth = Math.round(width * 100) / 100;
-    
-    setTabMeasurements((prev) => {
-      const updated = new Map(prev);
-      const existingMeasurement = prev.get(tabIndex);
-      
-      // Обновляем только если значения значительно изменились (больше 0.5px)
-      const shouldUpdate = !existingMeasurement || 
-        Math.abs(existingMeasurement.x - roundedX) > 0.5 || 
-        Math.abs(existingMeasurement.width - roundedWidth) > 0.5;
-      
-      if (shouldUpdate) {
-        updated.set(tabIndex, { x: roundedX, width: roundedWidth });
-        
-        // Сбрасываем предыдущий таймаут
-        if (layoutTimeoutRef.current) {
-          clearTimeout(layoutTimeoutRef.current);
-        }
-        
-        // Даем время чтобы убедиться что все измерения завершились
-        layoutTimeoutRef.current = setTimeout(() => {
-          if (updated.size === routes.length) {
-            setMeasurementsReady(true);
+  const routes = useMemo(
+    () => [
+      { key: 'all', title: t('recommended') },
+      { key: 'planned', title: t('planned') },
+      { key: 'inProgress', title: t('inProgress') },
+      { key: 'completed', title: t('completed') },
+    ],
+    [t],
+  );
+
+  const handleTabLayout = useCallback(
+    (tabIndex: number, event: LayoutChangeEvent) => {
+      const { x, width } = event.nativeEvent.layout;
+
+      // Округляем значения чтобы избежать микро-изменений
+      const roundedX = Math.round(x * 100) / 100;
+      const roundedWidth = Math.round(width * 100) / 100;
+
+      setTabMeasurements((prev) => {
+        const updated = new Map(prev);
+        const existingMeasurement = prev.get(tabIndex);
+
+        // Обновляем только если значения значительно изменились (больше 0.5px)
+        const shouldUpdate =
+          !existingMeasurement || Math.abs(existingMeasurement.x - roundedX) > 0.5 || Math.abs(existingMeasurement.width - roundedWidth) > 0.5;
+
+        if (shouldUpdate) {
+          updated.set(tabIndex, { x: roundedX, width: roundedWidth });
+
+          // Сбрасываем предыдущий таймаут
+          if (layoutTimeoutRef.current) {
+            clearTimeout(layoutTimeoutRef.current);
           }
-        }, 100);
-        
-        return updated;
-      }
-      
-      return prev;
-    });
-  }, [routes.length]);
+
+          // Даем время чтобы убедиться что все измерения завершились
+          layoutTimeoutRef.current = setTimeout(() => {
+            if (updated.size === routes.length) {
+              setMeasurementsReady(true);
+            }
+          }, 100);
+
+          return updated;
+        }
+
+        return prev;
+      });
+    },
+    [routes.length],
+  );
 
   // Сбрасываем измерения при изменении routes (например, при смене языка)
   useEffect(() => {
@@ -103,7 +108,7 @@ const Home = () => {
     // Используем requestAnimationFrame для отложенного скролла
     const rafId = requestAnimationFrame(() => {
       if (!scrollViewRef.current) return;
-      
+
       const scrollViewWidth = screenWidth;
       const tabX = measurement.x;
       const tabWidth = measurement.width;
@@ -132,17 +137,17 @@ const Home = () => {
     }
 
     const inputRange = routes.map((_, i) => i);
-    
+
     // Находим максимальную ширину для базового размера индикатора
     const measurements = Array.from(tabMeasurements.values());
-    const maxWidth = Math.max(...measurements.map(m => m.width));
-    
+    const maxWidth = Math.max(...measurements.map((m) => m.width));
+
     // Получаем массивы позиций и ширин для интерполяции
     const outputRangeX = inputRange.map((i) => {
       const measurement = tabMeasurements.get(i);
       return measurement?.x ?? 0;
     });
-    
+
     const outputRangeWidth = inputRange.map((i) => {
       const measurement = tabMeasurements.get(i);
       return measurement?.width ?? 100;
@@ -156,10 +161,62 @@ const Home = () => {
     };
   }, [measurementsReady, tabMeasurements, routes]);
 
-  const renderTabBar = useCallback((props: any) => {
-    const { position } = props;
-    
-    if (!position || !indicatorData) {
+  const renderTabBar = useCallback(
+    (props: any) => {
+      const { position } = props;
+
+      if (!position || !indicatorData) {
+        return (
+          <View style={tabBarStyles.container}>
+            <ScrollView
+              ref={scrollViewRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              bounces={false}
+              style={tabBarStyles.scrollView}
+              contentContainerStyle={tabBarStyles.scrollContent}
+            >
+              {routes.map((route, i) => {
+                const isFocused = index === i;
+
+                return (
+                  <Pressable
+                    key={route.key}
+                    onLayout={(event) => handleTabLayout(i, event)}
+                    onPress={() => handleTabPress(i)}
+                    style={tabBarStyles.tab}
+                  >
+                    <Text style={[styles.tabBarLabel, { color: isFocused ? colors.neutral_light : colors.neutral_medium }]}>{route.title}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        );
+      }
+
+      const { inputRange, maxWidth, outputRangeX, outputRangeWidth } = indicatorData;
+
+      // scaleX для изменения ширины (вместо width)
+      const scaleX = position.interpolate({
+        inputRange,
+        outputRange: outputRangeWidth.map((w) => w / maxWidth),
+        extrapolate: 'clamp',
+      });
+
+      // translateX с компенсацией для scaleX (чтобы масштабирование шло от левого края)
+      const translateX = position.interpolate({
+        inputRange,
+        outputRange: outputRangeX.map((x, i) => {
+          // Компенсация: scaleX масштабирует от центра, поэтому при уменьшении
+          // элемент смещается вправо. Нужно сдвинуть его обратно влево.
+          const width = outputRangeWidth[i];
+          const offset = (maxWidth - width) / 2;
+          return x - offset;
+        }),
+        extrapolate: 'clamp',
+      });
+
       return (
         <View style={tabBarStyles.container}>
           <ScrollView
@@ -172,96 +229,28 @@ const Home = () => {
           >
             {routes.map((route, i) => {
               const isFocused = index === i;
-              
+
               return (
-                <Pressable
-                  key={route.key}
-                  onLayout={(event) => handleTabLayout(i, event)}
-                  onPress={() => handleTabPress(i)}
-                  style={tabBarStyles.tab}
-                >
-                  <Text
-                    style={[
-                      styles.tabBarLabel,
-                      { color: isFocused ? colors.neutral_light : colors.neutral_medium },
-                    ]}
-                  >
-                    {route.title}
-                  </Text>
+                <Pressable key={route.key} onLayout={(event) => handleTabLayout(i, event)} onPress={() => handleTabPress(i)} style={tabBarStyles.tab}>
+                  <Text style={[styles.tabBarLabel, { color: isFocused ? colors.neutral_light : colors.neutral_medium }]}>{route.title}</Text>
                 </Pressable>
               );
             })}
+            <Animated.View
+              style={[
+                tabBarStyles.indicator,
+                {
+                  width: maxWidth,
+                  transform: [{ translateX }, { scaleX }],
+                },
+              ]}
+            />
           </ScrollView>
         </View>
       );
-    }
-
-    const { inputRange, maxWidth, outputRangeX, outputRangeWidth } = indicatorData;
-
-    // scaleX для изменения ширины (вместо width)
-    const scaleX = position.interpolate({
-      inputRange,
-      outputRange: outputRangeWidth.map(w => w / maxWidth),
-      extrapolate: 'clamp',
-    });
-
-    // translateX с компенсацией для scaleX (чтобы масштабирование шло от левого края)
-    const translateX = position.interpolate({
-      inputRange,
-      outputRange: outputRangeX.map((x, i) => {
-        // Компенсация: scaleX масштабирует от центра, поэтому при уменьшении
-        // элемент смещается вправо. Нужно сдвинуть его обратно влево.
-        const width = outputRangeWidth[i];
-        const offset = (maxWidth - width) / 2;
-        return x - offset;
-      }),
-      extrapolate: 'clamp',
-    });
-
-    return (
-      <View style={tabBarStyles.container}>
-        <ScrollView
-          ref={scrollViewRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          bounces={false}
-          style={tabBarStyles.scrollView}
-          contentContainerStyle={tabBarStyles.scrollContent}
-        >
-          {routes.map((route, i) => {
-            const isFocused = index === i;
-            
-            return (
-              <Pressable
-                key={route.key}
-                onLayout={(event) => handleTabLayout(i, event)}
-                onPress={() => handleTabPress(i)}
-                style={tabBarStyles.tab}
-              >
-                <Text
-                  style={[
-                    styles.tabBarLabel,
-                    { color: isFocused ? colors.neutral_light : colors.neutral_medium },
-                  ]}
-                >
-                  {route.title}
-                </Text>
-              </Pressable>
-            );
-          })}
-          <Animated.View
-            style={[
-              tabBarStyles.indicator,
-              {
-                width: maxWidth,
-                transform: [{ translateX }, { scaleX }],
-              },
-            ]}
-          />
-        </ScrollView>
-      </View>
-    );
-  }, [routes, index, handleTabLayout, handleTabPress, indicatorData]);
+    },
+    [routes, index, handleTabLayout, handleTabPress, indicatorData],
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

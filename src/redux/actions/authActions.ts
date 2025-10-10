@@ -16,18 +16,22 @@ let GoogleSigninModule: any = null;
 
 const getGoogleSignin = async () => {
   const isExpoGo = Constants.appOwnership === 'expo';
-  
+
   if (isExpoGo) {
     // Mock для Expo Go
     return {
       isSignedIn: async () => false,
-      hasPlayServices: async () => { throw new Error('Google Sign-In is not available in Expo Go'); },
-      signIn: async () => { throw new Error('Google Sign-In is not available in Expo Go'); },
+      hasPlayServices: async () => {
+        throw new Error('Google Sign-In is not available in Expo Go');
+      },
+      signIn: async () => {
+        throw new Error('Google Sign-In is not available in Expo Go');
+      },
       revokeAccess: async () => {},
       signOut: async () => {},
     };
   }
-  
+
   if (!GoogleSigninModule) {
     try {
       const module = await import('@react-native-google-signin/google-signin');
@@ -37,14 +41,18 @@ const getGoogleSignin = async () => {
       // Fallback mock
       return {
         isSignedIn: async () => false,
-        hasPlayServices: async () => { throw new Error('Google Sign-In is not available'); },
-        signIn: async () => { throw new Error('Google Sign-In is not available'); },
+        hasPlayServices: async () => {
+          throw new Error('Google Sign-In is not available');
+        },
+        signIn: async () => {
+          throw new Error('Google Sign-In is not available');
+        },
         revokeAccess: async () => {},
         signOut: async () => {},
       };
     }
   }
-  
+
   return GoogleSigninModule;
 };
 
