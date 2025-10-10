@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+
 import { getImgUrl } from '~config/api';
 
 const useGetImgUrl = () => {

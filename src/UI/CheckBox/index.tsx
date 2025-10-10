@@ -1,8 +1,9 @@
 import React, { FC, memo } from 'react';
-import { CHECKBOX_ICON } from '~constants/dimensions';
-import CheckBoxChecked from '~assets/checkbox-checked.svg';
+
 import CheckBoxBlank from '~assets/checkbox-blank.svg';
+import CheckBoxChecked from '~assets/checkbox-checked.svg';
 import CheckBoxIntdeterminate from '~assets/checkbox-indeterminate.svg';
+import { CHECKBOX_ICON } from '~constants/dimensions';
 import colors from '~styles/colors';
 
 export type Props = {

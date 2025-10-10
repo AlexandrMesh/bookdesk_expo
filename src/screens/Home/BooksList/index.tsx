@@ -1,12 +1,16 @@
 import React, { memo, FC, useCallback, useEffect, useRef } from 'react';
+
 import { View, Text } from 'react-native';
+
 import { FlashList } from '@shopify/flash-list';
 import { useTranslation } from 'react-i18next';
-import { Spinner } from '~UI/Spinner';
+
 import { IDLE, PENDING, SUCCEEDED } from '~constants/loadingStatuses';
 import useGetImgUrl from '~hooks/useGetImgUrl';
 import { IBook } from '~types/books';
 import { LoadingType } from '~types/loadingTypes';
+import { Spinner } from '~UI/Spinner';
+
 import BookItem from './BookItem';
 import ItemPlaceholder from './ItemPlaceholder';
 import styles from './styles';

@@ -1,4 +1,5 @@
 import React from 'react';
+
 import SupportAppModal from '~screens/Modals/Modals/SupportAppModal';
 
 const Modals = () => {

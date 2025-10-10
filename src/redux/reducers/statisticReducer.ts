@@ -1,4 +1,5 @@
 import { createReducer } from '@reduxjs/toolkit';
+
 import * as statisticActions from '~redux/actions/statisticActions';
 
 export interface IDefaultState {

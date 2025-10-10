@@ -1,5 +1,7 @@
 import { I18nManager } from 'react-native';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { RU, EN } from '~constants/languages';
 
 const detectLanguage = async () => {

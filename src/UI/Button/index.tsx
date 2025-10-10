@@ -1,6 +1,9 @@
 import React, { memo, FC, JSX } from 'react';
+
 import { TouchableHighlight, View, Text, StyleProp, ViewStyle, TextStyle } from 'react-native';
+
 import { PRIMARY, SECONDARY } from '~constants/themes';
+
 import styles from './styles';
 
 export type Props = {

@@ -1,4 +1,5 @@
 import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
+
 import GoalsService from '~http/services/goals';
 import { triggerReloadStat } from '~redux/actions/statisticActions';
 import { AppThunkAPI } from '~redux/store/configureStore';

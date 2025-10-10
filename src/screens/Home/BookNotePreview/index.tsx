@@ -1,12 +1,16 @@
 import React, { FC } from 'react';
+
 import { TouchableHighlight, Text, View } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import isEmpty from 'lodash/isEmpty';
+
 import { useNavigation } from '@react-navigation/native';
+import isEmpty from 'lodash/isEmpty';
+import { useTranslation } from 'react-i18next';
+
+import ArrowDown from '~assets/arrow-down.svg';
 import { BOOK_NOTE_ROUTE } from '~constants/routes';
 import { useAppSelector } from '~hooks';
 import { deriveBookNote } from '~redux/selectors/books';
-import ArrowDown from '~assets/arrow-down.svg';
+
 import styles from './styles';
 
 export type Props = {

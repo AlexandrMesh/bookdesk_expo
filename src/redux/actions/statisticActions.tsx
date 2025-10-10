@@ -1,13 +1,15 @@
 import React from 'react';
+
 import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
+
 import DataService from '~http/services/books';
-import i18n from '~translations/i18n';
-import generateBarChartData from '~utils/generateBarChartData';
+import GoalsService from '~http/services/goals';
 import DataPointLabel from '~screens/Statistic/DataPointLabel';
 import colors from '~styles/colors';
-import { IStat } from '~types/stat';
+import i18n from '~translations/i18n';
 import { BookStatus } from '~types/books';
-import GoalsService from '~http/services/goals';
+import { IStat } from '~types/stat';
+import generateBarChartData from '~utils/generateBarChartData';
 
 const PREFIX = 'STATISTIC';
 

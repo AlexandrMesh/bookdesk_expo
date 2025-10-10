@@ -1,21 +1,25 @@
 import React, { useCallback, useEffect } from 'react';
+
 import { View } from 'react-native';
+
 import { useIsFocused } from '@react-navigation/native';
-import EmptyBoard from '~screens/Home/EmptyBoard';
-import { IDLE, PENDING, SUCCEEDED } from '~constants/loadingStatuses';
+
 import { IN_PROGRESS } from '~constants/boardType';
+import { IDLE, PENDING, SUCCEEDED } from '~constants/loadingStatuses';
 import { useAppDispatch, useAppSelector } from '~hooks';
+import { loadBookList, loadMoreBooks, setBoardType } from '~redux/actions/booksActions';
 import {
   deriveLoadingBookListStatus,
   deriveBookListTotalItems,
   deriveShouldReloadBookList,
   deriveSectionedBookListData,
 } from '~redux/selectors/books';
-import { loadBookList, loadMoreBooks, setBoardType } from '~redux/actions/booksActions';
+import EmptyBoard from '~screens/Home/EmptyBoard';
 import { BookStatus } from '~types/books';
-import BooksList from '../BooksList';
-import ActionBar from '../ActionBar/ActionBar';
+
 import styles from './styles';
+import ActionBar from '../ActionBar/ActionBar';
+import BooksList from '../BooksList';
 
 const InProgressBooks = () => {
   const isFocused = useIsFocused();

@@ -1,12 +1,14 @@
 import React, { useMemo, useState, useCallback } from 'react';
+
 import { useTranslation } from 'react-i18next';
+
 import { ALL, PLANNED, IN_PROGRESS, COMPLETED } from '~constants/boardType';
 import { useAppDispatch, useAppSelector } from '~hooks';
-import Dropdown from '~UI/Dropdown';
-import { getStatus } from '~redux/selectors/customBook';
 import { setStatus } from '~redux/actions/customBookActions';
-import { BookStatus } from '~types/books';
+import { getStatus } from '~redux/selectors/customBook';
 import colors from '~styles/colors';
+import { BookStatus } from '~types/books';
+import Dropdown from '~UI/Dropdown';
 
 const getStatusColor = (bookStatus: BookStatus) =>
   ({

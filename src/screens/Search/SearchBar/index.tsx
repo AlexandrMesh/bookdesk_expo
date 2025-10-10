@@ -1,12 +1,16 @@
 import React, { useEffect, useCallback } from 'react';
+
 import { View } from 'react-native';
+
 import { useTranslation } from 'react-i18next';
-import Input from '~UI/TextInput';
-import useDebouncedSearch from '~hooks/useDebouncedSearch';
+
 import { PENDING, IDLE } from '~constants/loadingStatuses';
-import { deriveSearchQuery, getShouldClearSearchQuery, getLoadingSearchResultsStatus } from '~redux/selectors/books';
-import { setSearchQuery, clearSearchResults, triggerShouldNotClearSearchQuery } from '~redux/actions/booksActions';
 import { useAppDispatch, useAppSelector } from '~hooks';
+import useDebouncedSearch from '~hooks/useDebouncedSearch';
+import { setSearchQuery, clearSearchResults, triggerShouldNotClearSearchQuery } from '~redux/actions/booksActions';
+import { deriveSearchQuery, getShouldClearSearchQuery, getLoadingSearchResultsStatus } from '~redux/selectors/books';
+import Input from '~UI/TextInput';
+
 import styles from './styles';
 
 const SearchBar = () => {

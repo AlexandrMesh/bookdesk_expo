@@ -1,13 +1,16 @@
 import React, { useState, useCallback, FC, memo } from 'react';
-import { useAppDispatch, useAppSelector } from '~hooks';
+
 import { Animated, Pressable, Text, Vibration } from 'react-native';
-import { deriveBookVotes } from '~redux/selectors/books';
-import useGetAnimatedPlaceholderStyle from '~hooks/useGetAnimatedPlaceholderStyle';
-import { updateBookVotes } from '~redux/actions/booksActions';
+
 import LikeIcon from '~assets/like.svg';
 import LikeFillIcon from '~assets/like_fill.svg';
 import { LIKE_ICON } from '~constants/dimensions';
+import { useAppDispatch, useAppSelector } from '~hooks';
+import useGetAnimatedPlaceholderStyle from '~hooks/useGetAnimatedPlaceholderStyle';
+import { updateBookVotes } from '~redux/actions/booksActions';
+import { deriveBookVotes } from '~redux/selectors/books';
 import { BookStatus } from '~types/books';
+
 import styles from './styles';
 
 export type Props = {

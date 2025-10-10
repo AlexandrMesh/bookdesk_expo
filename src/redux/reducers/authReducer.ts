@@ -1,6 +1,7 @@
 import { createReducer } from '@reduxjs/toolkit';
-import * as authActions from '~redux/actions/authActions';
+
 import { IDLE, PENDING, FAILED, SUCCEEDED } from '~constants/loadingStatuses';
+import * as authActions from '~redux/actions/authActions';
 import { IError, IProfile } from '~types/auth';
 import { LoadingType } from '~types/loadingTypes';
 

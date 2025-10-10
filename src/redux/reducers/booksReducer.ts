@@ -1,10 +1,11 @@
 import { createReducer } from '@reduxjs/toolkit';
+import isEmpty from 'lodash/isEmpty';
 import union from 'lodash/union';
 import uniqBy from 'lodash/uniqBy';
-import isEmpty from 'lodash/isEmpty';
-import * as booksActions from '~redux/actions/booksActions';
-import { IDLE, PENDING, SUCCEEDED, FAILED } from '~constants/loadingStatuses';
+
 import { ALL } from '~constants/boardType';
+import { IDLE, PENDING, SUCCEEDED, FAILED } from '~constants/loadingStatuses';
+import * as booksActions from '~redux/actions/booksActions';
 import { BookStatus, IBook, ICategory, IBookNote, IRating, IVote } from '~types/books';
 import { LoadingType } from '~types/loadingTypes';
 

@@ -1,8 +1,9 @@
 import { createReducer } from '@reduxjs/toolkit';
-import * as appActions from '~redux/actions/appActions';
+
 import { IDLE } from '~constants/loadingStatuses';
-import { LoadingType } from '~types/loadingTypes';
+import * as appActions from '~redux/actions/appActions';
 import { ISupportApp } from '~types/app';
+import { LoadingType } from '~types/loadingTypes';
 
 const getDefaultSupportAppState = (): ISupportApp => ({
   confirmed: false,

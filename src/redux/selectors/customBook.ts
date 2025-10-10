@@ -1,11 +1,11 @@
 import isEmpty from 'lodash/isEmpty';
 import { createSelector } from 'reselect';
+
 import { DEFAULT_COVER } from '~constants/customBooks';
 import { SUCCEEDED } from '~constants/loadingStatuses';
-import { getT } from '~translations/i18n';
-
 import { getCategoriesData } from '~redux/selectors/common';
 import { RootState } from '~redux/store/configureStore';
+import { getT } from '~translations/i18n';
 
 type StateWithCustomBook = Pick<RootState, 'customBook'>;
 

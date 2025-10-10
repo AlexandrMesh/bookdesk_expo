@@ -1,10 +1,12 @@
 import React from 'react';
+
 import range from 'lodash/range';
 import sumBy from 'lodash/sumBy';
-import { getT } from '~translations/i18n';
+
 import { MAPPED_MONTHS } from '~constants/statistic';
 import DataPointLabel from '~screens/Statistic/DataPointLabel';
 import colors from '~styles/colors';
+import { getT } from '~translations/i18n';
 
 const getYearItem = (label: number) => ({
   label,

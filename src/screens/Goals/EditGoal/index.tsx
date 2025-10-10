@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react';
+
 import { View, Text, Pressable } from 'react-native';
-import { useTranslation } from 'react-i18next';
+
 import { useNavigation } from '@react-navigation/native';
-import { getValidationFailure, validationTypes } from '~utils/validation';
-import Button from '~UI/Button';
-import Input from '~UI/TextInput';
-import { useAppDispatch, useAppSelector } from '~hooks';
-import { getGoalNumberOfPages, getGoalType } from '~redux/selectors/goals';
-import { updateGoal } from '~redux/actions/goalsActions';
-import { Spinner } from '~UI/Spinner';
-import RadioButton from '~UI/RadioButton';
+import { useTranslation } from 'react-i18next';
+
 import { DAILY, MONTHLY } from '~constants/goals';
+import { useAppDispatch, useAppSelector } from '~hooks';
+import { updateGoal } from '~redux/actions/goalsActions';
+import { getGoalNumberOfPages, getGoalType } from '~redux/selectors/goals';
 import { GoalType } from '~types/goals';
+import Button from '~UI/Button';
+import RadioButton from '~UI/RadioButton';
+import { Spinner } from '~UI/Spinner';
+import Input from '~UI/TextInput';
+import { getValidationFailure, validationTypes } from '~utils/validation';
+
 import styles from './styles';
 
 const EditGoal = () => {

@@ -1,7 +1,11 @@
 import React, { memo, FC } from 'react';
+
 import { View, Text } from 'react-native';
+
 import { useTranslation } from 'react-i18next';
+
 import numberFormat from '~utils/numberFormat';
+
 import styles from './styles';
 
 export type Props = {

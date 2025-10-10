@@ -1,8 +1,19 @@
 import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
 import difference from 'lodash/difference';
 import intersection from 'lodash/intersection';
+
+import { ALL } from '~constants/boardType';
 import { PAGE_SIZE } from '~constants/bookList';
 import DataService from '~http/services/books';
+import {
+  triggerReloadBookList as sharedTriggerReloadBookList,
+  updateBookOnBoardAndSearch as sharedUpdateBookOnBoardAndSearch,
+  updateBookVotesInCustomBook,
+  updateBookVotesInSuggestedBook,
+  updateCustomBook,
+  updateSuggestedBook,
+} from '~redux/actions/sharedActions';
+import { triggerReloadStat } from '~redux/actions/statisticActions';
 import {
   deriveBookListData,
   deriveBookListHasNextPage,
@@ -22,17 +33,6 @@ import {
   getSearchSortParams,
   getShouldReloadCategories,
 } from '~redux/selectors/books';
-
-import { ALL } from '~constants/boardType';
-import {
-  triggerReloadBookList as sharedTriggerReloadBookList,
-  updateBookOnBoardAndSearch as sharedUpdateBookOnBoardAndSearch,
-  updateBookVotesInCustomBook,
-  updateBookVotesInSuggestedBook,
-  updateCustomBook,
-  updateSuggestedBook,
-} from '~redux/actions/sharedActions';
-import { triggerReloadStat } from '~redux/actions/statisticActions';
 import { AppThunkAPI } from '~redux/store/configureStore';
 import i18n from '~translations/i18n';
 import { BookStatus, IBook, IBookNote, IRating, IVote } from '~types/books';

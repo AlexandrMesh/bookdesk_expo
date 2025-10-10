@@ -1,4 +1,5 @@
 import { createAction } from '@reduxjs/toolkit';
+
 import { BookStatus } from '~types/books';
 
 const PREFIX = 'SHARED';

@@ -1,5 +1,7 @@
 import React, { memo, JSX, FC, Fragment } from 'react';
+
 import { View, Pressable, Text } from 'react-native';
+
 import styles from './styles';
 
 export type Props = {

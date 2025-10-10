@@ -1,13 +1,17 @@
-import { useNavigation } from '@react-navigation/native';
 import React, { FC } from 'react';
-import { useTranslation } from 'react-i18next';
+
 import { Linking, ScrollView, Text, View } from 'react-native';
+
+import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
+
 import { ABOUT_ROUTE } from '~constants/routes';
 import { SECONDARY } from '~constants/themes';
 import { useAppDispatch, useAppSelector } from '~hooks';
 import { signOut } from '~redux/actions/authActions';
 import { getRegistered, getUserEmail } from '~redux/selectors/auth';
 import Button from '~UI/Button';
+
 import LanguageSettings from './LanguageSettings';
 import styles from './styles';
 

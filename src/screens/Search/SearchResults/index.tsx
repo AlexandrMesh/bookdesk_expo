@@ -1,12 +1,15 @@
 import React, { useCallback, useEffect } from 'react';
+
 import { View, Text } from 'react-native';
+
 import { useRoute, useIsFocused, RouteProp } from '@react-navigation/native';
 import isEmpty from 'lodash/isEmpty';
 import { useTranslation } from 'react-i18next';
-import EmptyResults from '~screens/Home/EmptyResults';
-import TotalCount from '~screens/Home/ActionBar/TotalCount';
-import { PENDING, SUCCEEDED } from '~constants/loadingStatuses';
+
 import { ALL } from '~constants/boardType';
+import { PENDING, SUCCEEDED } from '~constants/loadingStatuses';
+import { useAppDispatch, useAppSelector } from '~hooks';
+import { loadSearchResults, loadMoreSearchResults, setBoardType } from '~redux/actions/booksActions';
 import {
   deriveSearchBookListData,
   deriveSearchQuery,
@@ -14,10 +17,11 @@ import {
   getSearchResultsTotalItems,
   getShouldReloadSearchResults,
 } from '~redux/selectors/books';
-import { loadSearchResults, loadMoreSearchResults, setBoardType } from '~redux/actions/booksActions';
-import { useAppDispatch, useAppSelector } from '~hooks';
+import TotalCount from '~screens/Home/ActionBar/TotalCount';
 import BooksList from '~screens/Home/BooksList';
+import EmptyResults from '~screens/Home/EmptyResults';
 import { BookStatus } from '~types/books';
+
 import styles from './styles';
 
 type ParamList = {

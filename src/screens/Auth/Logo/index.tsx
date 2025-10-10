@@ -1,7 +1,10 @@
-import { Image } from 'expo-image';
 import React, { FC, memo } from 'react';
-import { useTranslation } from 'react-i18next';
+
 import { Text, View } from 'react-native';
+
+import { Image } from 'expo-image';
+import { useTranslation } from 'react-i18next';
+
 import styles from './styles';
 
 export type Props = {

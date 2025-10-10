@@ -1,6 +1,9 @@
 import React from 'react';
+
 import { Animated, View } from 'react-native';
+
 import useGetAnimatedPlaceholderStyle from '~hooks/useGetAnimatedPlaceholderStyle';
+
 import styles from './styles';
 
 const ItemPlaceholder = () => {

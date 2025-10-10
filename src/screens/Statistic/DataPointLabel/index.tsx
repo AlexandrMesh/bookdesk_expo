@@ -1,5 +1,7 @@
 import React, { memo, FC } from 'react';
+
 import { View, Text } from 'react-native';
+
 import styles from './styles';
 
 type Props = {

@@ -1,21 +1,25 @@
 import React, { FC, useState, useCallback } from 'react';
+
 import { TouchableHighlight, ScrollView, View, Text } from 'react-native';
-import { useTranslation } from 'react-i18next';
+
 import { useRoute, RouteProp } from '@react-navigation/native';
-import { SECONDARY } from '~constants/themes';
-import { useAppDispatch, useAppSelector } from '~hooks';
-import { MAX_COUNT_CHARACTERS_FOR_COMMENT, MIN_COUNT_CHARACTERS_FOR_COMMENT } from '~constants/bookList';
-import { getValidationFailure, validationTypes } from '~utils/validation';
-import { deleteUserComment, updateUserComment } from '~redux/actions/booksActions';
-import { deriveBookNote } from '~redux/selectors/books';
-import useDisplayAlert from '~hooks/useDisplayAlert';
-import Button from '~UI/Button';
-import Input from '~UI/TextInput';
-import { Spinner } from '~UI/Spinner';
+import { isEmpty } from 'lodash';
+import { useTranslation } from 'react-i18next';
+
 import EditIcon from '~assets/edit.svg';
 import RemoveIcon from '~assets/remove.svg';
+import { MAX_COUNT_CHARACTERS_FOR_COMMENT, MIN_COUNT_CHARACTERS_FOR_COMMENT } from '~constants/bookList';
+import { SECONDARY } from '~constants/themes';
+import { useAppDispatch, useAppSelector } from '~hooks';
+import useDisplayAlert from '~hooks/useDisplayAlert';
+import { deleteUserComment, updateUserComment } from '~redux/actions/booksActions';
+import { deriveBookNote } from '~redux/selectors/books';
 import colors from '~styles/colors';
-import { isEmpty } from 'lodash';
+import Button from '~UI/Button';
+import { Spinner } from '~UI/Spinner';
+import Input from '~UI/TextInput';
+import { getValidationFailure, validationTypes } from '~utils/validation';
+
 import styles from './styles';
 
 type ParamList = {

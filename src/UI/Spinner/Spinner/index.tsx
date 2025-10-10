@@ -1,6 +1,9 @@
 import React, { memo, FC } from 'react';
+
 import { ActivityIndicator, View, Text } from 'react-native';
+
 import colors from '~styles/colors';
+
 import styles from '../styles';
 
 export type Props = {

@@ -1,12 +1,16 @@
 import React, { useEffect, useState, useCallback } from 'react';
+
 import { Modal, ScrollView, View, Text, TouchableOpacity, Linking } from 'react-native';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAppDispatch, useAppSelector } from '~hooks';
 import { useTranslation } from 'react-i18next';
+
+import { useAppDispatch, useAppSelector } from '~hooks';
 import { supportApp } from '~redux/actions/appActions';
 import { getSupportAppViewedAt, getRegistered } from '~redux/selectors/auth';
-import differenceInDays from '~utils/differenceInDays';
 import Button from '~UI/Button';
+import differenceInDays from '~utils/differenceInDays';
+
 import styles from './styles';
 
 const SupportAppModal = () => {

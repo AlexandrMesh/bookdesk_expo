@@ -1,7 +1,8 @@
 import React, { memo, FC } from 'react';
-import { RADIO_BUTTON_ICON } from '~constants/dimensions';
-import RadioButtonOn from '~assets/radio-button-on.svg';
+
 import RadioButtonOff from '~assets/radio-button-off.svg';
+import RadioButtonOn from '~assets/radio-button-on.svg';
+import { RADIO_BUTTON_ICON } from '~constants/dimensions';
 import colors from '~styles/colors';
 
 export type Props = {

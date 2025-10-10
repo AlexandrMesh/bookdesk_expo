@@ -1,11 +1,12 @@
 import { createReducer } from '@reduxjs/toolkit';
-import * as customBooksActions from '~redux/actions/customBookActions';
-import { IDLE, PENDING, FAILED, SUCCEEDED } from '~constants/loadingStatuses';
-import { ALL } from '~constants/boardType';
-import { BookStatus, IBook } from '~types/books';
-import { LoadingType } from '~types/loadingTypes';
-import { ICover } from '~types/customBooks';
 import uniqBy from 'lodash/uniqBy';
+
+import { ALL } from '~constants/boardType';
+import { IDLE, PENDING, FAILED, SUCCEEDED } from '~constants/loadingStatuses';
+import * as customBooksActions from '~redux/actions/customBookActions';
+import { BookStatus, IBook } from '~types/books';
+import { ICover } from '~types/customBooks';
+import { LoadingType } from '~types/loadingTypes';
 
 export interface IPaginationState {
   pageIndex: number;

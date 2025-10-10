@@ -1,6 +1,8 @@
-import Constants from 'expo-constants';
 import React from 'react';
+
 import { Dimensions, View } from 'react-native';
+
+import Constants from 'expo-constants';
 
 const BannerAd: React.FC = () => {
   const [adSize, setAdSize] = React.useState<any>(null);

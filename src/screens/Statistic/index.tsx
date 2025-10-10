@@ -1,10 +1,14 @@
+import React, { FC } from 'react';
+
+import { Dimensions, Text, View } from 'react-native';
+
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { TFunction } from 'i18next';
-import React, { FC } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dimensions, Text, View } from 'react-native';
+
 import { BOOKS_STATISTIC_ROUTE, PAGES_STATISTIC_ROUTE, RATING_STATISTIC_ROUTE } from '~constants/routes';
 import colors from '~styles/colors';
+
 import Books from './Books';
 import Pages from './Pages';
 import Rating from './Rating';

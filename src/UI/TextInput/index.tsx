@@ -1,9 +1,13 @@
 import React, { FC, memo, useState } from 'react';
+
 import { View, TextInput, Text, Pressable, ViewStyle, StyleProp, TextStyle } from 'react-native';
+
 import isEmpty from 'lodash/isEmpty';
-import { CLOSE_ICON } from '~constants/dimensions';
+
 import CloseIcon from '~assets/close.svg';
+import { CLOSE_ICON } from '~constants/dimensions';
 import colors from '~styles/colors';
+
 import styles from './styles';
 
 export type Props = {

@@ -1,11 +1,11 @@
+import React, { useState } from 'react';
+
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+
 import { useNavigation } from '@react-navigation/native';
 import isEmpty from 'lodash/isEmpty';
-import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
-import Button from '~UI/Button';
-import { Spinner } from '~UI/Spinner';
-import Input from '~UI/TextInput';
+
 import GoogleIcon from '~assets/google.svg';
 import { GOOGLE_ICON } from '~constants/dimensions';
 import { PENDING } from '~constants/loadingStatuses';
@@ -15,7 +15,11 @@ import { useAppDispatch, useAppSelector } from '~hooks';
 import { setSignInError, signIn } from '~redux/actions/authActions';
 import { getSignInErrors, getSignInLoadingDataStatus } from '~redux/selectors/auth';
 import Logo from '~screens/Auth/Logo';
+import Button from '~UI/Button';
+import { Spinner } from '~UI/Spinner';
+import Input from '~UI/TextInput';
 import { getValidationFailure, validationTypes } from '~utils/validation';
+
 import styles from './styles';
 
 const SignIn = () => {

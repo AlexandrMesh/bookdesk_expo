@@ -1,11 +1,15 @@
+import React, { useCallback, useEffect, useState } from 'react';
+
+import { Linking, ScrollView, Text, View } from 'react-native';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
-import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Linking, ScrollView, Text, View } from 'react-native';
+
+import { SECONDARY } from '~constants/themes';
 import Button from '~UI/Button';
 import { Spinner } from '~UI/Spinner';
-import { SECONDARY } from '~constants/themes';
+
 import styles from './styles';
 
 const About = () => {

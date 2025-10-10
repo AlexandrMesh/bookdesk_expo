@@ -1,17 +1,21 @@
 import React, { memo, FC } from 'react';
+
 import { View, TouchableHighlight } from 'react-native';
-import { useTranslation } from 'react-i18next';
+
 import { useNavigation } from '@react-navigation/native';
-import colors from '~styles/colors';
-import Button from '~UI/Button';
-import { SECONDARY } from '~constants/themes';
-import { FILTER_ICON } from '~constants/dimensions';
-import { SEARCH_ROUTE, FITLERING_ROUTE } from '~constants/routes';
+import { useTranslation } from 'react-i18next';
+
 import FilterIcon from '~assets/filter.svg';
 import SearchIcon from '~assets/search.svg';
+import { FILTER_ICON } from '~constants/dimensions';
+import { SEARCH_ROUTE, FITLERING_ROUTE } from '~constants/routes';
+import { SECONDARY } from '~constants/themes';
+import colors from '~styles/colors';
 import { BookStatus } from '~types/books';
-import TotalCount from './TotalCount';
+import Button from '~UI/Button';
+
 import styles from './styles';
+import TotalCount from './TotalCount';
 
 export type Props = {
   filterParams?: {

@@ -1,6 +1,7 @@
-const { withAndroidManifest } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
+
+const { withAndroidManifest } = require('@expo/config-plugins');
 
 const networkSecurityConfig = `<?xml version="1.0" encoding="utf-8"?>
 <network-security-config>

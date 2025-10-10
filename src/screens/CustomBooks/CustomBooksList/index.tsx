@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect } from 'react';
+
 import { View } from 'react-native';
-import { IDLE, PENDING, SUCCEEDED } from '~constants/loadingStatuses';
+
 import { useAppDispatch, useAppSelector } from '~hooks';
+
+import { IDLE, PENDING, SUCCEEDED } from '~constants/loadingStatuses';
 import { loadCustomBookList, loadMoreBooks } from '~redux/actions/customBookActions';
 import {
   deriveCustomBookListData,
@@ -10,8 +13,9 @@ import {
   getCustomBooksTotalItems,
 } from '~redux/selectors/customBook';
 import TotalCount from '~screens/Home/ActionBar/TotalCount';
+import BooksList from '~screens/Home/BooksList';
 import EmptyBoard from '~screens/Home/EmptyBoard';
-import BooksList from '../../Home/BooksList';
+
 import styles from './styles';
 
 const CustomBooksList = () => {

@@ -1,19 +1,23 @@
 import React, { lazy } from 'react';
+
 import { View, Text } from 'react-native';
-import { useTranslation } from 'react-i18next';
+
 import { useNavigation } from '@react-navigation/native';
-import Stepper from '~UI/Stepper';
+import { useTranslation } from 'react-i18next';
+
+import { PLANNED, IN_PROGRESS, COMPLETED, ALL } from '~constants/boardType';
+import { PENDING } from '~constants/loadingStatuses';
+import { PLANNED_BOOKS_ROUTE, IN_PROGRESS_BOOKS_ROUTE, COMPLETED_BOOKS_ROUTE, ALL_BOOKS_ROUTE } from '~constants/routes';
+import { SECONDARY } from '~constants/themes';
+import { useAppDispatch, useAppSelector } from '~hooks';
+import { setCurrentStep, clearAddCustomBookState } from '~redux/actions/customBookActions';
+import { getAvailableStep, getCurrentStep, getAddedCustomBook, getSavingCustomBookStatus, getStatus } from '~redux/selectors/customBook';
+import InSuspense from '~screens/Main/InSuspense';
+import { BookStatus } from '~types/books';
 import Button from '~UI/Button';
 import { Spinner } from '~UI/Spinner';
-import { SECONDARY } from '~constants/themes';
-import { PLANNED_BOOKS_ROUTE, IN_PROGRESS_BOOKS_ROUTE, COMPLETED_BOOKS_ROUTE, ALL_BOOKS_ROUTE } from '~constants/routes';
-import { PENDING } from '~constants/loadingStatuses';
-import { PLANNED, IN_PROGRESS, COMPLETED, ALL } from '~constants/boardType';
-import { BookStatus } from '~types/books';
-import { useAppDispatch, useAppSelector } from '~hooks';
-import { getAvailableStep, getCurrentStep, getAddedCustomBook, getSavingCustomBookStatus, getStatus } from '~redux/selectors/customBook';
-import { setCurrentStep, clearAddCustomBookState } from '~redux/actions/customBookActions';
-import InSuspense from '~screens/Main/InSuspense';
+import Stepper from '~UI/Stepper';
+
 import styles from './styles';
 
 const Step1 = lazy(() => import('./Step1'));

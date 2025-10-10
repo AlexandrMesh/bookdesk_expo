@@ -1,4 +1,5 @@
 import { createReducer } from '@reduxjs/toolkit';
+
 import { DAILY } from '~constants/goals';
 import * as goalsActions from '~redux/actions/goalsActions';
 import { IGoal, GoalType } from '~types/goals';

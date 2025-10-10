@@ -1,11 +1,13 @@
 /* eslint-disable react/display-name */
+import React, { FC, memo, useCallback } from 'react';
+
+import { StyleProp, Text, View, ViewStyle } from 'react-native';
+
 import { useNavigation } from '@react-navigation/native';
 import { Image } from 'expo-image';
-import React, { FC, memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleProp, Text, View, ViewStyle } from 'react-native';
 import { useSelector } from 'react-redux';
-import Button from '~UI/Button';
+
 import { BOOK_DETAILS_ROUTE, EDIT_CUSTOM_BOOK_ROUTE } from '~constants/routes';
 import { SECONDARY } from '~constants/themes';
 import { deriveUserBookRating } from '~redux/selectors/books';
@@ -14,8 +16,10 @@ import BookStatusDropdown from '~screens/Home/BookStatusDropdown';
 import Like from '~screens/Home/Like';
 import Rating from '~screens/Home/Rating';
 import { BookStatus, IBook } from '~types/books';
-import ModifiedDate from '../../ModifiedDate';
+import Button from '~UI/Button';
+
 import styles from './styles';
+import ModifiedDate from '../../ModifiedDate';
 
 export type Props = {
   imgUrl: string;

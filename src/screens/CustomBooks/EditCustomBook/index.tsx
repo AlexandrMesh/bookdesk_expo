@@ -1,19 +1,23 @@
 import React, { useState } from 'react';
+
 import { ScrollView, View, ToastAndroid, Pressable, Text } from 'react-native';
-import { useTranslation } from 'react-i18next';
+
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import uniqueId from 'lodash/uniqueId';
-import { Spinner } from '~UI/Spinner';
-import { SECONDARY } from '~constants/themes';
-import { CLOSE_ICON } from '~constants/dimensions';
-import { getValidationFailure, validationTypes } from '~utils/validation';
-import Input from '~UI/TextInput';
-import Button from '~UI/Button';
+import { useTranslation } from 'react-i18next';
+
 import CloseIcon from '~assets/close.svg';
-import colors from '~styles/colors';
+import { CLOSE_ICON } from '~constants/dimensions';
+import { SECONDARY } from '~constants/themes';
 import { useAppDispatch } from '~hooks';
 import { updateUserCustomBook } from '~redux/actions/customBookActions';
+import colors from '~styles/colors';
 import { BookStatus } from '~types/books';
+import Button from '~UI/Button';
+import { Spinner } from '~UI/Spinner';
+import Input from '~UI/TextInput';
+import { getValidationFailure, validationTypes } from '~utils/validation';
+
 import styles from './styles';
 
 type ParamList = {

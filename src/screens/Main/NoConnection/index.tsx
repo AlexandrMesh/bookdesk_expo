@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
+
 import { ScrollView, Text } from 'react-native';
-import { useTranslation } from 'react-i18next';
+
 import { useNetInfo, refresh } from '@react-native-community/netinfo';
+import { useTranslation } from 'react-i18next';
+
 import Button from '~UI/Button';
+
 import styles from './styles';
 
 const NoConnection = () => {

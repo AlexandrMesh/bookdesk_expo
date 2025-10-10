@@ -1,13 +1,15 @@
+import React, { FC, lazy, useCallback, useEffect, useState } from 'react';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { BottomTabBar, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import Constants from 'expo-constants';
-import React, { FC, lazy, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { lt } from 'semver';
+
 import AddCustomBookIcon from '~assets/add.svg';
 import GoalIcon from '~assets/goal.svg';
 import HomeIcon from '~assets/home.svg';
@@ -50,11 +52,12 @@ import colors from '~styles/colors';
 import i18n from '~translations/i18n';
 import { GoalType } from '~types/goals';
 import BannerAd from '~UI/BannerAd';
-import { MAIN_CONFIG_URL, RESERVE_CONFIG_URL } from '../../config/api';
+
 import ClearFilters from './ClearFilters';
 import CloseComponent from './CloseComponent';
 import EditComponent from './EditComponent';
 import InSuspense from './InSuspense';
+import { MAIN_CONFIG_URL, RESERVE_CONFIG_URL } from '../../config/api';
 
 const Search = lazy(() => import('~screens/Search'));
 const BookNote = lazy(() => import('~screens/Home/BookNote'));

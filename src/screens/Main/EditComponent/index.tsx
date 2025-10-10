@@ -1,11 +1,15 @@
 import React from 'react';
+
 import { Pressable } from 'react-native';
-import { useSelector } from 'react-redux';
+
 import { useNavigation } from '@react-navigation/native';
+import { useSelector } from 'react-redux';
+
+import EditIcon from '~assets/edit.svg';
 import { EDIT_GOAL } from '~constants/routes';
 import { getGoalNumberOfPages } from '~redux/selectors/goals';
 import colors from '~styles/colors';
-import EditIcon from '~assets/edit.svg';
+
 import styles from './styles';
 
 const EditComponent = () => {

@@ -1,6 +1,7 @@
 import groupBy from 'lodash/groupBy';
 import map from 'lodash/map';
 import { createSelector } from 'reselect';
+
 import { getCategoriesData, getExpandedCategories } from '~redux/selectors/common';
 import { RootState } from '~redux/store/configureStore';
 import i18n, { getT } from '~translations/i18n';

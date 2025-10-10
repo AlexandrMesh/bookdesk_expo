@@ -1,4 +1,5 @@
 import keyMirror from '~utils/keyMirror';
+
 import isValidEmailPattern from './isValidEmailPattern';
 
 // if val is null, undefined, empty string but not zero

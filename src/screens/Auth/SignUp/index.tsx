@@ -1,12 +1,16 @@
+import React, { useState } from 'react';
+
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+
 import { useNavigation } from '@react-navigation/native';
 import isEmpty from 'lodash/isEmpty';
-import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+
+import { useAppDispatch, useAppSelector } from '~hooks';
+
 import { PENDING } from '~constants/loadingStatuses';
 import { SIGN_IN_ROUTE } from '~constants/routes';
 import { SECONDARY } from '~constants/themes';
-import { useAppDispatch, useAppSelector } from '~hooks';
 import { setSignUpError, signUp } from '~redux/actions/authActions';
 import { getSignUpErrors, getSignUpLoadingDataStatus } from '~redux/selectors/auth';
 import Logo from '~screens/Auth/Logo';
@@ -14,6 +18,7 @@ import Button from '~UI/Button';
 import { Spinner } from '~UI/Spinner';
 import Input from '~UI/TextInput';
 import { getValidationFailure, validationTypes } from '~utils/validation';
+
 import styles from './styles';
 
 const SignUp = () => {

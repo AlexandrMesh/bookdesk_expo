@@ -1,28 +1,30 @@
 import i18n from 'i18next';
+
 import { RU, EN } from '~constants/languages';
 import detectLanguage from '~utils/detectLanguage';
-import common from './locales/ru/common.json';
-import auth from './locales/ru/auth.json';
-import books from './locales/ru/books.json';
-import search from './locales/ru/search.json';
-import goals from './locales/ru/goals.json';
-import errors from './locales/ru/errors.json';
-import profile from './locales/ru/profile.json';
-import customBook from './locales/ru/customBook.json';
-import app from './locales/ru/app.json';
-import categories from './locales/ru/categories.json';
-import statistic from './locales/ru/statistic.json';
-import commonEn from './locales/en/common.json';
+
+import appEn from './locales/en/app.json';
 import authEn from './locales/en/auth.json';
 import booksEn from './locales/en/books.json';
-import searchEn from './locales/en/search.json';
-import goalsEn from './locales/en/goals.json';
-import errorsEn from './locales/en/errors.json';
-import profileEn from './locales/en/profile.json';
-import appEn from './locales/en/app.json';
 import categoriesEn from './locales/en/categories.json';
+import commonEn from './locales/en/common.json';
 import customBookEn from './locales/en/customBook.json';
+import errorsEn from './locales/en/errors.json';
+import goalsEn from './locales/en/goals.json';
+import profileEn from './locales/en/profile.json';
+import searchEn from './locales/en/search.json';
 import statisticEn from './locales/en/statistic.json';
+import app from './locales/ru/app.json';
+import auth from './locales/ru/auth.json';
+import books from './locales/ru/books.json';
+import categories from './locales/ru/categories.json';
+import common from './locales/ru/common.json';
+import customBook from './locales/ru/customBook.json';
+import errors from './locales/ru/errors.json';
+import goals from './locales/ru/goals.json';
+import profile from './locales/ru/profile.json';
+import search from './locales/ru/search.json';
+import statistic from './locales/ru/statistic.json';
 
 const LanguageDetector = {
   type: 'languageDetector',

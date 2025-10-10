@@ -1,8 +1,10 @@
-import Constants from 'expo-constants';
 import React from 'react';
+
+import Constants from 'expo-constants';
 import { I18nextProvider } from 'react-i18next';
 import 'react-native-gesture-handler';
 import { Provider } from 'react-redux';
+
 import configureStore from './src/redux/store/configureStore';
 import Main from './src/screens/Main';
 import i18n from './src/translations/i18n';

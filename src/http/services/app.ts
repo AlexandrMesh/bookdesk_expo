@@ -1,5 +1,5 @@
-import http from '../http';
 import { getApiUrl } from '../../config/api';
+import http from '../http';
 
 const AppService = () => ({
   getAppInfo: async (params?: any) => http.get(`${await getApiUrl()}/appInfo`, params),

@@ -1,20 +1,14 @@
 import React, { useCallback, useEffect } from 'react';
+
 import { View, Text, Pressable, SectionList, FlatList } from 'react-native';
-import { useTranslation } from 'react-i18next';
+
 import { useNavigation } from '@react-navigation/native';
-import CheckBox from '~UI/CheckBox';
-import Button from '~UI/Button';
-import Input from '~UI/TextInput';
+import { useTranslation } from 'react-i18next';
+
+import ArrowDown from '~assets/arrow-down.svg';
+import { ALL } from '~constants/boardType';
 import { FILTER_ICON } from '~constants/dimensions';
 import { useAppDispatch, useAppSelector } from '~hooks';
-import {
-  deriveCategories,
-  deriveEditableIndeterminatedCategories,
-  getBoardType,
-  deriveBookListEditableFilterParams,
-  deriveCategorySearchQuery,
-  deriveCategoriesSearchResult,
-} from '~redux/selectors/books';
 import {
   triggerReloadBookList,
   toggleExpandedCategoryBooks,
@@ -24,9 +18,19 @@ import {
   searchCategory,
   clearSearchQueryForCategory,
 } from '~redux/actions/booksActions';
-import { ALL } from '~constants/boardType';
+import {
+  deriveCategories,
+  deriveEditableIndeterminatedCategories,
+  getBoardType,
+  deriveBookListEditableFilterParams,
+  deriveCategorySearchQuery,
+  deriveCategoriesSearchResult,
+} from '~redux/selectors/books';
 import { BookStatus } from '~types/books';
-import ArrowDown from '~assets/arrow-down.svg';
+import Button from '~UI/Button';
+import CheckBox from '~UI/CheckBox';
+import Input from '~UI/TextInput';
+
 import styles from './styles';
 
 const Filtering = () => {

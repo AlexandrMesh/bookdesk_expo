@@ -1,10 +1,14 @@
-import { useNavigation } from '@react-navigation/native';
 import React from 'react';
-import { useTranslation } from 'react-i18next';
+
 import { Text, View } from 'react-native';
+
+import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Button from '~UI/Button';
+
 import { ADD_GOAL } from '~constants/routes';
+import Button from '~UI/Button';
+
 import styles from './styles';
 
 const Goals = () => {

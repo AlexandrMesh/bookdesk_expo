@@ -1,13 +1,15 @@
 import React, { useState, useCallback } from 'react';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
+
+import { ALL, PLANNED, IN_PROGRESS, COMPLETED } from '~constants/boardType';
+import { RU, EN } from '~constants/languages';
+import { useAppDispatch } from '~hooks';
 import { clearDataForChangeLanguage, triggerReloadBookList, loadCategories, clearSearchResults, clearAllFilters } from '~redux/actions/booksActions';
 import { clearAddCustomBookState, triggerReloadCustomBookList } from '~redux/actions/customBookActions';
 import { triggerReloadStat } from '~redux/actions/statisticActions';
-import { ALL, PLANNED, IN_PROGRESS, COMPLETED } from '~constants/boardType';
-import { RU, EN } from '~constants/languages';
 import Dropdown from '~UI/Dropdown';
-import { useAppDispatch } from '~hooks';
 
 const LanguageSettings = () => {
   const { t, i18n } = useTranslation('app');

@@ -1,20 +1,24 @@
 import React, { useCallback, useEffect } from 'react';
+
 import { View } from 'react-native';
+
 import { useIsFocused } from '@react-navigation/native';
-import EmptyBoard from '~screens/Home/EmptyBoard';
+
+import { COMPLETED } from '~constants/boardType';
 import { IDLE, SUCCEEDED, PENDING } from '~constants/loadingStatuses';
+import { useAppDispatch, useAppSelector } from '~hooks';
+import { loadBookList, loadMoreBooks, setBoardType } from '~redux/actions/booksActions';
 import {
   deriveLoadingBookListStatus,
   deriveShouldReloadBookList,
   deriveBookListTotalItems,
   deriveSectionedBookListData,
 } from '~redux/selectors/books';
-import { loadBookList, loadMoreBooks, setBoardType } from '~redux/actions/booksActions';
-import { COMPLETED } from '~constants/boardType';
+import EmptyBoard from '~screens/Home/EmptyBoard';
 import { BookStatus } from '~types/books';
-import { useAppDispatch, useAppSelector } from '~hooks';
-import BooksList from '../BooksList';
+
 import ActionBar from '../ActionBar/ActionBar';
+import BooksList from '../BooksList';
 import styles from './styles';
 
 const CompletedBooks = () => {

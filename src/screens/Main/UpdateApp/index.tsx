@@ -1,8 +1,12 @@
 import React from 'react';
+
+import { ScrollView, Text, Linking } from 'react-native';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, Text, Linking } from 'react-native';
+
 import Button from '~UI/Button';
+
 import styles from './styles';
 
 const UpdateApp = () => {

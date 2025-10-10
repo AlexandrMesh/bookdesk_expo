@@ -1,9 +1,13 @@
 import React from 'react';
-import { useNavigation } from '@react-navigation/native';
+
 import { Pressable } from 'react-native';
-import { CLOSE_ICON } from '~constants/dimensions';
+
+import { useNavigation } from '@react-navigation/native';
+
 import CloseIcon from '~assets/close.svg';
+import { CLOSE_ICON } from '~constants/dimensions';
 import colors from '~styles/colors';
+
 import styles from './styles';
 
 const CloseComponent = () => {

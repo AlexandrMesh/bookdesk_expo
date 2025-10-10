@@ -1,13 +1,17 @@
 import React, { FC, useCallback, memo } from 'react';
+
 import { View, Text, Animated } from 'react-native';
+
 import { useTranslation } from 'react-i18next';
-import { useAppDispatch, useAppSelector } from '~hooks';
-import { getBookValuesUpdatingStatus, getBookToUpdate } from '~redux/selectors/books';
+
 import { PENDING } from '~constants/loadingStatuses';
+import { DATE_UPDATER } from '~constants/modalTypes';
+import { useAppDispatch, useAppSelector } from '~hooks';
 import useGetAnimatedPlaceholderStyle from '~hooks/useGetAnimatedPlaceholderStyle';
 import { setBookToUpdate, showModal } from '~redux/actions/booksActions';
-import { DATE_UPDATER } from '~constants/modalTypes';
+import { getBookValuesUpdatingStatus, getBookToUpdate } from '~redux/selectors/books';
 import { BookStatus } from '~types/books';
+
 import styles from './styles';
 
 export type Props = {

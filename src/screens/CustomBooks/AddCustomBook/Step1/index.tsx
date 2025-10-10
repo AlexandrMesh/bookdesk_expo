@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
+
 import { View, Text } from 'react-native';
-import { useTranslation } from 'react-i18next';
+
 import isEmpty from 'lodash/isEmpty';
-import { getValidationFailure, validationTypes } from '~utils/validation';
-import BooksList from '~screens/Home/BooksList';
-import Button from '~UI/Button';
-import Input from '~UI/TextInput';
+import { useTranslation } from 'react-i18next';
+
+import { PENDING, SUCCEEDED, IDLE } from '~constants/loadingStatuses';
 import { useAppDispatch, useAppSelector } from '~hooks';
-import { getNewCustomBookName, deriveSuggestBooksData, getSuggestedBooksLoadingStatus, deriveIsValidStep1 } from '~redux/selectors/customBook';
 import {
   setCurrentStep,
   setAvailableStep,
@@ -17,7 +16,12 @@ import {
   clearStep3,
   clearSuggestedBooks,
 } from '~redux/actions/customBookActions';
-import { PENDING, SUCCEEDED, IDLE } from '~constants/loadingStatuses';
+import { getNewCustomBookName, deriveSuggestBooksData, getSuggestedBooksLoadingStatus, deriveIsValidStep1 } from '~redux/selectors/customBook';
+import BooksList from '~screens/Home/BooksList';
+import Button from '~UI/Button';
+import Input from '~UI/TextInput';
+import { getValidationFailure, validationTypes } from '~utils/validation';
+
 import styles from './styles';
 
 const Step1 = () => {

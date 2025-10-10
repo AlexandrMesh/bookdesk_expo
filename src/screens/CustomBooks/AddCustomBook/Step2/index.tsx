@@ -1,9 +1,12 @@
+import React, { useCallback, useEffect } from 'react';
+
+import { Pressable, ScrollView, Text, View } from 'react-native';
+
 import { useBackHandler } from '@react-native-community/hooks';
 import { FlashList } from '@shopify/flash-list';
 import { Image } from 'expo-image';
-import React, { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+
 import { DEFAULT_COVER } from '~constants/customBooks';
 import { PENDING, SUCCEEDED } from '~constants/loadingStatuses';
 import { SECONDARY } from '~constants/themes';
@@ -22,6 +25,7 @@ import { ICover } from '~types/customBooks';
 import Button from '~UI/Button';
 import RadioButton from '~UI/RadioButton';
 import { Spinner } from '~UI/Spinner';
+
 import styles from './styles';
 
 const Step2 = () => {

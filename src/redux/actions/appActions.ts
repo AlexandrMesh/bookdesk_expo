@@ -1,4 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
+
 import AppService from '~http/services/app';
 import { AppThunkAPI } from '~redux/store/configureStore';
 

@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
+
 import { View, Text, Pressable } from 'react-native';
-import { useTranslation } from 'react-i18next';
+
 import { useNavigation } from '@react-navigation/native';
-import { useAppDispatch } from '~hooks';
-import { getValidationFailure, validationTypes } from '~utils/validation';
-import { GOAL_DETAILS } from '~constants/routes';
-import Button from '~UI/Button';
-import Input from '~UI/TextInput';
-import { Spinner } from '~UI/Spinner';
-import { addGoal } from '~redux/actions/goalsActions';
+import { useTranslation } from 'react-i18next';
+
 import { DAILY, MONTHLY } from '~constants/goals';
+import { GOAL_DETAILS } from '~constants/routes';
+import { useAppDispatch } from '~hooks';
+import { addGoal } from '~redux/actions/goalsActions';
 import { GoalType } from '~types/goals';
+import Button from '~UI/Button';
 import RadioButton from '~UI/RadioButton';
+import { Spinner } from '~UI/Spinner';
+import Input from '~UI/TextInput';
+import { getValidationFailure, validationTypes } from '~utils/validation';
+
 import styles from './styles';
 
 const AddGoal = () => {

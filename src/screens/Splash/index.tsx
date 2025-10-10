@@ -1,6 +1,9 @@
 import React from 'react';
+
 import { View } from 'react-native';
+
 import { Spinner } from '~UI/Spinner';
+
 import styles from './styles';
 
 const Splash = () => {

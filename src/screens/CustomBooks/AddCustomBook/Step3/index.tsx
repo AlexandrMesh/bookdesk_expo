@@ -1,12 +1,17 @@
 import React from 'react';
+
 import { ScrollView, View, Pressable, Text } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import uniqueId from 'lodash/uniqueId';
-import { useNavigation } from '@react-navigation/native';
-import { SECONDARY } from '~constants/themes';
-import { CLOSE_ICON } from '~constants/dimensions';
+
 import { useBackHandler } from '@react-native-community/hooks';
-import { getSelectedCategoryLabel, getPages, getAuthorsList, getAnnotation, deriveIsValidFullForm } from '~redux/selectors/customBook';
+import { useNavigation } from '@react-navigation/native';
+import uniqueId from 'lodash/uniqueId';
+import { useTranslation } from 'react-i18next';
+
+import CloseIcon from '~assets/close.svg';
+import { CLOSE_ICON } from '~constants/dimensions';
+import { CUSTOM_CATEGORY_CHOOSER_ROUTE } from '~constants/routes';
+import { SECONDARY } from '~constants/themes';
+import { useAppDispatch, useAppSelector } from '~hooks';
 import {
   setPages,
   addAuthor,
@@ -17,13 +22,12 @@ import {
   setCurrentStep,
   addCustomBook,
 } from '~redux/actions/customBookActions';
-import { useAppDispatch, useAppSelector } from '~hooks';
-import { CUSTOM_CATEGORY_CHOOSER_ROUTE } from '~constants/routes';
-import { getValidationFailure, validationTypes } from '~utils/validation';
-import Input from '~UI/TextInput';
-import Button from '~UI/Button';
-import CloseIcon from '~assets/close.svg';
+import { getSelectedCategoryLabel, getPages, getAuthorsList, getAnnotation, deriveIsValidFullForm } from '~redux/selectors/customBook';
 import colors from '~styles/colors';
+import Button from '~UI/Button';
+import Input from '~UI/TextInput';
+import { getValidationFailure, validationTypes } from '~utils/validation';
+
 import CustomBookStatusDropdown from '../CustomBookStatusDropdown';
 import styles from './styles';
 

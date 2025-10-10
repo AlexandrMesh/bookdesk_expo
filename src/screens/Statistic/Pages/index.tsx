@@ -1,13 +1,17 @@
-import { useIsFocused } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+
 import { ScrollView, Text, View } from 'react-native';
+
+import { useIsFocused } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { BarChart } from 'react-native-gifted-charts';
-import { Spinner } from '~UI/Spinner';
+
 import { useAppDispatch, useAppSelector } from '~hooks';
 import { loadPagesStat } from '~redux/actions/statisticActions';
 import { getShouldReloadStat } from '~redux/selectors/statistic';
 import colors from '~styles/colors';
+import { Spinner } from '~UI/Spinner';
+
 import styles from '../styles';
 
 const Pages = () => {

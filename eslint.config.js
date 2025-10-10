@@ -1,11 +1,12 @@
 const js = require('@eslint/js');
 const tsPlugin = require('@typescript-eslint/eslint-plugin');
 const tsParser = require('@typescript-eslint/parser');
+const prettierConfig = require('eslint-config-prettier');
+const importPlugin = require('eslint-plugin-import');
+const prettierPlugin = require('eslint-plugin-prettier');
 const reactPlugin = require('eslint-plugin-react');
 const reactHooksPlugin = require('eslint-plugin-react-hooks');
 const reactNativePlugin = require('eslint-plugin-react-native');
-const prettierPlugin = require('eslint-plugin-prettier');
-const prettierConfig = require('eslint-config-prettier');
 
 module.exports = [
   // Базовая конфигурация для всех файлов
@@ -69,10 +70,23 @@ module.exports = [
       'react-hooks': reactHooksPlugin,
       'react-native': reactNativePlugin,
       prettier: prettierPlugin,
+      import: importPlugin,
     },
     settings: {
       react: {
         version: 'detect',
+      },
+      'import/resolver': {
+        typescript: {
+          alwaysTryTypes: true,
+          project: './tsconfig.json',
+        },
+        node: {
+          extensions: ['.js', '.jsx', '.ts', '.tsx'],
+        },
+      },
+      'import/parsers': {
+        '@typescript-eslint/parser': ['.ts', '.tsx'],
       },
     },
     rules: {
@@ -134,6 +148,73 @@ module.exports = [
       'react-native/no-unused-styles': 'error',
       'react-native/no-inline-styles': 'off',
       'react-native/no-color-literals': 'off',
+
+      // Import rules
+      'import/order': [
+        'error',
+        {
+          groups: [
+            'builtin', // Встроенные модули Node.js (fs, path и т.д.)
+            'external', // Внешние пакеты из node_modules
+            'internal', // Внутренние модули проекта (с алиасами)
+            ['parent', 'sibling'], // Родительские и соседние модули
+            'index', // Индексные файлы
+            'object',
+            'type', // TypeScript type импорты
+          ],
+          'newlines-between': 'always',
+          alphabetize: {
+            order: 'asc',
+            caseInsensitive: true,
+          },
+          pathGroups: [
+            {
+              pattern: 'react',
+              group: 'builtin',
+              position: 'before',
+            },
+            {
+              pattern: 'react-native',
+              group: 'builtin',
+              position: 'before',
+            },
+            {
+              pattern: '~**',
+              group: 'internal',
+              position: 'before',
+            },
+            {
+              pattern: '~**/**',
+              group: 'internal',
+              position: 'before',
+            },
+          ],
+          pathGroupsExcludedImportTypes: ['builtin'],
+        },
+      ],
+      'import/first': 'error',
+      'import/newline-after-import': 'error',
+      'import/no-duplicates': 'error',
+      'import/no-unresolved': 'off', // Отключаем, так как TypeScript сам проверяет разрешение импортов
+      'import/named': 'off',
+      'import/namespace': 'off',
+      'import/default': 'off',
+      'import/no-named-as-default-member': 'off',
+      'import/no-named-as-default': 'off',
+      'import/no-cycle': 'off',
+      'import/no-unused-modules': 'off',
+      'import/no-deprecated': 'warn',
+      'import/no-relative-packages': 'error',
+      'import/extensions': [
+        'error',
+        'never',
+        {
+          json: 'always',
+          png: 'always',
+          jpg: 'always',
+          svg: 'always',
+        },
+      ],
 
       // General rules
       'no-shadow': 'off',

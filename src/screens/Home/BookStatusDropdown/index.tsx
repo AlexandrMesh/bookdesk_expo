@@ -1,6 +1,9 @@
 import React, { FC, memo, useCallback, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+
 import { StyleProp, TextStyle, ViewStyle } from 'react-native';
+
+import { useTranslation } from 'react-i18next';
+
 import { ALL, COMPLETED, IN_PROGRESS, PLANNED } from '~constants/boardType';
 import { useAppDispatch, useAppSelector } from '~hooks';
 import { updateUserBook } from '~redux/actions/booksActions';

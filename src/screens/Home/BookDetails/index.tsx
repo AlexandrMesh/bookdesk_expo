@@ -1,9 +1,12 @@
+import React, { useCallback, useEffect } from 'react';
+
+import { ScrollView, Text, View } from 'react-native';
+
 import { RouteProp, useIsFocused, useRoute } from '@react-navigation/native';
 import { Image } from 'expo-image';
-import React, { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { IDLE, PENDING } from '~constants/loadingStatuses';
 import { useAppDispatch, useAppSelector } from '~hooks';
 import useGetImgUrl from '~hooks/useGetImgUrl';
@@ -13,6 +16,7 @@ import BookStatusDropdown from '~screens/Home/BookStatusDropdown';
 import Like from '~screens/Home/Like';
 import Rating from '~screens/Home/Rating';
 import { BookStatus } from '~types/books';
+
 import BookNotePreview from '../BookNotePreview';
 import ModifiedDate from '../ModifiedDate';
 import Placeholder from './Placeholder';

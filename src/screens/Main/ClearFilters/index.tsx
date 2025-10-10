@@ -1,12 +1,15 @@
 import React from 'react';
+
 import { useTranslation } from 'react-i18next';
-import { useAppDispatch, useAppSelector } from '~hooks';
-import Button from '~UI/Button';
+
 import { ALL } from '~constants/boardType';
-import { deriveBookListEditableFilterParams } from '~redux/selectors/books';
-import { clearFilters } from '~redux/actions/booksActions';
-import { BookStatus } from '~types/books';
 import { SECONDARY } from '~constants/themes';
+import { useAppDispatch, useAppSelector } from '~hooks';
+import { clearFilters } from '~redux/actions/booksActions';
+import { deriveBookListEditableFilterParams } from '~redux/selectors/books';
+import { BookStatus } from '~types/books';
+import Button from '~UI/Button';
+
 import styles from './styles';
 
 const ClearFilters = () => {

@@ -1,17 +1,21 @@
 import React, { useEffect, useCallback } from 'react';
+
 import { View, Text, Pressable, SectionList, FlatList } from 'react-native';
-import { useTranslation } from 'react-i18next';
+
 import { useNavigation } from '@react-navigation/native';
-import RadioButton from '~UI/RadioButton';
-import Button from '~UI/Button';
-import Input from '~UI/TextInput';
-import { FILTER_ICON } from '~constants/dimensions';
-import { deriveCategories } from '~redux/selectors/books';
-import { toggleExpandedCategoryCustomBooks, setSearchQuery, selectCategory, clearCategory, submitCategory } from '~redux/actions/customBookActions';
-import { deriveCategoriesSearchResult, getCategorySearchQuery, getEditableSelectedCategoryPath } from '~redux/selectors/customBook';
-import { useAppDispatch, useAppSelector } from '~hooks';
-import { ALL } from '~constants/boardType';
+import { useTranslation } from 'react-i18next';
+
 import ArrowDown from '~assets/arrow-down.svg';
+import { ALL } from '~constants/boardType';
+import { FILTER_ICON } from '~constants/dimensions';
+import { useAppDispatch, useAppSelector } from '~hooks';
+import { toggleExpandedCategoryCustomBooks, setSearchQuery, selectCategory, clearCategory, submitCategory } from '~redux/actions/customBookActions';
+import { deriveCategories } from '~redux/selectors/books';
+import { deriveCategoriesSearchResult, getCategorySearchQuery, getEditableSelectedCategoryPath } from '~redux/selectors/customBook';
+import Button from '~UI/Button';
+import RadioButton from '~UI/RadioButton';
+import Input from '~UI/TextInput';
+
 import styles from './styles';
 
 const CategoryChooser = () => {

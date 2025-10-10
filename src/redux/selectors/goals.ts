@@ -1,9 +1,10 @@
-import { createSelector } from 'reselect';
 import groupBy from 'lodash/groupBy';
 import map from 'lodash/map';
 import sum from 'lodash/sum';
-import i18n from '~translations/i18n';
+import { createSelector } from 'reselect';
+
 import { RootState } from '~redux/store/configureStore';
+import i18n from '~translations/i18n';
 
 type StateWithGoals = Pick<RootState, 'goals'>;
 

@@ -1,10 +1,13 @@
 import React, { FC, memo, useCallback, useRef, useState } from 'react';
+
 import { Animated, FlatList, Modal, StyleProp, Text, TextStyle, TouchableOpacity, View, ViewStyle, useWindowDimensions } from 'react-native';
+
 import DropdownIcon from '~assets/dropdown.svg';
 import { DROPDOWN_ICON } from '~constants/dimensions';
 import useGetAnimatedPlaceholderStyle from '~hooks/useGetAnimatedPlaceholderStyle';
 import colors from '~styles/colors';
 import { BookStatus } from '~types/books';
+
 import styles from './styles';
 
 export type Props = {

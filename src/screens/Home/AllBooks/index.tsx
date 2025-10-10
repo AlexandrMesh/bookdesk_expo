@@ -1,7 +1,13 @@
 import React, { useCallback, useEffect } from 'react';
-import { useIsFocused } from '@react-navigation/native';
+
 import { View } from 'react-native';
+
+import { useIsFocused } from '@react-navigation/native';
+
+import { ALL } from '~constants/boardType';
+import { IDLE, PENDING, SUCCEEDED } from '~constants/loadingStatuses';
 import { useAppDispatch, useAppSelector } from '~hooks';
+import { loadBookList, loadMoreBooks, loadCategories, setBoardType } from '~redux/actions/booksActions';
 import {
   deriveBookListData,
   deriveLoadingBookListStatus,
@@ -10,11 +16,9 @@ import {
   deriveBookListTotalItems,
   deriveFilterBookCategoryPaths,
 } from '~redux/selectors/books';
-import { loadBookList, loadMoreBooks, loadCategories, setBoardType } from '~redux/actions/booksActions';
-import { IDLE, PENDING, SUCCEEDED } from '~constants/loadingStatuses';
-import { ALL } from '~constants/boardType';
 import EmptyResults from '~screens/Home/EmptyResults';
 import { BookStatus } from '~types/books';
+
 import ActionBar from '../ActionBar/ActionBar';
 import BooksList from '../BooksList';
 import styles from './styles';

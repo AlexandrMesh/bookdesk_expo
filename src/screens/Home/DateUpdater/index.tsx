@@ -1,7 +1,10 @@
-import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
+
 import { DATE_UPDATER } from '~constants/modalTypes';
 import { useAppDispatch, useAppSelector } from '~hooks';
 import { hideModal, updateUserBookAddedDate } from '~redux/actions/booksActions';

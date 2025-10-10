@@ -1,13 +1,17 @@
+import React, { FC, useCallback, useEffect, useState } from 'react';
+
+import { Pressable, Text, View } from 'react-native';
+
 import { useNavigation } from '@react-navigation/native';
 import { FlashList } from '@shopify/flash-list';
 import { Image } from 'expo-image';
-import React, { FC, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, Text, View } from 'react-native';
+
 import { BOOK_DETAILS_ROUTE } from '~constants/routes';
 import { useAppDispatch } from '~hooks';
 import { getSimilarBooks } from '~redux/actions/booksActions';
 import { ISimilarBook } from '~types/books';
+
 import ItemPlaceholder from './ItemPlaceholder';
 import styles from './styles';
 
