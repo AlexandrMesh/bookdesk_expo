@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { Animated, Dimensions, LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { SceneMap, TabBar, TabView } from 'react-native-tab-view';
+import { SceneMap, TabView } from 'react-native-tab-view';
 import colors from '~styles/colors';
 import AllBooks from './AllBooks';
 import CompletedBooks from './CompletedBooks';
@@ -21,9 +21,18 @@ const renderScene = SceneMap({
   completed: CompletedBooks,
 });
 
+type TabMeasurement = {
+  x: number;
+  width: number;
+};
+
 const Home = () => {
   const { t } = useTranslation('books');
   const [index, setIndex] = useState(0);
+  const [tabMeasurements, setTabMeasurements] = useState<Map<number, TabMeasurement>>(new Map());
+  const [measurementsReady, setMeasurementsReady] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const layoutTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   
   const routes = [
     { key: 'all', title: t('recommended') },
@@ -32,19 +41,185 @@ const Home = () => {
     { key: 'completed', title: t('completed') },
   ];
 
-  const renderTabBar = (props: any) => (
-    <TabBar
-      {...props}
-      indicatorStyle={tabBarStyles.indicator}
-      style={tabBarStyles.tabBar}
-      tabStyle={tabBarStyles.tab}
-      labelStyle={styles.tabBarLabel}
-      activeColor={colors.neutral_light}
-      inactiveColor={colors.neutral_medium}
-      pressColor="transparent"
-      scrollEnabled={true}
-    />
-  );
+  const handleTabLayout = useCallback((tabIndex: number, event: LayoutChangeEvent) => {
+    const { x, width } = event.nativeEvent.layout;
+    
+    setTabMeasurements((prev) => {
+      const updated = new Map(prev);
+      const existingMeasurement = prev.get(tabIndex);
+      
+      // Обновляем только если значения изменились
+      if (!existingMeasurement || existingMeasurement.x !== x || existingMeasurement.width !== width) {
+        updated.set(tabIndex, { x, width });
+        
+        // Сбрасываем предыдущий таймаут
+        if (layoutTimeoutRef.current) {
+          clearTimeout(layoutTimeoutRef.current);
+        }
+        
+        // Даем небольшую задержку чтобы убедиться что все измерения завершились
+        layoutTimeoutRef.current = setTimeout(() => {
+          if (updated.size === routes.length) {
+            setMeasurementsReady(true);
+          }
+        }, 50);
+        
+        return updated;
+      }
+      
+      return prev;
+    });
+  }, [routes.length]);
+
+  useEffect(() => {
+    return () => {
+      if (layoutTimeoutRef.current) {
+        clearTimeout(layoutTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleTabPress = useCallback((tabIndex: number) => {
+    setIndex(tabIndex);
+  }, []);
+
+  // Мемоизируем расчеты для индикатора чтобы избежать пересоздания интерполяций
+  const indicatorData = useMemo(() => {
+    if (!measurementsReady || tabMeasurements.size !== routes.length) {
+      return null;
+    }
+
+    const inputRange = routes.map((_, i) => i);
+    
+    // Находим максимальную ширину для базового размера индикатора
+    const measurements = Array.from(tabMeasurements.values());
+    const maxWidth = Math.max(...measurements.map(m => m.width));
+    
+    // Получаем массивы позиций и ширин для интерполяции
+    const outputRangeX = inputRange.map((i) => {
+      const measurement = tabMeasurements.get(i);
+      return measurement?.x ?? 0;
+    });
+    
+    const outputRangeWidth = inputRange.map((i) => {
+      const measurement = tabMeasurements.get(i);
+      return measurement?.width ?? 100;
+    });
+
+    return {
+      inputRange,
+      maxWidth,
+      outputRangeX,
+      outputRangeWidth,
+    };
+  }, [measurementsReady, tabMeasurements, routes]);
+
+  const renderTabBar = useCallback((props: any) => {
+    const { position } = props;
+    
+    if (!position || !indicatorData) {
+      return (
+        <View style={tabBarStyles.container}>
+          <ScrollView
+            ref={scrollViewRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            bounces={false}
+            style={tabBarStyles.scrollView}
+            contentContainerStyle={tabBarStyles.scrollContent}
+          >
+            {routes.map((route, i) => {
+              const isFocused = index === i;
+              
+              return (
+                <Pressable
+                  key={route.key}
+                  onLayout={(event) => handleTabLayout(i, event)}
+                  onPress={() => handleTabPress(i)}
+                  style={tabBarStyles.tab}
+                >
+                  <Text
+                    style={[
+                      styles.tabBarLabel,
+                      { color: isFocused ? colors.neutral_light : colors.neutral_medium },
+                    ]}
+                  >
+                    {route.title}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      );
+    }
+
+    const { inputRange, maxWidth, outputRangeX, outputRangeWidth } = indicatorData;
+
+    // scaleX для изменения ширины (вместо width)
+    const scaleX = position.interpolate({
+      inputRange,
+      outputRange: outputRangeWidth.map(w => w / maxWidth),
+      extrapolate: 'clamp',
+    });
+
+    // translateX с компенсацией для scaleX (чтобы масштабирование шло от левого края)
+    const translateX = position.interpolate({
+      inputRange,
+      outputRange: outputRangeX.map((x, i) => {
+        // Компенсация: scaleX масштабирует от центра, поэтому при уменьшении
+        // элемент смещается вправо. Нужно сдвинуть его обратно влево.
+        const width = outputRangeWidth[i];
+        const offset = (maxWidth - width) / 2;
+        return x - offset;
+      }),
+      extrapolate: 'clamp',
+    });
+
+    return (
+      <View style={tabBarStyles.container}>
+        <ScrollView
+          ref={scrollViewRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          bounces={false}
+          style={tabBarStyles.scrollView}
+          contentContainerStyle={tabBarStyles.scrollContent}
+        >
+          {routes.map((route, i) => {
+            const isFocused = index === i;
+            
+            return (
+              <Pressable
+                key={route.key}
+                onLayout={(event) => handleTabLayout(i, event)}
+                onPress={() => handleTabPress(i)}
+                style={tabBarStyles.tab}
+              >
+                <Text
+                  style={[
+                    styles.tabBarLabel,
+                    { color: isFocused ? colors.neutral_light : colors.neutral_medium },
+                  ]}
+                >
+                  {route.title}
+                </Text>
+              </Pressable>
+            );
+          })}
+          <Animated.View
+            style={[
+              tabBarStyles.indicator,
+              {
+                width: maxWidth,
+                transform: [{ translateX }, { scaleX }],
+              },
+            ]}
+          />
+        </ScrollView>
+      </View>
+    );
+  }, [routes, index, handleTabLayout, handleTabPress, indicatorData]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -57,23 +232,36 @@ const Home = () => {
         lazy
         renderLazyPlaceholder={renderLazyPlaceholder}
         lazyPreloadDistance={0}
+        swipeEnabled={true}
       />
     </SafeAreaView>
   );
 };
 
 const tabBarStyles = StyleSheet.create({
-  tabBar: {
+  container: {
     backgroundColor: colors.primary_dark,
     borderBottomWidth: 1,
     borderColor: colors.neutral_medium,
   },
+  scrollView: {
+    flexGrow: 0,
+  },
+  scrollContent: {
+    paddingHorizontal: 4,
+  },
   tab: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   indicator: {
-    backgroundColor: colors.neutral_light,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
     height: 2,
+    backgroundColor: colors.neutral_light,
   },
 });
 
