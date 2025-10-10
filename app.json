@@ -39,7 +39,13 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
-    ]
+      ],
+      "@react-native-google-signin/google-signin"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "8c50cb91-6c14-475d-9098-9608c1f742e3"
+      }
+    }
   }
 }

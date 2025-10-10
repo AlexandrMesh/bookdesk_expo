@@ -11,7 +11,11 @@
     "lint": "expo lint",
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
-    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\""
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "build:android:preview": "eas build --platform android --profile preview",
+    "build:android:production": "eas build --platform android --profile production",
+    "build:ios:preview": "eas build --platform ios --profile preview",
+    "build:ios:production": "eas build --platform ios --profile production"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
@@ -69,6 +73,7 @@
     "@types/semver": "^7.7.1",
     "babel-plugin-module-resolver": "^5.0.2",
     "babel-preset-expo": "^54.0.3",
+    "eas-cli": "^16.20.4",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
     "react-native-svg-transformer": "^1.5.1",

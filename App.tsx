@@ -1,23 +1,46 @@
+import Constants from 'expo-constants';
 import React from 'react';
 import { I18nextProvider } from 'react-i18next';
 import 'react-native-gesture-handler';
 import { Provider } from 'react-redux';
-// import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { MobileAds } from 'yandex-mobile-ads';
 import configureStore from './src/redux/store/configureStore';
 import Main from './src/screens/Main';
 import i18n from './src/translations/i18n';
 
-// GoogleSignin.configure({
-//   offlineAccess: true,
-//   webClientId: '798541911751-2bfmd87u0b4tlua24hs8k57r5pmag36e.apps.googleusercontent.com',
-// });
+// Условная инициализация нативных модулей
+// Работает только в production build, не в Expo Go
+const initializeNativeModules = async () => {
+  const isExpoGo = Constants.appOwnership === 'expo';
+  
+  if (!isExpoGo) {
+    try {
+      // Google Sign In
+      const { GoogleSignin } = await import('@react-native-google-signin/google-signin');
+      GoogleSignin.configure({
+        offlineAccess: true,
+        webClientId: '798541911751-2bfmd87u0b4tlua24hs8k57r5pmag36e.apps.googleusercontent.com',
+      });
+      console.log('Google Sign In initialized');
+    } catch (error) {
+      console.log('Google Sign In not available:', error);
+    }
+
+    try {
+      // Yandex Mobile Ads
+      const { MobileAds } = await import('yandex-mobile-ads');
+      await MobileAds.initialize();
+      console.log('Yandex Mobile Ads initialized');
+    } catch (error) {
+      console.log('Yandex Mobile Ads not available:', error);
+    }
+  } else {
+    console.log('Running in Expo Go - native modules disabled');
+  }
+};
 
 const App = () => {
   React.useEffect(() => {
-    (async () => {
-      await MobileAds.initialize();
-    })();
+    initializeNativeModules();
   }, []);
 
   return (

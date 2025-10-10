@@ -1,8 +1,8 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
+import Constants from 'expo-constants';
 import { NativeModules } from 'react-native';
-// import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RU } from '~constants/languages';
 import AuthService from '~http/services/auth';
 import { clearBooksData, setBookNotes, setBookVotes, userBookRatingsLoaded } from '~redux/actions/booksActions';
@@ -11,13 +11,41 @@ import { clearData as clearGoalsData, setGoal } from '~redux/actions/goalsAction
 import { clearData as clearStatisticData } from '~redux/actions/statisticActions';
 import i18n, { getT } from '~translations/i18n';
 
-// Mock GoogleSignin for Expo Go compatibility
-const GoogleSignin = {
-  isSignedIn: async () => false,
-  hasPlayServices: async () => { throw new Error('Google Sign-In is not available in Expo Go'); },
-  signIn: async () => { throw new Error('Google Sign-In is not available in Expo Go'); },
-  revokeAccess: async () => {},
-  signOut: async () => {},
+// Динамический импорт GoogleSignin для совместимости с Expo Go
+let GoogleSigninModule: any = null;
+
+const getGoogleSignin = async () => {
+  const isExpoGo = Constants.appOwnership === 'expo';
+  
+  if (isExpoGo) {
+    // Mock для Expo Go
+    return {
+      isSignedIn: async () => false,
+      hasPlayServices: async () => { throw new Error('Google Sign-In is not available in Expo Go'); },
+      signIn: async () => { throw new Error('Google Sign-In is not available in Expo Go'); },
+      revokeAccess: async () => {},
+      signOut: async () => {},
+    };
+  }
+  
+  if (!GoogleSigninModule) {
+    try {
+      const module = await import('@react-native-google-signin/google-signin');
+      GoogleSigninModule = module.GoogleSignin;
+    } catch (error) {
+      console.log('Google Sign-In not available:', error);
+      // Fallback mock
+      return {
+        isSignedIn: async () => false,
+        hasPlayServices: async () => { throw new Error('Google Sign-In is not available'); },
+        signIn: async () => { throw new Error('Google Sign-In is not available'); },
+        revokeAccess: async () => {},
+        signOut: async () => {},
+      };
+    }
+  }
+  
+  return GoogleSigninModule;
 };
 
 const PREFIX = 'AUTH';
@@ -106,6 +134,7 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
     };
   }
   try {
+    const GoogleSignin = await getGoogleSignin();
     const result = await Promise.all([GoogleSignin.isSignedIn(), AuthService().checkAuth(token)]);
     const isGoogleSignedIn = result[0];
     const { data } = result[1];
@@ -139,6 +168,7 @@ export const signIn = createAsyncThunk(
   async ({ email, password, isGoogleAccount }: { email: string; password: string; isGoogleAccount?: boolean }, { dispatch }) => {
     if (isGoogleAccount) {
       try {
+        const GoogleSignin = await getGoogleSignin();
         await GoogleSignin.hasPlayServices();
         const {
           idToken,
@@ -247,6 +277,7 @@ export const signOut = createAsyncThunk(`${PREFIX}/signOut`, async (_, { dispatc
     dispatch(clearCustomBooksData());
     dispatch(clearStatisticData());
     dispatch(clearGoalsData());
+    const GoogleSignin = await getGoogleSignin();
     const isGoogleSignedIn = await GoogleSignin.isSignedIn();
     if (isGoogleSignedIn) {
       await GoogleSignin.revokeAccess();

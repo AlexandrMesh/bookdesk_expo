@@ -1,35 +1,55 @@
+import Constants from 'expo-constants';
 import React from 'react';
 import { Dimensions, View } from 'react-native';
-import { AdRequest, AdTheme, BannerAdSize, BannerView, Gender, Location } from 'yandex-mobile-ads';
 
 const BannerAd: React.FC = () => {
   const [adSize, setAdSize] = React.useState<any>(null);
-  const [adRequest] = React.useState(
-    new AdRequest({
-      age: '20',
-      contextQuery: 'context-query',
-      contextTags: ['context-tag'],
-      gender: Gender.Male,
-      location: new Location(55.734202, 37.588063),
-      adTheme: AdTheme.Dark,
-      parameters: new Map<string, string>([
-        ['param1', 'value1'],
-        ['param2', 'value2'],
-      ]),
-    }),
-  );
+  const [BannerViewComponent, setBannerViewComponent] = React.useState<any>(null);
+  const [adRequest, setAdRequest] = React.useState<any>(null);
+  
+  const isExpoGo = Constants.appOwnership === 'expo';
 
   React.useEffect(() => {
-    (async () => {
-      const size = await BannerAdSize.stickySize(Dimensions.get('window').width);
-      setAdSize(size);
-    })();
-  }, []);
+    // Загружаем Yandex Ads только если НЕ в Expo Go
+    if (!isExpoGo) {
+      (async () => {
+        try {
+          const { AdRequest, AdTheme, BannerAdSize, BannerView, Gender, Location } = await import('yandex-mobile-ads');
+          
+          const request = new AdRequest({
+            age: '20',
+            contextQuery: 'context-query',
+            contextTags: ['context-tag'],
+            gender: Gender.Male,
+            location: new Location(55.734202, 37.588063),
+            adTheme: AdTheme.Dark,
+            parameters: new Map<string, string>([
+              ['param1', 'value1'],
+              ['param2', 'value2'],
+            ]),
+          });
+          
+          const size = await BannerAdSize.stickySize(Dimensions.get('window').width);
+          
+          setAdRequest(request);
+          setAdSize(size);
+          setBannerViewComponent(() => BannerView);
+        } catch (error) {
+          console.log('Yandex Mobile Ads not available:', error);
+        }
+      })();
+    }
+  }, [isExpoGo]);
 
-  if (!adSize) return <View />;
+  // В Expo Go или если реклама не загрузилась - показываем пустой View
+  if (isExpoGo || !adSize || !BannerViewComponent || !adRequest) {
+    return <View />;
+  }
 
+  const BannerViewComp = BannerViewComponent;
+  
   return (
-    <BannerView
+    <BannerViewComp
       size={adSize}
       adUnitId='demo-banner-yandex'
       adRequest={adRequest}
