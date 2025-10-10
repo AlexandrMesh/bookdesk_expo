@@ -14,31 +14,12 @@ http.interceptors.request.use(
       if (value) {
         config.headers.Authorization = `Bearer ${value}`;
       }
-      // Log request URL for debugging
-      if (__DEV__) {
-        console.log('HTTP Request:', config.method?.toUpperCase(), config.url);
-      }
     } catch (e) {
-      console.error('HTTP Interceptor Error:', e);
+      console.error(e);
     }
     return config;
   },
   (error) => Promise.reject(error),
-);
-
-http.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    // Always log errors for debugging, even in production
-    console.error('HTTP Response Error:', {
-      url: error.config?.url,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      message: error.message,
-      data: error.response?.data,
-    });
-    return Promise.reject(error);
-  },
 );
 
 export default http;
