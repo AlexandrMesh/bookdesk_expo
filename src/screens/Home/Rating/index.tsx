@@ -2,9 +2,10 @@ import React, { memo, FC, useState, useEffect, useCallback, useMemo } from 'reac
 
 import { Animated, View, Pressable, Vibration, ViewStyle, StyleProp } from 'react-native';
 
+import { useAppDispatch } from '~hooks';
+
 import FilledStarIcon from '~assets/star-filled.svg';
 import StarIcon from '~assets/star.svg';
-import { useAppDispatch } from '~hooks';
 import useGetAnimatedPlaceholderStyle from '~hooks/useGetAnimatedPlaceholderStyle';
 import { updateUserBookRating } from '~redux/actions/booksActions';
 

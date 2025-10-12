@@ -6,11 +6,12 @@ import { useRoute, RouteProp } from '@react-navigation/native';
 import { isEmpty } from 'lodash';
 import { useTranslation } from 'react-i18next';
 
+import { useAppDispatch, useAppSelector } from '~hooks';
+
 import EditIcon from '~assets/edit.svg';
 import RemoveIcon from '~assets/remove.svg';
 import { MAX_COUNT_CHARACTERS_FOR_COMMENT, MIN_COUNT_CHARACTERS_FOR_COMMENT } from '~constants/bookList';
 import { SECONDARY } from '~constants/themes';
-import { useAppDispatch, useAppSelector } from '~hooks';
 import useDisplayAlert from '~hooks/useDisplayAlert';
 import { deleteUserComment, updateUserComment } from '~redux/actions/booksActions';
 import { deriveBookNote } from '~redux/selectors/books';

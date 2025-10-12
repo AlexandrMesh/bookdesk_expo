@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { BarChart } from 'react-native-gifted-charts';
 
 import { useAppDispatch, useAppSelector } from '~hooks';
+
 import { loadPagesStat } from '~redux/actions/statisticActions';
 import { getShouldReloadStat } from '~redux/selectors/statistic';
 import colors from '~styles/colors';

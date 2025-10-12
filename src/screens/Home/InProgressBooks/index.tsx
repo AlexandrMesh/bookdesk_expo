@@ -4,9 +4,10 @@ import { View } from 'react-native';
 
 import { useIsFocused } from '@react-navigation/native';
 
+import { useAppDispatch, useAppSelector } from '~hooks';
+
 import { IN_PROGRESS } from '~constants/boardType';
 import { IDLE, PENDING, SUCCEEDED } from '~constants/loadingStatuses';
-import { useAppDispatch, useAppSelector } from '~hooks';
 import { loadBookList, loadMoreBooks, setBoardType } from '~redux/actions/booksActions';
 import {
   deriveLoadingBookListStatus,

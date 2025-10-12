@@ -6,10 +6,11 @@ import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import uniqueId from 'lodash/uniqueId';
 import { useTranslation } from 'react-i18next';
 
+import { useAppDispatch } from '~hooks';
+
 import CloseIcon from '~assets/close.svg';
 import { CLOSE_ICON } from '~constants/dimensions';
 import { SECONDARY } from '~constants/themes';
-import { useAppDispatch } from '~hooks';
 import { updateUserCustomBook } from '~redux/actions/customBookActions';
 import colors from '~styles/colors';
 import { BookStatus } from '~types/books';

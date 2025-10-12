@@ -5,13 +5,14 @@ import { View, Text, SectionList, FlatList, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 
+import { useAppDispatch, useAppSelector } from '~hooks';
+
 import ArrowDown from '~assets/arrow-down.svg';
 import MedalIcon from '~assets/medal-star.svg';
 import RemoveIcon from '~assets/remove.svg';
 import { MAX_DISPLAYING_RECORDS } from '~constants/goals';
 import { IDLE, PENDING, SUCCEEDED, FAILED } from '~constants/loadingStatuses';
 import { STAT_NAVIGATOR_ROUTE, PAGES_STATISTIC_ROUTE, STAT_ROUTE } from '~constants/routes';
-import { useAppDispatch, useAppSelector } from '~hooks';
 import useDisplayAlert from '~hooks/useDisplayAlert';
 import { addGoalItem, getGoalItems, deleteUserGoalItem } from '~redux/actions/goalsActions';
 import {

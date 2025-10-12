@@ -6,8 +6,9 @@ import { useIsFocused } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { BarChart } from 'react-native-gifted-charts';
 
-import { COMPLETED } from '~constants/boardType';
 import { useAppDispatch, useAppSelector } from '~hooks';
+
+import { COMPLETED } from '~constants/boardType';
 import { loadUsersStat } from '~redux/actions/statisticActions';
 import { getShouldReloadStat } from '~redux/selectors/statistic';
 import colors from '~styles/colors';

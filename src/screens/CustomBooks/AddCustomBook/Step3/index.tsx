@@ -7,11 +7,12 @@ import { useNavigation } from '@react-navigation/native';
 import uniqueId from 'lodash/uniqueId';
 import { useTranslation } from 'react-i18next';
 
+import { useAppDispatch, useAppSelector } from '~hooks';
+
 import CloseIcon from '~assets/close.svg';
 import { CLOSE_ICON } from '~constants/dimensions';
 import { CUSTOM_CATEGORY_CHOOSER_ROUTE } from '~constants/routes';
 import { SECONDARY } from '~constants/themes';
-import { useAppDispatch, useAppSelector } from '~hooks';
 import {
   setPages,
   addAuthor,

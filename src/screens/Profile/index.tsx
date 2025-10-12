@@ -5,9 +5,10 @@ import { Linking, ScrollView, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 
+import { useAppDispatch, useAppSelector } from '~hooks';
+
 import { ABOUT_ROUTE } from '~constants/routes';
 import { SECONDARY } from '~constants/themes';
-import { useAppDispatch, useAppSelector } from '~hooks';
 import { signOut } from '~redux/actions/authActions';
 import { getRegistered, getUserEmail } from '~redux/selectors/auth';
 import Button from '~UI/Button';

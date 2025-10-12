@@ -6,9 +6,10 @@ import { useRoute, useIsFocused, RouteProp } from '@react-navigation/native';
 import isEmpty from 'lodash/isEmpty';
 import { useTranslation } from 'react-i18next';
 
+import { useAppDispatch, useAppSelector } from '~hooks';
+
 import { ALL } from '~constants/boardType';
 import { PENDING, SUCCEEDED } from '~constants/loadingStatuses';
-import { useAppDispatch, useAppSelector } from '~hooks';
 import { loadSearchResults, loadMoreSearchResults, setBoardType } from '~redux/actions/booksActions';
 import {
   deriveSearchBookListData,

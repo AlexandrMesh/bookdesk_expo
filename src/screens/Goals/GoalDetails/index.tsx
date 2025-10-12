@@ -1,7 +1,8 @@
 import React from 'react';
 
-import { DAILY, MONTHLY } from '~constants/goals';
 import { useAppSelector } from '~hooks';
+
+import { DAILY, MONTHLY } from '~constants/goals';
 import { getGoalType } from '~redux/selectors/goals';
 
 import Daily from './Daily';

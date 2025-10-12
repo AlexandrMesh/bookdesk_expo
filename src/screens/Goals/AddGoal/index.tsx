@@ -5,9 +5,10 @@ import { View, Text, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 
+import { useAppDispatch } from '~hooks';
+
 import { DAILY, MONTHLY } from '~constants/goals';
 import { GOAL_DETAILS } from '~constants/routes';
-import { useAppDispatch } from '~hooks';
 import { addGoal } from '~redux/actions/goalsActions';
 import { GoalType } from '~types/goals';
 import Button from '~UI/Button';

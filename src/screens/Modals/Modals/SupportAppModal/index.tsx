@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 
 import { useAppDispatch, useAppSelector } from '~hooks';
+
 import { supportApp } from '~redux/actions/appActions';
 import { getSupportAppViewedAt, getRegistered } from '~redux/selectors/auth';
 import Button from '~UI/Button';

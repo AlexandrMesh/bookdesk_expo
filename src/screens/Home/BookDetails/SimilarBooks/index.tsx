@@ -7,8 +7,9 @@ import { FlashList } from '@shopify/flash-list';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 
-import { BOOK_DETAILS_ROUTE } from '~constants/routes';
 import { useAppDispatch } from '~hooks';
+
+import { BOOK_DETAILS_ROUTE } from '~constants/routes';
 import { getSimilarBooks } from '~redux/actions/booksActions';
 import { ISimilarBook } from '~types/books';
 

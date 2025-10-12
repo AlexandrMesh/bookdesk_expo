@@ -7,8 +7,9 @@ import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { IDLE, PENDING } from '~constants/loadingStatuses';
 import { useAppDispatch, useAppSelector } from '~hooks';
+
+import { IDLE, PENDING } from '~constants/loadingStatuses';
 import useGetImgUrl from '~hooks/useGetImgUrl';
 import { clearBookDetails, loadBookDetails } from '~redux/actions/booksActions';
 import { deriveBookDetails, deriveUserBookRating, getLoadingBookDetailsStatus } from '~redux/selectors/books';

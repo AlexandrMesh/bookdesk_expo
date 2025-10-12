@@ -5,8 +5,9 @@ import { View, Text } from 'react-native';
 import isEmpty from 'lodash/isEmpty';
 import { useTranslation } from 'react-i18next';
 
-import { PENDING, SUCCEEDED, IDLE } from '~constants/loadingStatuses';
 import { useAppDispatch, useAppSelector } from '~hooks';
+
+import { PENDING, SUCCEEDED, IDLE } from '~constants/loadingStatuses';
 import {
   setCurrentStep,
   setAvailableStep,

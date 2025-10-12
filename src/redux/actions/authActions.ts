@@ -150,22 +150,22 @@ export const signInFailed = createAsyncThunk(`${PREFIX}/signInFailed`, async (er
 });
 
 export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: string, { dispatch, rejectWithValue }) => {
+  console.error('[checkAuth] Starting auth check with token:', !!token);
+
   if (!token) {
-    dispatch(authCheckingFailed());
-    return {
-      profile: {},
-      isGoogleAccount: false,
-      isSignedIn: false,
-    };
+    console.error('[checkAuth] No token found, user not authenticated');
+    return rejectWithValue('No token provided');
   }
 
   try {
+    console.error('[checkAuth] Token found, checking with server...');
     const GoogleSignin = await getGoogleSignin();
     const result = await Promise.all([GoogleSignin.isSignedIn(), AuthService().checkAuth(token)]);
     const isGoogleSignedIn = result[0];
     const { data } = result[1];
 
     if (data.profile) {
+      console.error('[checkAuth] Auth successful, profile loaded');
       const { numberOfPagesForGoal, goalType } = data;
       if (numberOfPagesForGoal) {
         dispatch(setGoal({ pages: numberOfPagesForGoal, type: goalType }));
@@ -182,18 +182,17 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
     }
 
     // Если профиль пустой, значит токен недействителен - удаляем его
+    console.error('[checkAuth] Invalid token, removing...');
     await removeToken();
-    return {
-      profile: {},
-      isGoogleAccount: false,
-      isSignedIn: false,
-    };
+    return rejectWithValue('Invalid token - no profile returned');
   } catch (error) {
     // При ошибке (токен недействителен) удаляем его
+    console.error('[checkAuth] Error during auth check:', error);
     try {
       await removeToken();
+      console.error('[checkAuth] Token removed due to error');
     } catch (storageError) {
-      console.error('Error removing token from storage:', storageError);
+      console.error('[checkAuth] Error removing token from storage:', storageError);
     }
 
     // Не вызываем signInFailed, так как это проверка токена при запуске, а не активный вход

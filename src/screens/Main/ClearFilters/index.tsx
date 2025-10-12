@@ -2,9 +2,10 @@ import React from 'react';
 
 import { useTranslation } from 'react-i18next';
 
+import { useAppDispatch, useAppSelector } from '~hooks';
+
 import { ALL } from '~constants/boardType';
 import { SECONDARY } from '~constants/themes';
-import { useAppDispatch, useAppSelector } from '~hooks';
 import { clearFilters } from '~redux/actions/booksActions';
 import { deriveBookListEditableFilterParams } from '~redux/selectors/books';
 import { BookStatus } from '~types/books';

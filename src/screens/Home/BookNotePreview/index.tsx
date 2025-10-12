@@ -6,9 +6,10 @@ import { useNavigation } from '@react-navigation/native';
 import isEmpty from 'lodash/isEmpty';
 import { useTranslation } from 'react-i18next';
 
+import { useAppSelector } from '~hooks';
+
 import ArrowDown from '~assets/arrow-down.svg';
 import { BOOK_NOTE_ROUTE } from '~constants/routes';
-import { useAppSelector } from '~hooks';
 import { deriveBookNote } from '~redux/selectors/books';
 
 import styles from './styles';

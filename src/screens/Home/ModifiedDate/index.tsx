@@ -4,9 +4,10 @@ import { View, Text, Animated } from 'react-native';
 
 import { useTranslation } from 'react-i18next';
 
+import { useAppDispatch, useAppSelector } from '~hooks';
+
 import { PENDING } from '~constants/loadingStatuses';
 import { DATE_UPDATER } from '~constants/modalTypes';
-import { useAppDispatch, useAppSelector } from '~hooks';
 import useGetAnimatedPlaceholderStyle from '~hooks/useGetAnimatedPlaceholderStyle';
 import { setBookToUpdate, showModal } from '~redux/actions/booksActions';
 import { getBookValuesUpdatingStatus, getBookToUpdate } from '~redux/selectors/books';

@@ -5,8 +5,9 @@ import { View, Text, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 
-import { DAILY, MONTHLY } from '~constants/goals';
 import { useAppDispatch, useAppSelector } from '~hooks';
+
+import { DAILY, MONTHLY } from '~constants/goals';
 import { updateGoal } from '~redux/actions/goalsActions';
 import { getGoalNumberOfPages, getGoalType } from '~redux/selectors/goals';
 import { GoalType } from '~types/goals';

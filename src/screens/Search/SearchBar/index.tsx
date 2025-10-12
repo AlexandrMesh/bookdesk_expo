@@ -4,8 +4,9 @@ import { View } from 'react-native';
 
 import { useTranslation } from 'react-i18next';
 
-import { PENDING, IDLE } from '~constants/loadingStatuses';
 import { useAppDispatch, useAppSelector } from '~hooks';
+
+import { PENDING, IDLE } from '~constants/loadingStatuses';
 import useDebouncedSearch from '~hooks/useDebouncedSearch';
 import { setSearchQuery, clearSearchResults, triggerShouldNotClearSearchQuery } from '~redux/actions/booksActions';
 import { deriveSearchQuery, getShouldClearSearchQuery, getLoadingSearchResultsStatus } from '~redux/selectors/books';

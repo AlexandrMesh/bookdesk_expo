@@ -18,7 +18,7 @@ import ProfileIcon from '~assets/profile.svg';
 import StatIcon from '~assets/stat.svg';
 import { BOTTOM_BAR_ADD_ICON, BOTTOM_BAR_ICON } from '~constants/dimensions';
 import { DAILY } from '~constants/goals';
-import { IDLE, PENDING } from '~constants/loadingStatuses';
+import { IDLE, PENDING, SUCCEEDED } from '~constants/loadingStatuses';
 import {
   ABOUT_ROUTE,
   ADD_CUSTOM_BOOK_NAVIGATOR_ROUTE,
@@ -43,6 +43,7 @@ import {
   STAT_NAVIGATOR_ROUTE,
   STAT_ROUTE,
 } from '~constants/routes';
+import { useAppUpdates } from '~hooks/useAppUpdates';
 import { checkAuth, getConfig } from '~redux/actions/authActions';
 import { getCheckingStatus, getIsSignedIn } from '~redux/selectors/auth';
 import { getGoalNumberOfPages, getGoalType } from '~redux/selectors/goals';
@@ -457,51 +458,68 @@ const Main = () => {
   const _checkAuth = useCallback((token: string) => dispatch(checkAuth(token)), [dispatch]);
   const _getConfig = useCallback((url: string) => dispatch(getConfig(url)), [dispatch]);
 
+  // Хук для проверки EAS Updates
+  const { checkAndInstallUpdate } = useAppUpdates();
+
   const checkingStatus = useAppSelector(getCheckingStatus);
   const hasGoal = !!useAppSelector(getGoalNumberOfPages);
   const goalType = useAppSelector(getGoalType);
   const isSignedIn = useAppSelector(getIsSignedIn);
 
   const checkAuthentication = useCallback(async () => {
+    console.error('[Main] Starting authentication check...');
     try {
       const token = await getToken();
+      console.error('[Main] Token retrieved from storage:', !!token);
 
       if (token) {
+        console.error('[Main] Token found, dispatching checkAuth...');
         await _checkAuth(token);
+        console.error('[Main] checkAuth completed successfully');
       } else {
+        console.error('[Main] No token found, dispatching checkAuth with empty token...');
         await _checkAuth('');
       }
-    } catch {
+    } catch (error) {
       // Даже в случае ошибки вызываем checkAuth с пустым токеном,
       // чтобы правильно установить состояние и показать экран входа
+      console.error('[Main] Error during authentication check:', error);
       try {
         await _checkAuth('');
       } catch (innerError) {
-        console.error('Failed to handle auth failure:', innerError);
+        console.error('[Main] Failed to handle auth failure:', innerError);
       }
     }
   }, [_checkAuth]);
 
   const getConfiguration = useCallback(
     async (url: string) => {
+      console.error('[Main] Loading configuration from:', url);
       try {
         const { minimumSupportedAppVersion, underConstruction, appVersion, googlePlayUrl } = await _getConfig(url).unwrap();
+        console.error('[Main] Configuration loaded successfully');
         const currentVersion = Constants.expoConfig?.version || '1.0.0';
         setIsTheLatestAppVersion(appVersion === currentVersion);
         setGooglePlayUrl(googlePlayUrl);
         if (minimumSupportedAppVersion && lt(currentVersion, minimumSupportedAppVersion)) {
+          console.error('[Main] App update required');
           setShouldDisplayUpdateView(true);
         } else if (underConstruction) {
+          console.error('[Main] App under construction');
           setShouldDisplayUnderConstructionView(true);
         } else {
+          console.error('[Main] Configuration loaded, checking authentication...');
           await checkAuthentication();
         }
-      } catch {
+      } catch (error) {
+        console.error('[Main] Error loading configuration:', error);
         // If we have troubles with connection to MAIN_CONFIG_URL we will try to connect to RESERVE_CONFIG_URL
         if (url === MAIN_CONFIG_URL) {
+          console.error('[Main] Trying reserve config URL...');
           getConfiguration(RESERVE_CONFIG_URL);
         } else {
           // Если оба конфига не работают, все равно пробуем проверить авторизацию
+          console.error('[Main] Both configs failed, attempting authentication anyway...');
           await checkAuthentication();
         }
       }
@@ -522,6 +540,24 @@ const Main = () => {
       getConfiguration(MAIN_CONFIG_URL);
     }
   }, [isConnected, checkingStatus, getConfiguration]);
+
+  // Проверка EAS Updates после успешной авторизации
+  useEffect(() => {
+    if (isSignedIn && checkingStatus === SUCCEEDED) {
+      console.error('[Main] User signed in, checking for EAS Updates...');
+      checkAndInstallUpdate()
+        .then((hasUpdate) => {
+          if (hasUpdate) {
+            console.error('[Main] Update found and will be installed');
+          } else {
+            console.error('[Main] No updates available');
+          }
+        })
+        .catch((error) => {
+          console.error('[Main] Error checking for updates:', error);
+        });
+    }
+  }, [isSignedIn, checkingStatus, checkAndInstallUpdate]);
 
   if (shouldDisplayUnderConstructionView) {
     return (

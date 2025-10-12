@@ -14,12 +14,12 @@ import { useAppDispatch, useAppSelector } from '~hooks';
 import useGetImgUrl from '~hooks/useGetImgUrl';
 import { loadSuggestedCovers, selectCover, setAvailableStep, setCurrentStep, setShouldAddCover } from '~redux/actions/customBookActions';
 import {
-    deriveIsValidStep2,
-    getNewCustomBookName,
-    getSelectedCover,
-    getShouldAddCover,
-    getSuggestedCoversData,
-    getSuggestedCoversLoadingDataStatus,
+  deriveIsValidStep2,
+  getNewCustomBookName,
+  getSelectedCover,
+  getShouldAddCover,
+  getSuggestedCoversData,
+  getSuggestedCoversLoadingDataStatus,
 } from '~redux/selectors/customBook';
 import Button from '~UI/Button';
 import RadioButton from '~UI/RadioButton';

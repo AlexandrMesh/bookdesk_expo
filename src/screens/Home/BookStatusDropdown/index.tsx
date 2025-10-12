@@ -4,8 +4,9 @@ import { StyleProp, TextStyle, ViewStyle } from 'react-native';
 
 import { useTranslation } from 'react-i18next';
 
-import { ALL, COMPLETED, IN_PROGRESS, PLANNED } from '~constants/boardType';
 import { useAppDispatch, useAppSelector } from '~hooks';
+
+import { ALL, COMPLETED, IN_PROGRESS, PLANNED } from '~constants/boardType';
 import { updateUserBook } from '~redux/actions/booksActions';
 import { getBoardType } from '~redux/selectors/books';
 import colors from '~styles/colors';
