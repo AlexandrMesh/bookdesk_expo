@@ -148,7 +148,7 @@ export const signInFailed = createAsyncThunk(`${PREFIX}/signInFailed`, async (er
   };
 });
 
-export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: string, { dispatch }) => {
+export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: string, { dispatch, rejectWithValue }) => {
   if (!token) {
     dispatch(authCheckingFailed());
     return {
@@ -157,11 +157,13 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
       isSignedIn: false,
     };
   }
+
   try {
     const GoogleSignin = await getGoogleSignin();
     const result = await Promise.all([GoogleSignin.isSignedIn(), AuthService().checkAuth(token)]);
     const isGoogleSignedIn = result[0];
     const { data } = result[1];
+
     if (data.profile) {
       const { numberOfPagesForGoal, goalType } = data;
       if (numberOfPagesForGoal) {
@@ -170,12 +172,14 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
       dispatch(setBookVotes(data.userVotes));
       dispatch(setBookNotes(data.userComments));
       dispatch(userBookRatingsLoaded(data.userBookRatings));
+
       return {
         profile: data.profile,
         isGoogleAccount: isGoogleSignedIn,
         isSignedIn: true,
       };
     }
+
     // Если профиль пустой, значит токен недействителен - удаляем его
     await AsyncStorage.removeItem('token');
     return {
@@ -190,8 +194,10 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
     } catch (storageError) {
       console.error('Error removing token from AsyncStorage:', storageError);
     }
-    dispatch(signInFailed(error as any));
-    throw error;
+
+    // Не вызываем signInFailed, так как это проверка токена при запуске, а не активный вход
+    // просто возвращаем rejectWithValue
+    return rejectWithValue(error);
   }
 });
 

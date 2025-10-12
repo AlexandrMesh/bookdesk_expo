@@ -464,15 +464,21 @@ const Main = () => {
 
   const checkAuthentication = useCallback(async () => {
     try {
-      const token = (await AsyncStorage.getItem('token')) as string;
+      const token = await AsyncStorage.getItem('token');
+
       if (token) {
-        console.error('checkAuthentication: Token found in AsyncStorage, checking validity...');
+        await _checkAuth(token);
       } else {
-        console.error('checkAuthentication: No token found in AsyncStorage');
+        await _checkAuth('');
       }
-      await _checkAuth(token);
-    } catch (e) {
-      console.error('checkAuthentication error:', e);
+    } catch {
+      // Даже в случае ошибки вызываем checkAuth с пустым токеном,
+      // чтобы правильно установить состояние и показать экран входа
+      try {
+        await _checkAuth('');
+      } catch (innerError) {
+        console.error('Failed to handle auth failure:', innerError);
+      }
     }
   }, [_checkAuth]);
 
@@ -490,10 +496,14 @@ const Main = () => {
         } else {
           await checkAuthentication();
         }
-      } catch (error) {
+      } catch {
         // If we have troubles with connection to MAIN_CONFIG_URL we will try to connect to RESERVE_CONFIG_URL
-        console.error(error);
-        getConfiguration(RESERVE_CONFIG_URL);
+        if (url === MAIN_CONFIG_URL) {
+          getConfiguration(RESERVE_CONFIG_URL);
+        } else {
+          // Если оба конфига не работают, все равно пробуем проверить авторизацию
+          await checkAuthentication();
+        }
       }
     },
     [_getConfig, checkAuthentication],
@@ -501,7 +511,17 @@ const Main = () => {
 
   useEffect(() => {
     getConfiguration(MAIN_CONFIG_URL);
-  }, [getConfiguration]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Дополнительный эффект для проверки авторизации при восстановлении подключения
+  useEffect(() => {
+    // Если подключение восстановилось, а мы еще не проверяли авторизацию,
+    // пробуем проверить еще раз
+    if (isConnected === true && checkingStatus === IDLE) {
+      getConfiguration(MAIN_CONFIG_URL);
+    }
+  }, [isConnected, checkingStatus, getConfiguration]);
 
   if (shouldDisplayUnderConstructionView) {
     return (
