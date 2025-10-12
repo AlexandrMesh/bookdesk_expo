@@ -1,30 +1,31 @@
 import React, { useCallback, useEffect } from 'react';
 
-import { View, Text, Pressable, SectionList, FlatList } from 'react-native';
+import { FlatList, Pressable, SectionList, Text, View } from 'react-native';
 
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 
+import { useAppDispatch, useAppSelector } from '~hooks';
+
 import ArrowDown from '~assets/arrow-down.svg';
 import { ALL } from '~constants/boardType';
 import { FILTER_ICON } from '~constants/dimensions';
-import { useAppDispatch, useAppSelector } from '~hooks';
 import {
-  triggerReloadBookList,
-  toggleExpandedCategoryBooks,
-  manageFilters,
-  populateFilters,
-  resetCategories,
-  searchCategory,
-  clearSearchQueryForCategory,
+    clearSearchQueryForCategory,
+    manageFilters,
+    populateFilters,
+    resetCategories,
+    searchCategory,
+    toggleExpandedCategoryBooks,
+    triggerReloadBookList,
 } from '~redux/actions/booksActions';
 import {
-  deriveCategories,
-  deriveEditableIndeterminatedCategories,
-  getBoardType,
-  deriveBookListEditableFilterParams,
-  deriveCategorySearchQuery,
-  deriveCategoriesSearchResult,
+    deriveBookListEditableFilterParams,
+    deriveCategories,
+    deriveCategoriesSearchResult,
+    deriveCategorySearchQuery,
+    deriveEditableIndeterminatedCategories,
+    getBoardType,
 } from '~redux/selectors/books';
 import { BookStatus } from '~types/books';
 import Button from '~UI/Button';
@@ -39,18 +40,12 @@ const Filtering = () => {
 
   const dispatch = useAppDispatch();
 
-  const _manageFilters = useCallback(
-    (path: string, boardType: BookStatus, categoryPaths: string[]) => dispatch(manageFilters(path, boardType, categoryPaths)),
-    [dispatch],
-  );
+  const _manageFilters = useCallback((path: string, categoryPaths: string[]) => dispatch(manageFilters(path, ALL, categoryPaths)), [dispatch]);
   const applyFilters = (boardType: BookStatus) => {
     dispatch(populateFilters(boardType));
     dispatch(triggerReloadBookList(boardType));
   };
-  const _toggleExpandedCategory = useCallback(
-    (path: string, boardType: BookStatus) => dispatch(toggleExpandedCategoryBooks({ path, boardType })),
-    [dispatch],
-  );
+  const _toggleExpandedCategory = useCallback((path: string) => dispatch(toggleExpandedCategoryBooks({ path, boardType: ALL })), [dispatch]);
   const _searchCategory = useCallback((query: string) => dispatch(searchCategory({ boardType: ALL, query })), [dispatch]);
   const _clearSearchQueryForCategory = useCallback(() => dispatch(clearSearchQueryForCategory(ALL)), [dispatch]);
 
@@ -95,7 +90,7 @@ const Filtering = () => {
           {!isSearchResult && (
             <Pressable
               disabled={!shouldDisplayArrowIcon}
-              onPress={() => _toggleExpandedCategory(path, boardType)}
+              onPress={() => _toggleExpandedCategory(path)}
               style={[styles.arrowIconWrapper, iconWrapperStyle()]}
             >
               {shouldDisplayArrowIcon ? (
@@ -103,19 +98,22 @@ const Filtering = () => {
               ) : null}
             </Pressable>
           )}
-          <Pressable style={styles.labelWrapper} onPress={() => _manageFilters(path, boardType, categoryPaths)}>
+          <Pressable style={styles.labelWrapper} onPress={() => _manageFilters(path, categoryPaths)}>
             <Text style={styles.menuItemTitle}>{t(`categories:${value}`)}</Text>
             <CheckBox isChecked={categoryPaths.includes(path)} indeterminate={indeterminate} />
           </Pressable>
         </View>
       );
     },
-    [boardType, categoryPaths, indeterminatedCategories, _manageFilters, t, _toggleExpandedCategory],
+    [categoryPaths, indeterminatedCategories, _manageFilters, t, _toggleExpandedCategory],
   );
 
   const getKeyExtractorForCategory = useCallback((item: any) => item.path, []);
 
-  const renderItemForCategory = useCallback(({ item }: any) => renderCategoryItem({ value: item.title, path: item.path }), [renderCategoryItem]);
+  const renderItemForCategory = useCallback(
+    ({ item }: any) => renderCategoryItem({ value: item.title, path: item.path, isExpanded: item.isExpanded }),
+    [renderCategoryItem],
+  );
 
   const renderCategory = useCallback(
     ({ value, path, isExpanded, data }: any) => {
