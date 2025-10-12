@@ -53,7 +53,7 @@ const BannerAd: React.FC = () => {
   return (
     <BannerViewComp
       size={adSize}
-      adUnitId='demo-banner-yandex'
+      adUnitId='R-M-17439463-3'
       adRequest={adRequest}
       onAdLoaded={() => {}}
       onAdFailedToLoad={() => {}}
