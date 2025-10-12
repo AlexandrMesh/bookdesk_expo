@@ -35,6 +35,7 @@ const Home = () => {
   const [index, setIndex] = useState(0);
   const [tabMeasurements, setTabMeasurements] = useState<Map<number, TabMeasurement>>(new Map());
   const [measurementsReady, setMeasurementsReady] = useState(false);
+  const [indicatorVisible, setIndicatorVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const layoutTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -90,9 +91,22 @@ const Home = () => {
 
   // Сбрасываем измерения при изменении routes (например, при смене языка)
   useEffect(() => {
+    // Намеренно сбрасываем состояние синхронно при изменении routes
     setMeasurementsReady(false);
     setTabMeasurements(new Map());
+    setIndicatorVisible(false);
   }, [routes]);
+
+  // Инициализируем индикатор после того как измерения готовы
+  useEffect(() => {
+    if (measurementsReady && !indicatorVisible) {
+      // Даем время для правильной установки позиции индикатора
+      const timeoutId = setTimeout(() => {
+        setIndicatorVisible(true);
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [measurementsReady, indicatorVisible]);
 
   useEffect(() => {
     return () => {
@@ -128,7 +142,7 @@ const Home = () => {
     });
 
     return () => cancelAnimationFrame(rafId);
-  }, [index, measurementsReady]);
+  }, [index, measurementsReady, tabMeasurements]);
 
   const handleTabPress = useCallback((tabIndex: number) => {
     setIndex(tabIndex);
@@ -166,7 +180,7 @@ const Home = () => {
   }, [measurementsReady, tabMeasurements, routes]);
 
   const renderTabBar = useCallback(
-    (props: any) => {
+    (props: { position?: Animated.AnimatedInterpolation<number> }) => {
       const { position } = props;
 
       if (!position || !indicatorData) {
@@ -245,6 +259,7 @@ const Home = () => {
                 tabBarStyles.indicator,
                 {
                   width: maxWidth,
+                  opacity: indicatorVisible ? 1 : 0,
                   transform: [{ translateX }, { scaleX }],
                 },
               ]}
@@ -253,7 +268,7 @@ const Home = () => {
         </View>
       );
     },
-    [routes, index, handleTabLayout, handleTabPress, indicatorData],
+    [routes, index, handleTabLayout, handleTabPress, indicatorData, indicatorVisible],
   );
 
   return (
