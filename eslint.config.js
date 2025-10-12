@@ -1,7 +1,9 @@
 const js = require('@eslint/js');
 const tsPlugin = require('@typescript-eslint/eslint-plugin');
 const tsParser = require('@typescript-eslint/parser');
+const prettierConfig = require('eslint-config-prettier');
 const importPlugin = require('eslint-plugin-import');
+const prettierPlugin = require('eslint-plugin-prettier');
 const reactPlugin = require('eslint-plugin-react');
 const reactHooksPlugin = require('eslint-plugin-react-hooks');
 const reactNativePlugin = require('eslint-plugin-react-native');
@@ -67,6 +69,7 @@ module.exports = [
       react: reactPlugin,
       'react-hooks': reactHooksPlugin,
       'react-native': reactNativePlugin,
+      prettier: prettierPlugin,
       import: importPlugin,
     },
     settings: {
@@ -252,6 +255,22 @@ module.exports = [
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'prefer-const': 'error',
       'no-var': 'error',
+
+      // Prettier integration (должен быть после других правил)
+      'prettier/prettier': [
+        'error',
+        {
+          singleQuote: true,
+          trailingComma: 'all',
+          printWidth: 150,
+          endOfLine: 'auto',
+          htmlWhitespaceSensitivity: 'css',
+          jsxSingleQuote: true,
+          quoteProps: 'as-needed',
+          semi: true,
+          tabWidth: 2,
+        },
+      ],
     },
   },
 
@@ -274,4 +293,8 @@ module.exports = [
       '.env*',
     ],
   },
+
+  // Применяем prettier config в самом конце, чтобы отключить конфликтующие правила,
+  // НО import/order останется активным, так как мы его определили выше
+  prettierConfig,
 ];
