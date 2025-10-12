@@ -28,6 +28,9 @@ export default StyleSheet.create({
   suggestedCovers: {
     marginVertical: 25,
   },
+  coversScrollContent: {
+    paddingRight: 10,
+  },
   defaultCoverWrapper: {
     flex: 1,
     marginVertical: 25,

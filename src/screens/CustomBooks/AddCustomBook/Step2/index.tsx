@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect } from 'react';
+/* eslint-disable import/order */
+import React, { useEffect } from 'react';
 
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ImageStyle, Pressable, ScrollView, Text, View, ViewStyle } from 'react-native';
 
 import { useBackHandler } from '@react-native-community/hooks';
-import { FlashList } from '@shopify/flash-list';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 
@@ -14,14 +14,13 @@ import { useAppDispatch, useAppSelector } from '~hooks';
 import useGetImgUrl from '~hooks/useGetImgUrl';
 import { loadSuggestedCovers, selectCover, setAvailableStep, setCurrentStep, setShouldAddCover } from '~redux/actions/customBookActions';
 import {
-  deriveIsValidStep2,
-  getNewCustomBookName,
-  getSelectedCover,
-  getShouldAddCover,
-  getSuggestedCoversData,
-  getSuggestedCoversLoadingDataStatus,
+    deriveIsValidStep2,
+    getNewCustomBookName,
+    getSelectedCover,
+    getShouldAddCover,
+    getSuggestedCoversData,
+    getSuggestedCoversLoadingDataStatus,
 } from '~redux/selectors/customBook';
-import { ICover } from '~types/customBooks';
 import Button from '~UI/Button';
 import RadioButton from '~UI/RadioButton';
 import { Spinner } from '~UI/Spinner';
@@ -55,26 +54,6 @@ const Step2 = () => {
 
   const suggestedCoversExist = suggestedCoversData.length > 0;
 
-  const getKeyExtractor = useCallback(({ coverPath }: { coverPath: string }) => coverPath, []);
-
-  const renderItem = useCallback(
-    (renderedItem: { item: ICover; extraData?: string }) => {
-      const selected = renderedItem.extraData === renderedItem.item.coverPath;
-      return (
-        <Pressable style={[styles.coverWrapper, selected && styles.selectedCover]} onPress={() => dispatch(selectCover(renderedItem.item.coverPath))}>
-          <RadioButton style={styles.selectedCoverRadioButton as any} isSelected={selected} />
-          <Image
-            style={styles.cover as any}
-            source={{
-              uri: renderedItem.item.coverPath,
-            }}
-          />
-        </Pressable>
-      );
-    },
-    [dispatch],
-  );
-
   useBackHandler(() => {
     onPressBack();
     return true;
@@ -95,7 +74,7 @@ const Step2 = () => {
           <Button
             disabled={shouldAddCover === false}
             theme={SECONDARY}
-            style={styles.button}
+            style={styles.button as ViewStyle}
             onPress={handlePressOnWithoutCover}
             title={t('customBook:withoutCover')}
           />
@@ -113,10 +92,10 @@ const Step2 = () => {
                 <Text style={styles.suggestionLabel}>{t('customBook:theExampleOfTheBookCover')}</Text>
                 <View>
                   <View style={[styles.defaultCover, styles.selectedCover]}>
-                    <RadioButton style={styles.selectedCoverRadioButton as any} isSelected />
+                    <RadioButton style={styles.selectedCoverRadioButton as ViewStyle} isSelected />
                     {imgUrl && (
                       <Image
-                        style={styles.cover as any}
+                        style={styles.cover as ImageStyle}
                         source={{
                           uri: `${imgUrl}/${DEFAULT_COVER}.webp`,
                         }}
@@ -129,15 +108,26 @@ const Step2 = () => {
             {shouldAddCover && loadingDataStatus === SUCCEEDED && suggestedCoversData.length > 0 && (
               <View style={styles.suggestedCovers}>
                 <Text style={styles.suggestionLabel}>{t('customBook:chooseTheBookCover')}</Text>
-                <FlashList
-                  data={suggestedCoversData}
-                  estimatedItemSize={50}
-                  estimatedListSize={{ height: 260, width: 500 }}
-                  horizontal
-                  extraData={selectedCover}
-                  renderItem={renderItem}
-                  keyExtractor={getKeyExtractor}
-                />
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.coversScrollContent}>
+                  {suggestedCoversData.map((item) => {
+                    const selected = selectedCover === item.coverPath;
+                    return (
+                      <Pressable
+                        key={item.coverPath}
+                        style={[styles.coverWrapper, selected && styles.selectedCover]}
+                        onPress={() => dispatch(selectCover(item.coverPath))}
+                      >
+                        <RadioButton style={styles.selectedCoverRadioButton as ViewStyle} isSelected={selected} />
+                        <Image
+                          style={styles.cover as ImageStyle}
+                          source={{
+                            uri: item.coverPath,
+                          }}
+                        />
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
               </View>
             )}
           </ScrollView>

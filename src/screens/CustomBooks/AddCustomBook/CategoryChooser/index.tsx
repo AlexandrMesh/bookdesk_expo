@@ -1,6 +1,6 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 
-import { View, Text, Pressable, SectionList, FlatList } from 'react-native';
+import { FlatList, Pressable, SectionList, Text, View } from 'react-native';
 
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -9,7 +9,7 @@ import ArrowDown from '~assets/arrow-down.svg';
 import { ALL } from '~constants/boardType';
 import { FILTER_ICON } from '~constants/dimensions';
 import { useAppDispatch, useAppSelector } from '~hooks';
-import { toggleExpandedCategoryCustomBooks, setSearchQuery, selectCategory, clearCategory, submitCategory } from '~redux/actions/customBookActions';
+import { clearCategory, selectCategory, setSearchQuery, submitCategory, toggleExpandedCategoryCustomBooks } from '~redux/actions/customBookActions';
 import { deriveCategories } from '~redux/selectors/books';
 import { deriveCategoriesSearchResult, getCategorySearchQuery, getEditableSelectedCategoryPath } from '~redux/selectors/customBook';
 import Button from '~UI/Button';

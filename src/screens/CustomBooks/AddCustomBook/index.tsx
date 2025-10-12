@@ -1,17 +1,18 @@
 import React, { lazy } from 'react';
 
-import { View, Text } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 
-import { PLANNED, IN_PROGRESS, COMPLETED, ALL } from '~constants/boardType';
-import { PENDING } from '~constants/loadingStatuses';
-import { PLANNED_BOOKS_ROUTE, IN_PROGRESS_BOOKS_ROUTE, COMPLETED_BOOKS_ROUTE, ALL_BOOKS_ROUTE } from '~constants/routes';
-import { SECONDARY } from '~constants/themes';
 import { useAppDispatch, useAppSelector } from '~hooks';
-import { setCurrentStep, clearAddCustomBookState } from '~redux/actions/customBookActions';
-import { getAvailableStep, getCurrentStep, getAddedCustomBook, getSavingCustomBookStatus, getStatus } from '~redux/selectors/customBook';
+
+import { COMPLETED, IN_PROGRESS, PLANNED } from '~constants/boardType';
+import { PENDING } from '~constants/loadingStatuses';
+import { ALL_BOOKS_ROUTE, COMPLETED_BOOKS_ROUTE, HOME_NAVIGATOR_ROUTE, IN_PROGRESS_BOOKS_ROUTE, PLANNED_BOOKS_ROUTE } from '~constants/routes';
+import { SECONDARY } from '~constants/themes';
+import { clearAddCustomBookState, setCurrentStep } from '~redux/actions/customBookActions';
+import { getAddedCustomBook, getAvailableStep, getCurrentStep, getSavingCustomBookStatus, getStatus } from '~redux/selectors/customBook';
 import InSuspense from '~screens/Main/InSuspense';
 import { BookStatus } from '~types/books';
 import Button from '~UI/Button';
@@ -24,13 +25,14 @@ const Step1 = lazy(() => import('./Step1'));
 const Step2 = lazy(() => import('./Step2'));
 const Step3 = lazy(() => import('./Step3'));
 
-const getBoardRoute = (bookStatus: BookStatus) =>
-  ({
-    [PLANNED]: PLANNED_BOOKS_ROUTE,
-    [IN_PROGRESS]: IN_PROGRESS_BOOKS_ROUTE,
-    [COMPLETED]: COMPLETED_BOOKS_ROUTE,
-    [ALL]: ALL_BOOKS_ROUTE,
-  })[bookStatus] || ALL_BOOKS_ROUTE;
+const getBoardRoute = (bookStatus: BookStatus | null) => {
+  // Если книга добавлена на конкретную доску, переходим на эту доску
+  if (bookStatus === PLANNED) return PLANNED_BOOKS_ROUTE;
+  if (bookStatus === IN_PROGRESS) return IN_PROGRESS_BOOKS_ROUTE;
+  if (bookStatus === COMPLETED) return COMPLETED_BOOKS_ROUTE;
+  // Если книга без статуса или null, переходим в Рекомендуемые (ALL)
+  return ALL_BOOKS_ROUTE;
+};
 
 const AddCustomBook = () => {
   const { t } = useTranslation('customBook');
@@ -41,6 +43,7 @@ const AddCustomBook = () => {
   const savingCustomBookStatus = useAppSelector(getSavingCustomBookStatus);
   const customBookStatus = useAppSelector(getStatus);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const navigation = useNavigation<any>();
 
   const steps = [
@@ -71,8 +74,21 @@ const AddCustomBook = () => {
   ];
 
   const handleBackToBoard = () => {
-    dispatch(clearAddCustomBookState());
-    navigation.navigate(getBoardRoute(customBookStatus));
+    try {
+      dispatch(clearAddCustomBookState());
+      const targetRoute = getBoardRoute(customBookStatus);
+      // Переходим на HomeNavigator с указанным экраном
+      navigation.getParent()?.navigate(HOME_NAVIGATOR_ROUTE, {
+        screen: targetRoute,
+      });
+    } catch (error) {
+      console.error('Navigation error:', error);
+      // В случае ошибки переходим в Рекомендуемые
+      dispatch(clearAddCustomBookState());
+      navigation.getParent()?.navigate(HOME_NAVIGATOR_ROUTE, {
+        screen: ALL_BOOKS_ROUTE,
+      });
+    }
   };
 
   return addedCustomBook ? (
