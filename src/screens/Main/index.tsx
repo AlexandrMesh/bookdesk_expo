@@ -55,11 +55,11 @@ import { GoalType } from '~types/goals';
 import BannerAd from '~UI/BannerAd';
 import { getToken } from '~utils/secureStorage';
 
-import { MAIN_CONFIG_URL, RESERVE_CONFIG_URL } from '../../config/api';
 import ClearFilters from './ClearFilters';
 import CloseComponent from './CloseComponent';
 import EditComponent from './EditComponent';
 import InSuspense from './InSuspense';
+import { MAIN_CONFIG_URL, RESERVE_CONFIG_URL } from '../../config/api';
 
 const Search = lazy(() => import('~screens/Search'));
 const BookNote = lazy(() => import('~screens/Home/BookNote'));
@@ -467,60 +467,37 @@ const Main = () => {
   const isSignedIn = useAppSelector(getIsSignedIn);
 
   const checkAuthentication = useCallback(async () => {
-    console.error('[Main] Starting authentication check...');
     try {
       const token = await getToken();
-      console.error('[Main] Token retrieved from storage:', !!token);
-
-      if (token) {
-        console.error('[Main] Token found, dispatching checkAuth...');
-        await _checkAuth(token);
-        console.error('[Main] checkAuth completed successfully');
-      } else {
-        console.error('[Main] No token found, dispatching checkAuth with empty token...');
-        await _checkAuth('');
-      }
-    } catch (error) {
-      // Даже в случае ошибки вызываем checkAuth с пустым токеном,
-      // чтобы правильно установить состояние и показать экран входа
-      console.error('[Main] Error during authentication check:', error);
-      try {
-        await _checkAuth('');
-      } catch (innerError) {
-        console.error('[Main] Failed to handle auth failure:', innerError);
-      }
+      // Просто dispatch, НЕ await - reducer сам обработает fulfilled/rejected
+      _checkAuth(token || '');
+    } catch {
+      // Ошибка при чтении токена из storage - вызываем с пустым токеном
+      _checkAuth('');
     }
   }, [_checkAuth]);
 
   const getConfiguration = useCallback(
     async (url: string) => {
-      console.error('[Main] Loading configuration from:', url);
       try {
         const { minimumSupportedAppVersion, underConstruction, appVersion, googlePlayUrl } = await _getConfig(url).unwrap();
-        console.error('[Main] Configuration loaded successfully');
         const currentVersion = Constants.expoConfig?.version || '1.0.0';
         setIsTheLatestAppVersion(appVersion === currentVersion);
         setGooglePlayUrl(googlePlayUrl);
         if (minimumSupportedAppVersion && lt(currentVersion, minimumSupportedAppVersion)) {
-          console.error('[Main] App update required');
           setShouldDisplayUpdateView(true);
         } else if (underConstruction) {
-          console.error('[Main] App under construction');
           setShouldDisplayUnderConstructionView(true);
         } else {
-          console.error('[Main] Configuration loaded, checking authentication...');
-          await checkAuthentication();
+          checkAuthentication();
         }
-      } catch (error) {
-        console.error('[Main] Error loading configuration:', error);
+      } catch {
         // If we have troubles with connection to MAIN_CONFIG_URL we will try to connect to RESERVE_CONFIG_URL
         if (url === MAIN_CONFIG_URL) {
-          console.error('[Main] Trying reserve config URL...');
           getConfiguration(RESERVE_CONFIG_URL);
         } else {
           // Если оба конфига не работают, все равно пробуем проверить авторизацию
-          console.error('[Main] Both configs failed, attempting authentication anyway...');
-          await checkAuthentication();
+          checkAuthentication();
         }
       }
     },
@@ -544,18 +521,9 @@ const Main = () => {
   // Проверка EAS Updates после успешной авторизации
   useEffect(() => {
     if (isSignedIn && checkingStatus === SUCCEEDED) {
-      console.error('[Main] User signed in, checking for EAS Updates...');
-      checkAndInstallUpdate()
-        .then((hasUpdate) => {
-          if (hasUpdate) {
-            console.error('[Main] Update found and will be installed');
-          } else {
-            console.error('[Main] No updates available');
-          }
-        })
-        .catch((error) => {
-          console.error('[Main] Error checking for updates:', error);
-        });
+      checkAndInstallUpdate().catch(() => {
+        // Игнорируем ошибки проверки обновлений
+      });
     }
   }, [isSignedIn, checkingStatus, checkAndInstallUpdate]);
 
