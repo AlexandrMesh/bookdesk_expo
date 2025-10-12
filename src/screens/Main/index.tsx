@@ -1,6 +1,5 @@
 import React, { FC, lazy, useCallback, useEffect, useState } from 'react';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { BottomTabBar, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
@@ -53,6 +52,7 @@ import colors from '~styles/colors';
 import i18n from '~translations/i18n';
 import { GoalType } from '~types/goals';
 import BannerAd from '~UI/BannerAd';
+import { getToken } from '~utils/secureStorage';
 
 import { MAIN_CONFIG_URL, RESERVE_CONFIG_URL } from '../../config/api';
 import ClearFilters from './ClearFilters';
@@ -464,7 +464,7 @@ const Main = () => {
 
   const checkAuthentication = useCallback(async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await getToken();
 
       if (token) {
         await _checkAuth(token);

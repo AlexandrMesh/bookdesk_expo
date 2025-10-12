@@ -2,7 +2,7 @@
   "expo": {
     "name": "BookDesk",
     "slug": "bookdesk",
-    "version": "1.2.0",
+    "version": "5.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "bookdesk",
@@ -44,7 +44,8 @@
           }
         }
       ],
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      "expo-secure-store"
     ],
     "extra": {
       "eas": {

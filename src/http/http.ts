@@ -1,5 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+
+import { getToken, removeToken } from '~utils/secureStorage';
 
 const http = axios.create({
   headers: { 'Content-Type': 'application/json' },
@@ -9,7 +10,7 @@ const http = axios.create({
 http.interceptors.request.use(
   async (config: any) => {
     try {
-      const value = await AsyncStorage.getItem('token');
+      const value = await getToken();
 
       if (value) {
         config.headers.Authorization = `Bearer ${value}`;
@@ -29,10 +30,10 @@ http.interceptors.response.use(
     // Если получили ошибку 401 или 403, удаляем невалидный токен
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
       try {
-        await AsyncStorage.removeItem('token');
+        await removeToken();
         console.error('Token removed due to authentication error');
       } catch (storageError) {
-        console.error('Error removing token from AsyncStorage:', storageError);
+        console.error('Error removing token:', storageError);
       }
     }
     return Promise.reject(error);
