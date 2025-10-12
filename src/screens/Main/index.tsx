@@ -464,9 +464,14 @@ const Main = () => {
   const checkAuthentication = useCallback(async () => {
     try {
       const token = (await AsyncStorage.getItem('token')) as string;
+      if (token) {
+        console.error('checkAuthentication: Token found in AsyncStorage, checking validity...');
+      } else {
+        console.error('checkAuthentication: No token found in AsyncStorage');
+      }
       await _checkAuth(token);
     } catch (e) {
-      console.error(e);
+      console.error('checkAuthentication error:', e);
     }
   }, [_checkAuth]);
 

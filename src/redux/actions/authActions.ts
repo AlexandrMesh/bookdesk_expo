@@ -176,12 +176,20 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
         isSignedIn: true,
       };
     }
+    // Если профиль пустой, значит токен недействителен - удаляем его
+    await AsyncStorage.removeItem('token');
     return {
       profile: {},
       isGoogleAccount: false,
       isSignedIn: false,
     };
   } catch (error) {
+    // При ошибке (токен недействителен) удаляем его из AsyncStorage
+    try {
+      await AsyncStorage.removeItem('token');
+    } catch (storageError) {
+      console.error('Error removing token from AsyncStorage:', storageError);
+    }
     dispatch(signInFailed(error as any));
     throw error;
   }
@@ -232,11 +240,21 @@ export const signIn = createAsyncThunk(
           dispatch(setBookVotes(data.userVotes));
           dispatch(setBookNotes(data.userComments));
           dispatch(userBookRatingsLoaded(data.userBookRatings));
-          try {
-            await AsyncStorage.setItem('token', data.token);
-          } catch (error) {
-            console.error('AsyncStorage error:', error);
+          
+          // Сохраняем токен в AsyncStorage
+          if (data.token) {
+            try {
+              await AsyncStorage.setItem('token', data.token);
+              console.error('Google Sign-In: Token saved successfully');
+            } catch (error) {
+              console.error('Google Sign-In: Error saving token to AsyncStorage:', error);
+              throw new Error('Failed to save authentication token');
+            }
+          } else {
+            console.error('Google Sign-In: Token is missing from server response');
+            throw new Error('Token is missing from server response');
           }
+          
           return {
             isSignedIn: true,
             profile: data.profile,
@@ -282,11 +300,21 @@ export const signIn = createAsyncThunk(
           dispatch(setBookVotes(data.userVotes));
           dispatch(setBookNotes(data.userComments));
           dispatch(userBookRatingsLoaded(data.userBookRatings));
-          try {
-            await AsyncStorage.setItem('token', data.token);
-          } catch (error) {
-            console.error(error);
+          
+          // Сохраняем токен в AsyncStorage
+          if (data.token) {
+            try {
+              await AsyncStorage.setItem('token', data.token);
+              console.error('Sign-In: Token saved successfully');
+            } catch (error) {
+              console.error('Sign-In: Error saving token to AsyncStorage:', error);
+              throw new Error('Failed to save authentication token');
+            }
+          } else {
+            console.error('Sign-In: Token is missing from server response');
+            throw new Error('Token is missing from server response');
           }
+          
           return {
             isSignedIn: true,
             profile: data.profile,
@@ -310,11 +338,20 @@ export const signUp = createAsyncThunk(`${PREFIX}/signUp`, async ({ email, passw
   try {
     const { data } = await AuthService().signUp({ email, password, language: NativeModules?.I18nManager?.localeIdentifier });
     if (data) {
-      try {
-        await AsyncStorage.setItem('token', data.token);
-      } catch (error) {
-        console.error(error);
+      // Сохраняем токен в AsyncStorage
+      if (data.token) {
+        try {
+          await AsyncStorage.setItem('token', data.token);
+          console.error('Sign-Up: Token saved successfully');
+        } catch (error) {
+          console.error('Sign-Up: Error saving token to AsyncStorage:', error);
+          throw new Error('Failed to save authentication token');
+        }
+      } else {
+        console.error('Sign-Up: Token is missing from server response');
+        throw new Error('Token is missing from server response');
       }
+      
       return {
         isSignedIn: true,
         profile: data.profile,
@@ -339,6 +376,7 @@ export const signUp = createAsyncThunk(`${PREFIX}/signUp`, async ({ email, passw
 export const signOut = createAsyncThunk(`${PREFIX}/signOut`, async (_, { dispatch }) => {
   try {
     await AsyncStorage.removeItem('token');
+    console.error('Sign-Out: Token removed successfully');
     dispatch(clearBooksData());
     dispatch(clearCustomBooksData());
     dispatch(clearStatisticData());
@@ -350,7 +388,13 @@ export const signOut = createAsyncThunk(`${PREFIX}/signOut`, async (_, { dispatc
       await GoogleSignin.signOut();
     }
   } catch (error) {
-    console.error(error);
+    console.error('Sign-Out error:', error);
+    // Даже при ошибке пытаемся удалить токен
+    try {
+      await AsyncStorage.removeItem('token');
+    } catch (storageError) {
+      console.error('Error removing token during signOut:', storageError);
+    }
     throw error;
   }
 });

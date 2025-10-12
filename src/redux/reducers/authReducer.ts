@@ -107,9 +107,15 @@ export default createReducer(defaultState, (builder) => {
     })
     .addCase(authActions.checkAuth.rejected, (state) => {
       state.checkingStatus = FAILED;
+      state.signIn.isSignedIn = false;
+      state.signIn.isGoogleAccount = false;
+      state.profile = getDefaultProfileState();
     })
     .addCase(authActions.authCheckingFailed, (state) => {
       state.checkingStatus = FAILED;
+      state.signIn.isSignedIn = false;
+      state.signIn.isGoogleAccount = false;
+      state.profile = getDefaultProfileState();
     })
     .addCase(authActions.signOut.fulfilled, (state) => {
       state.profile = getDefaultProfileState();
