@@ -6,12 +6,13 @@ import { useNavigation } from '@react-navigation/native';
 import isEmpty from 'lodash/isEmpty';
 import { useTranslation } from 'react-i18next';
 
+import { useAppDispatch, useAppSelector } from '~hooks';
+
 import GoogleIcon from '~assets/google.svg';
 import { GOOGLE_ICON } from '~constants/dimensions';
 import { PENDING } from '~constants/loadingStatuses';
 import { SIGN_UP_ROUTE } from '~constants/routes';
 import { SECONDARY } from '~constants/themes';
-import { useAppDispatch, useAppSelector } from '~hooks';
 import { setSignInError, signIn } from '~redux/actions/authActions';
 import { getSignInErrors, getSignInLoadingDataStatus } from '~redux/selectors/auth';
 import Logo from '~screens/Auth/Logo';
@@ -62,7 +63,7 @@ const SignIn = () => {
     }
   };
 
-  const handleGoogleSignIn = () => _signIn({ email, password, isGoogleAccount: true });
+  const handleGoogleSignIn = () => _signIn({ email: '', password: '', isGoogleAccount: true });
 
   const handleNavigateToSignUp = () => {
     if (!pendingSignIn) {

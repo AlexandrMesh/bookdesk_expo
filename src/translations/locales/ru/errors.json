@@ -18,5 +18,7 @@
   "mustContainOnlyNumbers": "Можно использовать только целые числа",
   "containsSpecialCharacters": "Недопустимые символы @^&/#+$~%;~`*<>=%[]{}_|",
   "isMoreThan": "Не должно быть больше чем {{moreComparedValue}}",
-  "isLessThan": "Не должно быть меньше чем {{lessComparedValue}}"
+  "isLessThan": "Не должно быть меньше чем {{lessComparedValue}}",
+  "googleSignInConfigError": "Ошибка конфигурации Google Sign-In. Пожалуйста, свяжитесь с поддержкой.",
+  "googlePlayServicesError": "Google Play Services недоступен. Пожалуйста, обновите Google Play Services."
 }

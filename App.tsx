@@ -21,22 +21,23 @@ const initializeNativeModules = async () => {
       GoogleSignin.configure({
         offlineAccess: true,
         webClientId: '798541911751-2bfmd87u0b4tlua24hs8k57r5pmag36e.apps.googleusercontent.com',
+        scopes: ['email', 'profile'],
       });
-      console.log('Google Sign In initialized');
+      console.error('Google Sign In initialized');
     } catch (error) {
-      console.log('Google Sign In not available:', error);
+      console.error('Google Sign In not available:', error);
     }
 
     try {
       // Yandex Mobile Ads
       const { MobileAds } = await import('yandex-mobile-ads');
       await MobileAds.initialize();
-      console.log('Yandex Mobile Ads initialized');
+      console.error('Yandex Mobile Ads initialized');
     } catch (error) {
-      console.log('Yandex Mobile Ads not available:', error);
+      console.error('Yandex Mobile Ads not available:', error);
     }
   } else {
-    console.log('Running in Expo Go - native modules disabled');
+    console.error('Running in Expo Go - native modules disabled');
   }
 };
 

@@ -38,8 +38,22 @@ const getGoogleSignin = async () => {
     try {
       const module = await import('@react-native-google-signin/google-signin');
       GoogleSigninModule = module.GoogleSignin;
+
+      // Проверяем, что GoogleSignin был инициализирован в App.tsx
+      // Если нет - конфигурируем здесь как fallback
+      try {
+        await GoogleSigninModule.isSignedIn();
+      } catch {
+        // Модуль не сконфигурирован, конфигурируем здесь
+        GoogleSigninModule.configure({
+          offlineAccess: true,
+          webClientId: '798541911751-2bfmd87u0b4tlua24hs8k57r5pmag36e.apps.googleusercontent.com',
+          scopes: ['email', 'profile'],
+        });
+        console.error('Google Sign-In configured in authActions');
+      }
     } catch (error) {
-      console.log('Google Sign-In not available:', error);
+      console.error('Google Sign-In not available:', error);
       // Fallback mock
       return {
         isSignedIn: async () => false,
@@ -179,16 +193,38 @@ export const signIn = createAsyncThunk(
     if (isGoogleAccount) {
       try {
         const GoogleSignin = await getGoogleSignin();
-        await GoogleSignin.hasPlayServices();
-        const {
-          idToken,
-          user: { email: googleEmail },
-        } = await GoogleSignin.signIn();
+
+        // Проверка Google Play Services
+        try {
+          await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+        } catch (playServicesError: any) {
+          console.error('Google Play Services error:', playServicesError);
+          throw new Error('Google Play Services недоступен. Пожалуйста, обновите Google Play Services.');
+        }
+
+        // Попытка входа через Google
+        const userInfo = await GoogleSignin.signIn();
+
+        if (!userInfo || !userInfo.data) {
+          throw new Error('Не удалось получить данные пользователя от Google');
+        }
+
+        const { idToken, user } = userInfo.data;
+        const googleEmail = user?.email;
+
+        if (!idToken || !googleEmail) {
+          throw new Error('Отсутствуют необходимые данные для авторизации');
+        }
+
+        console.error('Google Sign-In successful, sending to backend...');
+
+        // Отправка данных на бэкенд
         const { data } = await AuthService().signIn({
           email: googleEmail,
           googleToken: idToken,
           language: NativeModules?.I18nManager?.localeIdentifier,
         });
+
         if (data) {
           if (data.numberOfPagesForGoal) {
             dispatch(setGoal({ pages: data.numberOfPagesForGoal, type: data.goalType }));
@@ -199,7 +235,7 @@ export const signIn = createAsyncThunk(
           try {
             await AsyncStorage.setItem('token', data.token);
           } catch (error) {
-            console.error(error);
+            console.error('AsyncStorage error:', error);
           }
           return {
             isSignedIn: true,
@@ -212,7 +248,27 @@ export const signIn = createAsyncThunk(
           isSignedIn: false,
           isGoogleAccount: true,
         };
-      } catch (error) {
+      } catch (error: any) {
+        console.error('Google Sign-In error:', error);
+
+        // Обработка специфичных ошибок Google Sign-In
+        if (error.code === '-5') {
+          // Пользователь отменил вход
+          console.error('User cancelled Google Sign-In');
+        } else if (error.code === '12501') {
+          // Пользователь отменил вход (Android)
+          console.error('User cancelled Google Sign-In');
+        } else if (error.message?.includes('DEVELOPER_ERROR') || error.code === '10') {
+          // Проблема с конфигурацией
+          console.error('Google Sign-In configuration error. Check webClientId and SHA-1/SHA-256 in Google Console');
+          error.response = {
+            data: {
+              fieldName: 'password',
+              key: 'googleSignInConfigError',
+            },
+          };
+        }
+
         dispatch(signInFailed(error as any));
         throw error;
       }

@@ -11,21 +11,21 @@ import ArrowDown from '~assets/arrow-down.svg';
 import { ALL } from '~constants/boardType';
 import { FILTER_ICON } from '~constants/dimensions';
 import {
-    clearSearchQueryForCategory,
-    manageFilters,
-    populateFilters,
-    resetCategories,
-    searchCategory,
-    toggleExpandedCategoryBooks,
-    triggerReloadBookList,
+  clearSearchQueryForCategory,
+  manageFilters,
+  populateFilters,
+  resetCategories,
+  searchCategory,
+  toggleExpandedCategoryBooks,
+  triggerReloadBookList,
 } from '~redux/actions/booksActions';
 import {
-    deriveBookListEditableFilterParams,
-    deriveCategories,
-    deriveCategoriesSearchResult,
-    deriveCategorySearchQuery,
-    deriveEditableIndeterminatedCategories,
-    getBoardType,
+  deriveBookListEditableFilterParams,
+  deriveCategories,
+  deriveCategoriesSearchResult,
+  deriveCategorySearchQuery,
+  deriveEditableIndeterminatedCategories,
+  getBoardType,
 } from '~redux/selectors/books';
 import { BookStatus } from '~types/books';
 import Button from '~UI/Button';

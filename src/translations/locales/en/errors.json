@@ -18,5 +18,7 @@
   "mustContainOnlyNumbers": "Only integers can be used",
   "containsSpecialCharacters": "Unacceptable symbols @^&/#+$~%;~`*<>=%[]{}_|",
   "isMoreThan": "Shouldn't be more than {{moreComparedValue}}",
-  "isLessThan": "Shouldn't be less than {{lessComparedValue}}"
+  "isLessThan": "Shouldn't be less than {{lessComparedValue}}",
+  "googleSignInConfigError": "Google Sign-In configuration error. Please contact support.",
+  "googlePlayServicesError": "Google Play Services is not available. Please update Google Play Services."
 }
