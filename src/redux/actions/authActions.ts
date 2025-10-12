@@ -240,7 +240,7 @@ export const signIn = createAsyncThunk(
           dispatch(setBookVotes(data.userVotes));
           dispatch(setBookNotes(data.userComments));
           dispatch(userBookRatingsLoaded(data.userBookRatings));
-          
+
           // Сохраняем токен в AsyncStorage
           if (data.token) {
             try {
@@ -254,7 +254,7 @@ export const signIn = createAsyncThunk(
             console.error('Google Sign-In: Token is missing from server response');
             throw new Error('Token is missing from server response');
           }
-          
+
           return {
             isSignedIn: true,
             profile: data.profile,
@@ -300,7 +300,7 @@ export const signIn = createAsyncThunk(
           dispatch(setBookVotes(data.userVotes));
           dispatch(setBookNotes(data.userComments));
           dispatch(userBookRatingsLoaded(data.userBookRatings));
-          
+
           // Сохраняем токен в AsyncStorage
           if (data.token) {
             try {
@@ -314,7 +314,7 @@ export const signIn = createAsyncThunk(
             console.error('Sign-In: Token is missing from server response');
             throw new Error('Token is missing from server response');
           }
-          
+
           return {
             isSignedIn: true,
             profile: data.profile,
@@ -351,7 +351,7 @@ export const signUp = createAsyncThunk(`${PREFIX}/signUp`, async ({ email, passw
         console.error('Sign-Up: Token is missing from server response');
         throw new Error('Token is missing from server response');
       }
-      
+
       return {
         isSignedIn: true,
         profile: data.profile,

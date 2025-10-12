@@ -10,6 +10,8 @@ import { useTranslation } from 'react-i18next';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { lt } from 'semver';
 
+import { useAppDispatch, useAppSelector } from '~hooks';
+
 import AddCustomBookIcon from '~assets/add.svg';
 import GoalIcon from '~assets/goal.svg';
 import HomeIcon from '~assets/home.svg';
@@ -19,30 +21,29 @@ import { BOTTOM_BAR_ADD_ICON, BOTTOM_BAR_ICON } from '~constants/dimensions';
 import { DAILY } from '~constants/goals';
 import { IDLE, PENDING } from '~constants/loadingStatuses';
 import {
-    ABOUT_ROUTE,
-    ADD_CUSTOM_BOOK_NAVIGATOR_ROUTE,
-    ADD_GOAL,
-    BOOK_DETAILS_ROUTE,
-    BOOK_NOTE_ROUTE,
-    CUSTOM_BOOKS_ROUTE,
-    CUSTOM_CATEGORY_CHOOSER_ROUTE,
-    EDIT_CUSTOM_BOOK_ROUTE,
-    EDIT_GOAL,
-    FITLERING_ROUTE,
-    GOALS_NAVIGATOR_ROUTE,
-    GOALS_ROUTE,
-    GOAL_DETAILS,
-    HOME_NAVIGATOR_ROUTE,
-    HOME_ROUTE,
-    PROFILE_NAVIGATOR_ROUTE,
-    PROFILE_ROUTE,
-    SEARCH_ROUTE,
-    SIGN_IN_ROUTE,
-    SIGN_UP_ROUTE,
-    STAT_NAVIGATOR_ROUTE,
-    STAT_ROUTE,
+  ABOUT_ROUTE,
+  ADD_CUSTOM_BOOK_NAVIGATOR_ROUTE,
+  ADD_GOAL,
+  BOOK_DETAILS_ROUTE,
+  BOOK_NOTE_ROUTE,
+  CUSTOM_BOOKS_ROUTE,
+  CUSTOM_CATEGORY_CHOOSER_ROUTE,
+  EDIT_CUSTOM_BOOK_ROUTE,
+  EDIT_GOAL,
+  FITLERING_ROUTE,
+  GOALS_NAVIGATOR_ROUTE,
+  GOALS_ROUTE,
+  GOAL_DETAILS,
+  HOME_NAVIGATOR_ROUTE,
+  HOME_ROUTE,
+  PROFILE_NAVIGATOR_ROUTE,
+  PROFILE_ROUTE,
+  SEARCH_ROUTE,
+  SIGN_IN_ROUTE,
+  SIGN_UP_ROUTE,
+  STAT_NAVIGATOR_ROUTE,
+  STAT_ROUTE,
 } from '~constants/routes';
-import { useAppDispatch, useAppSelector } from '~hooks';
 import { checkAuth, getConfig } from '~redux/actions/authActions';
 import { getCheckingStatus, getIsSignedIn } from '~redux/selectors/auth';
 import { getGoalNumberOfPages, getGoalType } from '~redux/selectors/goals';
