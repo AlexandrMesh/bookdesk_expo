@@ -9,7 +9,7 @@ export default StyleSheet.create({
   },
   tabBarLabel: {
     fontWeight: 'bold',
-    fontSize: 15,
+    fontSize: 13,
     textTransform: 'uppercase',
   },
 });
