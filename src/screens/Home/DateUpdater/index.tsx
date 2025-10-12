@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +21,17 @@ const DateUpdater = () => {
   const added = useAppSelector(getBookToUpdate)?.added;
 
   const [selectedDate, setSelectedDate] = useState(added ? new Date(added) : new Date());
+  const [showPicker, setShowPicker] = useState(false);
+
+  // Обновляем дату когда открывается модалка
+  useEffect(() => {
+    if (isVisible) {
+      setSelectedDate(added ? new Date(added) : new Date());
+      setShowPicker(true);
+    } else {
+      setShowPicker(false);
+    }
+  }, [isVisible, added]);
 
   const handleConfirm = () => {
     const date = selectedDate.getTime();
@@ -29,17 +40,41 @@ const DateUpdater = () => {
   };
 
   const handleDateChange = (_event: any, date?: Date) => {
-    if (date) {
-      setSelectedDate(date);
+    // На Android DateTimePicker автоматически закрывается после выбора
+    if (Platform.OS === 'android') {
+      setShowPicker(false);
+      if (date) {
+        setSelectedDate(date);
+        // На Android сразу обновляем дату
+        const timestamp = date.getTime();
+        _updateUserBookAddedDate(timestamp);
+        _hideDateUpdater();
+      } else {
+        // Пользователь нажал отмену
+        _hideDateUpdater();
+      }
+    } else {
+      // На iOS просто обновляем выбранную дату
+      if (date) {
+        setSelectedDate(date);
+      }
     }
   };
 
+  // На Android показываем нативный picker, на iOS - в модалке
+  if (Platform.OS === 'android') {
+    return showPicker && isVisible ? (
+      <DateTimePicker value={selectedDate} mode='date' display='default' onChange={handleDateChange} />
+    ) : null;
+  }
+
+  // iOS версия с кастомной модалкой
   return (
     <Modal visible={isVisible} transparent={true} animationType='fade' onRequestClose={_hideDateUpdater}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <Text style={styles.title}>{t('common:selectDate')}</Text>
-          <DateTimePicker value={selectedDate} mode='date' display='spinner' onChange={handleDateChange} textColor='#FFFFFF' />
+          {showPicker && <DateTimePicker value={selectedDate} mode='date' display='spinner' onChange={handleDateChange} themeVariant='dark' />}
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.button} onPress={_hideDateUpdater}>
               <Text style={styles.buttonText}>{t('common:cancel')}</Text>
