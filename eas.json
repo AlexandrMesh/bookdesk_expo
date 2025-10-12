@@ -7,6 +7,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "prebuildCommand": "expo prebuild --clean",
+      "channel": "development",
       "android": {
         "buildType": "apk"
       },
@@ -17,12 +18,14 @@
     "preview": {
       "distribution": "internal",
       "prebuildCommand": "expo prebuild --clean",
+      "channel": "preview",
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
       "prebuildCommand": "expo prebuild --clean",
+      "channel": "production",
       "android": {
         "buildType": "app-bundle"
       }
