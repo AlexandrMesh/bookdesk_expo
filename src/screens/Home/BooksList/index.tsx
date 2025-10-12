@@ -1,6 +1,6 @@
-import React, { memo, FC, useCallback, useEffect, useRef } from 'react';
+import React, { FC, memo, useCallback, useEffect, useRef } from 'react';
 
-import { View, Text } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { FlashList } from '@shopify/flash-list';
 import { useTranslation } from 'react-i18next';

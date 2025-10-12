@@ -5,8 +5,9 @@ import { Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 
-import { DATE_UPDATER } from '~constants/modalTypes';
 import { useAppDispatch, useAppSelector } from '~hooks';
+
+import { DATE_UPDATER } from '~constants/modalTypes';
 import { hideModal, updateUserBookAddedDate } from '~redux/actions/booksActions';
 import { getActiveModal, getBookToUpdate } from '~redux/selectors/books';
 
@@ -63,9 +64,7 @@ const DateUpdater = () => {
 
   // На Android показываем нативный picker, на iOS - в модалке
   if (Platform.OS === 'android') {
-    return showPicker && isVisible ? (
-      <DateTimePicker value={selectedDate} mode='date' display='default' onChange={handleDateChange} />
-    ) : null;
+    return showPicker && isVisible ? <DateTimePicker value={selectedDate} mode='date' display='default' onChange={handleDateChange} /> : null;
   }
 
   // iOS версия с кастомной модалкой
