@@ -32,7 +32,8 @@
       "edgeToEdgeEnabled": false,
       "predictiveBackGestureEnabled": false,
       "package": "com.bookdesk",
-      "usesCleartextTraffic": true
+      "usesCleartextTraffic": true,
+      "versionCode": 65
     },
     "web": {
       "output": "static",
@@ -47,9 +48,9 @@
           "image": "./assets/images/android-icon-foreground.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#143757",
+          "backgroundColor": "#09172a",
           "dark": {
-            "backgroundColor": "#143757"
+            "backgroundColor": "#09172a"
           }
         }
       ],
