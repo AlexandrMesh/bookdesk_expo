@@ -19,6 +19,8 @@ export const saveToken = async (token: string): Promise<void> => {
     } else {
       // В production build используем SecureStore
       await SecureStore.setItemAsync(TOKEN_KEY, token);
+      // Удаляем возможный legacy-токен из AsyncStorage, чтобы избежать дублирования
+      await AsyncStorage.removeItem(TOKEN_KEY);
     }
   } catch (error) {
     console.error('Error saving token:', error);
@@ -28,17 +30,27 @@ export const saveToken = async (token: string): Promise<void> => {
 
 export const getToken = async (): Promise<string | null> => {
   try {
-    let token: string | null = null;
-
     if (isExpoGo) {
       // В Expo Go используем AsyncStorage
-      token = await AsyncStorage.getItem(TOKEN_KEY);
-    } else {
-      // В production build используем SecureStore
-      token = await SecureStore.getItemAsync(TOKEN_KEY);
+      return await AsyncStorage.getItem(TOKEN_KEY);
     }
 
-    return token;
+    // В production: сначала пытаемся прочитать из SecureStore
+    const secureToken = await SecureStore.getItemAsync(TOKEN_KEY);
+    if (secureToken) {
+      return secureToken;
+    }
+
+    // Backward compatibility: если токен хранится в AsyncStorage у существующих пользователей
+    const legacyToken = await AsyncStorage.getItem(TOKEN_KEY);
+    if (legacyToken) {
+      // Мигрируем в SecureStore и удаляем из AsyncStorage
+      await SecureStore.setItemAsync(TOKEN_KEY, legacyToken);
+      await AsyncStorage.removeItem(TOKEN_KEY);
+      return legacyToken;
+    }
+
+    return null;
   } catch (error) {
     console.error('Error getting token:', error);
     return null;
@@ -47,13 +59,8 @@ export const getToken = async (): Promise<string | null> => {
 
 export const removeToken = async (): Promise<void> => {
   try {
-    if (isExpoGo) {
-      // В Expo Go используем AsyncStorage
-      await AsyncStorage.removeItem(TOKEN_KEY);
-    } else {
-      // В production build используем SecureStore
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
-    }
+    // Удаляем из обоих хранилищ на всякий случай (для надёжности и обратной совместимости)
+    await Promise.all([AsyncStorage.removeItem(TOKEN_KEY), SecureStore.deleteItemAsync(TOKEN_KEY)]);
   } catch (error) {
     console.error('Error removing token:', error);
     throw error;
