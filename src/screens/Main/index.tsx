@@ -53,6 +53,7 @@ import colors from '~styles/colors';
 import i18n from '~translations/i18n';
 import { GoalType } from '~types/goals';
 import BannerAd from '~UI/BannerAd';
+import { maybeAskForReview, recordAppOpen } from '~utils/reviewPrompt';
 import { getToken } from '~utils/secureStorage';
 
 import ClearFilters from './ClearFilters';
@@ -505,6 +506,7 @@ const Main = () => {
   );
 
   useEffect(() => {
+    recordAppOpen();
     getConfiguration(MAIN_CONFIG_URL);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -523,6 +525,11 @@ const Main = () => {
     if (isSignedIn && checkingStatus === SUCCEEDED) {
       checkAndInstallUpdate().catch(() => {
         // Игнорируем ошибки проверки обновлений
+      });
+
+      // Мягкий запрос оценки приложения при выполнении локальных критериев
+      maybeAskForReview().catch(() => {
+        // Игнорируем ошибки StoreReview
       });
     }
   }, [isSignedIn, checkingStatus, checkAndInstallUpdate]);
