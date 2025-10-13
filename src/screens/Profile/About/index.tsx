@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
-import { Linking, ScrollView, Text, View } from 'react-native';
+import { Linking, ScrollView, Share, Text, View } from 'react-native';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
@@ -19,15 +19,18 @@ const About = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [description, setDescription] = useState('');
+  const [storeUrl, setStoreUrl] = useState('');
 
   const loadInfo = useCallback(async () => {
     setIsLoading(true);
     const name = await AsyncStorage.getItem('appName');
     const email = await AsyncStorage.getItem('email');
     const description = await AsyncStorage.getItem('description');
+    const googlePlayUrl = await AsyncStorage.getItem('googlePlayUrl');
     setName(name as string);
     setEmail(email as string);
     setDescription(description as string);
+    setStoreUrl((googlePlayUrl as string) || '');
     setIsLoading(false);
   }, []);
 
@@ -63,6 +66,21 @@ const About = () => {
           <ScrollView>
             <Text style={styles.value}>{description}</Text>
           </ScrollView>
+          {!!storeUrl && (
+            <View style={{ marginTop: 16 }}>
+              <Button
+                theme={SECONDARY}
+                style={styles.supportButton}
+                titleStyle={styles.titleStyle}
+                title={t('shareApp')}
+                onPress={async () => {
+                  try {
+                    await Share.share({ message: storeUrl });
+                  } catch {}
+                }}
+              />
+            </View>
+          )}
         </>
       )}
     </View>
