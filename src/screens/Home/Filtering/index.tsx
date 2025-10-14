@@ -10,7 +10,9 @@ import { useAppDispatch, useAppSelector } from '~hooks';
 import ArrowDown from '~assets/arrow-down.svg';
 import { ALL } from '~constants/boardType';
 import { FILTER_ICON } from '~constants/dimensions';
+import { SECONDARY } from '~constants/themes';
 import {
+  clearFilters,
   clearSearchQueryForCategory,
   manageFilters,
   populateFilters,
@@ -21,6 +23,7 @@ import {
 } from '~redux/actions/booksActions';
 import {
   deriveBookListEditableFilterParams,
+  deriveBookListFilterParams,
   deriveCategories,
   deriveCategoriesSearchResult,
   deriveCategorySearchQuery,
@@ -41,27 +44,36 @@ const Filtering = () => {
   const dispatch = useAppDispatch();
 
   const _manageFilters = useCallback((path: string, categoryPaths: string[]) => dispatch(manageFilters(path, ALL, categoryPaths)), [dispatch]);
-  const applyFilters = (boardType: BookStatus) => {
-    dispatch(populateFilters(boardType));
-    dispatch(triggerReloadBookList(boardType));
-  };
+  const applyFiltersAll = useCallback(() => {
+    dispatch(populateFilters(ALL));
+    dispatch(triggerReloadBookList(ALL));
+  }, [dispatch]);
   const _toggleExpandedCategory = useCallback((path: string) => dispatch(toggleExpandedCategoryBooks({ path, boardType: ALL })), [dispatch]);
   const _searchCategory = useCallback((query: string) => dispatch(searchCategory({ boardType: ALL, query })), [dispatch]);
   const _clearSearchQueryForCategory = useCallback(() => dispatch(clearSearchQueryForCategory(ALL)), [dispatch]);
+  const _clearFilters = useCallback(() => dispatch(clearFilters(ALL)), [dispatch]);
 
-  const boardType = useAppSelector(getBoardType) as BookStatus;
+  const boardType = useAppSelector(getBoardType) as BookStatus; // kept for other logic if needed
   const categories = useAppSelector(deriveCategories(ALL));
   const indeterminatedCategories = useAppSelector(deriveEditableIndeterminatedCategories(ALL));
-  const filterParams = useAppSelector(deriveBookListEditableFilterParams(ALL));
+  const editableFilterParams = useAppSelector(deriveBookListEditableFilterParams(ALL));
+  const appliedFilterParams = useAppSelector(deriveBookListFilterParams(ALL));
   const searchQuery = useAppSelector(deriveCategorySearchQuery(ALL));
   const categoriesSearchResult = useAppSelector(deriveCategoriesSearchResult(ALL));
 
-  const handleFilter = () => {
-    applyFilters(boardType);
+  const handleFilter = useCallback(() => {
+    applyFiltersAll();
     navigation.goBack();
-  };
+  }, [applyFiltersAll, navigation]);
 
-  const { categoryPaths } = filterParams;
+  const handleReset = useCallback(() => {
+    _clearFilters();
+    applyFiltersAll();
+    navigation.goBack();
+  }, [_clearFilters, applyFiltersAll, navigation]);
+
+  const { categoryPaths } = editableFilterParams;
+  const { categoryPaths: appliedCategoryPaths } = appliedFilterParams;
 
   const shouldDisplaySearchResults = searchQuery;
 
@@ -192,7 +204,14 @@ const Filtering = () => {
         )}
       </View>
       <View style={styles.submitButtonWrapper}>
-        <Button style={styles.submitButton} title={t('toFilter')} onPress={handleFilter} />
+        {appliedCategoryPaths.length > 0 ? (
+          <View style={styles.buttonsRow}>
+            <Button style={styles.filterButton} title={t('toFilter')} onPress={handleFilter} />
+            <Button style={styles.resetButton} theme={SECONDARY} title={t('reset')} onPress={handleReset} />
+          </View>
+        ) : (
+          <Button style={styles.submitButton} title={t('toFilter')} onPress={handleFilter} />
+        )}
       </View>
     </View>
   );

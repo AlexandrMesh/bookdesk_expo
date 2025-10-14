@@ -6,7 +6,7 @@ import { useAppDispatch, useAppSelector } from '~hooks';
 
 import { ALL } from '~constants/boardType';
 import { SECONDARY } from '~constants/themes';
-import { clearFilters } from '~redux/actions/booksActions';
+import { clearFilters, populateFilters, triggerReloadBookList } from '~redux/actions/booksActions';
 import { deriveBookListEditableFilterParams } from '~redux/selectors/books';
 import { BookStatus } from '~types/books';
 import Button from '~UI/Button';
@@ -18,11 +18,15 @@ const ClearFilters = () => {
   const dispatch = useAppDispatch();
   const filterParams = useAppSelector(deriveBookListEditableFilterParams(ALL));
   const _clearFilters = (boardType: BookStatus) => dispatch(clearFilters(boardType));
+  const _populateFilters = (boardType: BookStatus) => dispatch(populateFilters(boardType));
+  const _triggerReloadBookList = (boardType: BookStatus) => dispatch(triggerReloadBookList(boardType));
 
   const { categoryPaths } = filterParams;
 
   const handleClearFilters = () => {
     _clearFilters(ALL);
+    _populateFilters(ALL);
+    _triggerReloadBookList(ALL);
   };
 
   return categoryPaths.length > 0 ? (

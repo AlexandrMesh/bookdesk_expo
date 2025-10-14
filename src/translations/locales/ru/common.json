@@ -14,6 +14,7 @@
   "toFilter": "Фильтровать",
   "cancel": "Отмена",
   "clear": "Очистить",
+  "reset": "Сбросить",
   "categoriesTitle": "Категории",
   "categoriesCount": "Категории ({{count}})",
   "searchCategory": "Введите название категории",

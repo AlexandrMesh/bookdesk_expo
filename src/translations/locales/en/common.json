@@ -14,6 +14,7 @@
   "sort": "Sort",
   "toFilter": "Filter",
   "clear": "Clear",
+  "reset": "Reset",
   "categoriesTitle": "Categories",
   "categoriesCount": "Categories ({{count}})",
   "searchCategory": "Enter name of category",

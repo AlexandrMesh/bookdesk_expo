@@ -63,6 +63,16 @@ const AllBooks = () => {
     }
   }, [_loadCategories, _loadBookList, loadingDataStatus, shouldReloadData, isFocused]);
 
+  // Отдельный useEffect для обработки shouldReloadData
+  useEffect(() => {
+    if (shouldReloadData && isFocused) {
+      _loadBookList({
+        boardType: ALL,
+        shouldLoadMoreResults: false,
+      });
+    }
+  }, [shouldReloadData, isFocused, _loadBookList]);
+
   if (isFocused && bookList.length === 0 && loadingDataStatus === SUCCEEDED && !shouldReloadData) {
     return <EmptyResults />;
   }

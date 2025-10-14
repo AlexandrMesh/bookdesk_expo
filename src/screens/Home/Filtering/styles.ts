@@ -62,6 +62,22 @@ export default StyleSheet.create({
   submitButton: {
     maxWidth: 400,
   },
+  buttonsRow: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 400,
+  },
+  filterButton: {
+    flex: 1,
+    marginRight: 8,
+  },
+  resetButton: {
+    flex: 1,
+    marginLeft: 8,
+  },
   firstLevel: {
     width: 35,
   },

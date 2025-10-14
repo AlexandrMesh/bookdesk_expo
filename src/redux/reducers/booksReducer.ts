@@ -316,9 +316,8 @@ export default createReducer(defaultState, (builder) => {
       state.board[action.payload].shouldReloadData = true;
     })
     .addCase(booksActions.loadBookList.pending, (state, action) => {
-      state.board[action.meta.arg.boardType].loadingDataStatus = action.meta.arg.shouldLoadMoreResults
-        ? PENDING
-        : state.board[action.meta.arg.boardType].loadingDataStatus;
+      // Mark loading as PENDING for any load start (initial, reload, or load-more)
+      state.board[action.meta.arg.boardType].loadingDataStatus = PENDING;
     })
     .addCase(
       booksActions.loadBookList.fulfilled,
@@ -399,7 +398,14 @@ export default createReducer(defaultState, (builder) => {
       state.board[action.payload].editableFilterParams.indeterminated = [];
     })
     .addCase(booksActions.populateFilters, (state, action) => {
-      state.board[action.payload].filterParams = state.board[action.payload].editableFilterParams;
+      const editable = state.board[action.payload].editableFilterParams;
+      // Clone to avoid sharing references between editable and applied filters
+      state.board[action.payload].filterParams = {
+        categorySearchQuery: editable.categorySearchQuery,
+        categoryPaths: [...editable.categoryPaths],
+        expanded: [...editable.expanded],
+        indeterminated: [...editable.indeterminated],
+      } as any;
     })
     .addCase(booksActions.addFilterValue, (state, { payload: { boardType, filterParam, value } }) => {
       state.board[boardType].editableFilterParams[filterParam] = Array.isArray(value)
