@@ -29,7 +29,6 @@ import {
   getSearchQuery,
   getSearchResults,
   getSearchResultsHasNextPage,
-  getSearchResultsPageIndex,
   getSearchSortParams,
   getShouldReloadCategories,
 } from '~redux/selectors/books';
@@ -48,6 +47,7 @@ import {
   saveBookStatus,
   saveBookVotesCount,
   saveCategories,
+  searchBooksInCache,
   saveUserVotes,
   updateBookDateInCache,
   updateBookStatusInCache,
@@ -163,33 +163,48 @@ export const loadSearchResults = createAsyncThunk(
   `${PREFIX}/loadSearchResults`,
   async (param: { shouldLoadMoreResults: boolean; boardType: BookStatus }, { getState }: AppThunkAPI) => {
     const state = getState();
-    const pageIndex = getSearchResultsPageIndex(state);
     const searchText = deriveSearchQuery(state);
     const sortParams = getSearchSortParams(state);
     const { language } = i18n;
 
-    const params = {
-      limit: PAGE_SIZE,
-      pageIndex: param.shouldLoadMoreResults ? pageIndex + 1 : 0,
-      boardType: param.boardType || ALL,
-      title: searchText,
-      sortType: sortParams.type,
-      sortDirection: sortParams.direction,
-      language,
-    };
+    // Инициализируем базу данных
     try {
-      const { data } = (await DataService().getBookList({ ...params })) || {};
-      const { items, pagination } = data || {};
+      await initDatabase();
+    } catch (error) {
+      console.error('Error initializing database:', error);
+    }
+
+    // Поиск в локальной БД
+    try {
+      const sortType = (sortParams.type ?? '') as string;
+      const sortDirection = (sortParams.direction ?? '') as string;
+      const searchBoardType = param.boardType || ALL;
+
+      // eslint-disable-next-line no-console
+      console.log('🔍 [loadSearchResults] Поиск в локальной БД...');
+
+      const foundBooks = await searchBooksInCache(searchText, searchBoardType, sortType, sortDirection, language);
+
+      // eslint-disable-next-line no-console
+      console.log(`✅ [loadSearchResults] Найдено книг: ${foundBooks.length}`);
+
       return {
         boardType: ALL,
-        data: items || [],
-        totalItems: pagination?.totalItems || 0,
-        hasNextPage: pagination?.hasNextPage || false,
-        shouldLoadMoreResults: param.shouldLoadMoreResults,
+        data: foundBooks,
+        totalItems: foundBooks.length,
+        hasNextPage: false, // Больше не используем пагинацию
+        shouldLoadMoreResults: false,
       };
     } catch (error) {
-      console.error(error);
-      throw error;
+      console.error('Error searching in cache:', error);
+      // В случае ошибки возвращаем пустой результат
+      return {
+        boardType: ALL,
+        data: [],
+        totalItems: 0,
+        hasNextPage: false,
+        shouldLoadMoreResults: false,
+      };
     }
   },
 );

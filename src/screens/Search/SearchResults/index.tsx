@@ -2,7 +2,7 @@ import React, { useCallback, useEffect } from 'react';
 
 import { View, Text } from 'react-native';
 
-import { useRoute, useIsFocused, RouteProp } from '@react-navigation/native';
+import { useRoute, useIsFocused, useFocusEffect, RouteProp } from '@react-navigation/native';
 import isEmpty from 'lodash/isEmpty';
 import { useTranslation } from 'react-i18next';
 
@@ -10,7 +10,7 @@ import { useAppDispatch, useAppSelector } from '~hooks';
 
 import { ALL } from '~constants/boardType';
 import { PENDING, SUCCEEDED } from '~constants/loadingStatuses';
-import { loadSearchResults, loadMoreSearchResults, setBoardType } from '~redux/actions/booksActions';
+import { clearSearchResults, loadSearchResults, loadMoreSearchResults, setBoardType } from '~redux/actions/booksActions';
 import {
   deriveSearchBookListData,
   deriveSearchQuery,
@@ -44,6 +44,7 @@ const SearchResults = () => {
   );
   const _loadMoreSearchResults = () => dispatch(loadMoreSearchResults(params.boardType));
   const _setBoardType = useCallback(() => dispatch(setBoardType(ALL)), [dispatch]);
+  const _clearSearchResults = useCallback(() => dispatch(clearSearchResults()), [dispatch]);
 
   const searchResult = useAppSelector(deriveSearchBookListData);
   const searchQuery = useAppSelector(deriveSearchQuery) as string;
@@ -51,11 +52,13 @@ const SearchResults = () => {
   const totalItems = useAppSelector(getSearchResultsTotalItems);
   const shouldReloadData = useAppSelector(getShouldReloadSearchResults);
 
-  useEffect(() => {
-    if (isFocused) {
+  // Сбрасываем данные поиска при открытии экрана
+  useFocusEffect(
+    useCallback(() => {
+      _clearSearchResults();
       _setBoardType();
-    }
-  }, [isFocused, _setBoardType]);
+    }, [_clearSearchResults, _setBoardType]),
+  );
 
   useEffect(() => {
     if (!isEmpty(searchQuery) && shouldReloadData) {

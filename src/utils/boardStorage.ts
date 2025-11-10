@@ -457,6 +457,112 @@ export const loadAllBoardData = async (
 };
 
 /**
+ * Поиск книг в локальной БД
+ */
+export const searchBooksInCache = async (
+  searchText: string,
+  boardType: BookStatus,
+  sortType: string,
+  sortDirection: string,
+  language: string,
+): Promise<IBook[]> => {
+  try {
+    const database = await getDatabase();
+    const datesMap = await loadBookDates();
+
+    // Загружаем все книги из всех досок
+    // Нужно загружать все книги, потому что статусы могут быть изменены и хранятся в book_dates
+    const allBooks: IBook[] = [];
+    const allResults = await database.getAllAsync<{
+      board_type: string;
+      data: string;
+    }>(`SELECT DISTINCT board_type, data FROM board_data WHERE language = ?`, [language]);
+
+    for (const result of allResults) {
+      const books = JSON.parse(result.data) as IBook[];
+      allBooks.push(...books);
+    }
+
+    // Применяем сохраненные статусы и даты
+    let booksWithDates = applyBookDatesToData(allBooks, datesMap);
+
+    // Фильтруем книги по статусу доски (если не ALL)
+    if (boardType !== ALL) {
+      booksWithDates = booksWithDates.filter((book) => book.bookStatus === boardType);
+      // eslint-disable-next-line no-console
+      console.log(`   После фильтрации по статусу ${boardType}: ${booksWithDates.length} книг`);
+    }
+
+    // Фильтруем по поисковому запросу (по title)
+    if (searchText && searchText.trim().length > 0) {
+      const searchLower = searchText.toLowerCase().trim();
+      booksWithDates = booksWithDates.filter((book) => {
+        const title = book.title?.toLowerCase() || '';
+        return title.includes(searchLower);
+      });
+    }
+
+    // Удаляем дубликаты по bookId
+    const uniqueBooks = new Map<string, IBook>();
+    for (const book of booksWithDates) {
+      if (!uniqueBooks.has(book.bookId)) {
+        uniqueBooks.set(book.bookId, book);
+      }
+    }
+    const finalBooks = Array.from(uniqueBooks.values());
+
+    // Применяем сортировку
+    if (sortType && sortDirection) {
+      finalBooks.sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+
+        switch (sortType) {
+          case 'title':
+            aValue = a.title || '';
+            bValue = b.title || '';
+            break;
+          case 'added':
+            aValue = a.added || 0;
+            bValue = b.added || 0;
+            break;
+          case 'votesCount':
+            aValue = a.votesCount || 0;
+            bValue = b.votesCount || 0;
+            break;
+          case 'pages':
+            aValue = a.pages || 0;
+            bValue = b.pages || 0;
+            break;
+          default:
+            return 0;
+        }
+
+        if (sortDirection === 'asc' || sortDirection === '1') {
+          return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+        } else {
+          return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+        }
+      });
+    }
+
+    // eslint-disable-next-line no-console
+    console.log(`🔍 [SQLite Cache] Поиск в локальной БД:`);
+    // eslint-disable-next-line no-console
+    console.log(`   Поисковый запрос: "${searchText}"`);
+    // eslint-disable-next-line no-console
+    console.log(`   Доска: ${boardType}`);
+    // eslint-disable-next-line no-console
+    console.log(`   Найдено книг: ${finalBooks.length}`);
+
+    return finalBooks;
+  } catch (error) {
+    console.error('Error searching books in cache:', error);
+    return [];
+  }
+};
+
+/**
  * Очистка данных для конкретной доски
  */
 export const clearBoardData = async (boardType: BookStatus): Promise<void> => {

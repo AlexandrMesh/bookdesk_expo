@@ -38,7 +38,6 @@ const BookStatusDropdown: FC<Props> = ({ bookStatus, bookId, dropdownLeftPositio
 
   const actionTypes: { title: string; value: BookStatus }[] = useMemo(
     () => [
-      { title: t('noStatus'), value: ALL },
       {
         title: t('planned'),
         value: PLANNED,

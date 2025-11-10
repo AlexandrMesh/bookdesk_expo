@@ -445,12 +445,13 @@ export default createReducer(defaultState, (builder) => {
     .addCase(
       booksActions.loadSearchResults.fulfilled,
       (state, { payload: { data = [], totalItems = 0, hasNextPage = false, shouldLoadMoreResults } }) => {
-        state.search.data = shouldLoadMoreResults ? [...state.search.data, ...data] : data;
+        // Больше не используем пагинацию, всегда заменяем данные полностью
+        state.search.data = data;
         state.search.loadingDataStatus = SUCCEEDED;
         state.search.shouldReloadData = false;
         state.search.pagination.totalItems = totalItems;
-        state.search.pagination.hasNextPage = hasNextPage;
-        state.search.pagination.pageIndex = shouldLoadMoreResults ? state.search.pagination.pageIndex + 1 : 0;
+        state.search.pagination.hasNextPage = false;
+        state.search.pagination.pageIndex = 0;
       },
     )
     .addCase(booksActions.loadSearchResults.rejected, (state) => {
