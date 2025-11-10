@@ -13,6 +13,7 @@ import { clearData as clearGoalsData, setGoal } from '~redux/actions/goalsAction
 import { clearData as clearStatisticData } from '~redux/actions/statisticActions';
 import i18n, { getT } from '~translations/i18n';
 import { removeToken, saveToken } from '~utils/secureStorage';
+import { initDatabase, loadBookRatings, loadUserVotes } from '~utils/boardStorage';
 
 // Динамический импорт GoogleSignin для совместимости с Expo Go
 let GoogleSigninModule: any = null;
@@ -172,9 +173,47 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
       if (numberOfPagesForGoal) {
         dispatch(setGoal({ pages: numberOfPagesForGoal, type: goalType }));
       }
-      dispatch(setBookVotes(data.userVotes));
       dispatch(setBookNotes(data.userComments));
-      dispatch(userBookRatingsLoaded(data.userBookRatings));
+
+      // Загружаем лайки из локальной БД вместо сервера
+      try {
+        await initDatabase();
+        const localUserVotes = await loadUserVotes();
+        if (localUserVotes.length > 0) {
+          // eslint-disable-next-line no-console
+          console.log('👍 [checkAuth] Загружены лайки из локальной БД');
+          dispatch(setBookVotes(localUserVotes));
+        } else {
+          // Если в локальной БД нет лайков, используем с сервера (первый раз)
+          // eslint-disable-next-line no-console
+          console.log('👍 [checkAuth] Лайков в локальной БД нет, используем с сервера');
+          dispatch(setBookVotes(data.userVotes || []));
+        }
+      } catch (error) {
+        console.error('Error loading user votes from local DB:', error);
+        // В случае ошибки используем данные с сервера
+        dispatch(setBookVotes(data.userVotes || []));
+      }
+
+      // Загружаем рейтинги из локальной БД вместо сервера
+      try {
+        await initDatabase();
+        const localRatings = await loadBookRatings();
+        if (localRatings.length > 0) {
+          // eslint-disable-next-line no-console
+          console.log('📖 [checkAuth] Загружены рейтинги из локальной БД');
+          dispatch(userBookRatingsLoaded(localRatings));
+        } else {
+          // Если в локальной БД нет рейтингов, используем с сервера (первый раз)
+          // eslint-disable-next-line no-console
+          console.log('📖 [checkAuth] Рейтингов в локальной БД нет, используем с сервера');
+          dispatch(userBookRatingsLoaded(data.userBookRatings || []));
+        }
+      } catch (error) {
+        console.error('Error loading ratings from local DB:', error);
+        // В случае ошибки используем данные с сервера
+        dispatch(userBookRatingsLoaded(data.userBookRatings || []));
+      }
 
       return {
         profile: data.profile,
@@ -240,9 +279,43 @@ export const signIn = createAsyncThunk(
           if (data.numberOfPagesForGoal) {
             dispatch(setGoal({ pages: data.numberOfPagesForGoal, type: data.goalType }));
           }
-          dispatch(setBookVotes(data.userVotes));
           dispatch(setBookNotes(data.userComments));
-          dispatch(userBookRatingsLoaded(data.userBookRatings));
+
+          // Загружаем лайки из локальной БД вместо сервера
+          try {
+            await initDatabase();
+            const localUserVotes = await loadUserVotes();
+            if (localUserVotes.length > 0) {
+              // eslint-disable-next-line no-console
+              console.log('👍 [signIn Google] Загружены лайки из локальной БД');
+              dispatch(setBookVotes(localUserVotes));
+            } else {
+              // eslint-disable-next-line no-console
+              console.log('👍 [signIn Google] Лайков в локальной БД нет, используем с сервера');
+              dispatch(setBookVotes(data.userVotes || []));
+            }
+          } catch (error) {
+            console.error('Error loading user votes from local DB:', error);
+            dispatch(setBookVotes(data.userVotes || []));
+          }
+
+          // Загружаем рейтинги из локальной БД вместо сервера
+          try {
+            await initDatabase();
+            const localRatings = await loadBookRatings();
+            if (localRatings.length > 0) {
+              // eslint-disable-next-line no-console
+              console.log('📖 [signIn Google] Загружены рейтинги из локальной БД');
+              dispatch(userBookRatingsLoaded(localRatings));
+            } else {
+              // eslint-disable-next-line no-console
+              console.log('📖 [signIn Google] Рейтингов в локальной БД нет, используем с сервера');
+              dispatch(userBookRatingsLoaded(data.userBookRatings || []));
+            }
+          } catch (error) {
+            console.error('Error loading ratings from local DB:', error);
+            dispatch(userBookRatingsLoaded(data.userBookRatings || []));
+          }
 
           // Сохраняем токен в безопасное хранилище
           if (data.token) {
@@ -298,9 +371,43 @@ export const signIn = createAsyncThunk(
           if (data.numberOfPagesForGoal) {
             dispatch(setGoal({ pages: data.numberOfPagesForGoal, type: data.goalType }));
           }
-          dispatch(setBookVotes(data.userVotes));
           dispatch(setBookNotes(data.userComments));
-          dispatch(userBookRatingsLoaded(data.userBookRatings));
+
+          // Загружаем лайки из локальной БД вместо сервера
+          try {
+            await initDatabase();
+            const localUserVotes = await loadUserVotes();
+            if (localUserVotes.length > 0) {
+              // eslint-disable-next-line no-console
+              console.log('👍 [signIn Google] Загружены лайки из локальной БД');
+              dispatch(setBookVotes(localUserVotes));
+            } else {
+              // eslint-disable-next-line no-console
+              console.log('👍 [signIn Google] Лайков в локальной БД нет, используем с сервера');
+              dispatch(setBookVotes(data.userVotes || []));
+            }
+          } catch (error) {
+            console.error('Error loading user votes from local DB:', error);
+            dispatch(setBookVotes(data.userVotes || []));
+          }
+
+          // Загружаем рейтинги из локальной БД вместо сервера
+          try {
+            await initDatabase();
+            const localRatings = await loadBookRatings();
+            if (localRatings.length > 0) {
+              // eslint-disable-next-line no-console
+              console.log('📖 [signIn] Загружены рейтинги из локальной БД');
+              dispatch(userBookRatingsLoaded(localRatings));
+            } else {
+              // eslint-disable-next-line no-console
+              console.log('📖 [signIn] Рейтингов в локальной БД нет, используем с сервера');
+              dispatch(userBookRatingsLoaded(data.userBookRatings || []));
+            }
+          } catch (error) {
+            console.error('Error loading ratings from local DB:', error);
+            dispatch(userBookRatingsLoaded(data.userBookRatings || []));
+          }
 
           // Сохраняем токен в безопасное хранилище
           if (data.token) {

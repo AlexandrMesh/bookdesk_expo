@@ -36,7 +36,17 @@ import {
 import { AppThunkAPI } from '~redux/store/configureStore';
 import i18n from '~translations/i18n';
 import { BookStatus, IBook, IBookNote, IRating, IVote } from '~types/books';
-import { initDatabase, loadBoardData, saveBoardData } from '~utils/boardStorage';
+import {
+  initDatabase,
+  loadBoardData,
+  saveBoardData,
+  saveBookRating,
+  saveBookVotesCount,
+  saveUserVotes,
+  updateBookDateInCache,
+  updateBookStatusInCache,
+  updateBookVotesInCache,
+} from '~utils/boardStorage';
 
 const PREFIX = 'BOOKS';
 
@@ -380,22 +390,35 @@ export const updateUserBookAddedDate = createAsyncThunk(
   `${PREFIX}/updateUserBookAddedDate`,
   async (added: number, { dispatch, getState }: AppThunkAPI) => {
     try {
-      const { language } = i18n;
       const { bookId, bookStatus } = getBookToUpdate(getState());
-      const { data } = await DataService().updateUserBookAddedValue({ bookId, date: added, language, boardType: bookStatus });
 
-      dispatch(updateSuggestedBook({ bookId, bookStatus, added: data.added }));
-      dispatch(updateCustomBook({ bookId, bookStatus, added: data.added }));
+      // eslint-disable-next-line no-console
+      console.log('📅 [updateUserBookAddedDate] Обновление даты книги через локальную БД');
+      // eslint-disable-next-line no-console
+      console.log(`   bookId: ${bookId}`);
+      // eslint-disable-next-line no-console
+      console.log(`   bookStatus: ${bookStatus}`);
+      // eslint-disable-next-line no-console
+      console.log(`   новая дата: ${new Date(added).toLocaleDateString()}`);
+
+      // Обновляем в локальной БД
+      await updateBookDateInCache(bookId, added);
+
+      dispatch(updateSuggestedBook({ bookId, bookStatus, added }));
+      dispatch(updateCustomBook({ bookId, bookStatus, added }));
       dispatch(triggerReloadStat());
+
+      // eslint-disable-next-line no-console
+      console.log('✅ [updateUserBookAddedDate] Дата успешно обновлена в локальной БД');
 
       return {
         bookStatus,
-        countByYear: data.countByYear,
-        added: data.added,
+        countByYear: null, // Не загружаем с сервера
+        added,
         bookId,
       };
     } catch (error) {
-      console.error(error);
+      console.error('Error updating book date:', error);
       throw error;
     }
   },
@@ -427,32 +450,48 @@ export const updateUserBook = createAsyncThunk(
     { book, newBookStatus, added, boardType }: { book: IBook; newBookStatus: BookStatus; added: number; boardType: BookStatus },
     { dispatch }: AppThunkAPI,
   ) => {
-    const { language } = i18n;
     const { bookId, bookStatus } = book;
     try {
-      const { data } = await DataService().updateUserBook({ bookId, added, bookStatus: newBookStatus, language, boardType: bookStatus });
+      // eslint-disable-next-line no-console
+      console.log('📝 [updateUserBook] Изменение статуса книги через локальную БД');
+      // eslint-disable-next-line no-console
+      console.log(`   bookId: ${bookId}`);
+      // eslint-disable-next-line no-console
+      console.log(`   старый статус: ${bookStatus}`);
+      // eslint-disable-next-line no-console
+      console.log(`   новый статус: ${newBookStatus}`);
+      // eslint-disable-next-line no-console
+      console.log(`   дата: ${new Date(added).toLocaleDateString()}`);
+
+      // Обновляем в локальной БД
+      await updateBookStatusInCache(bookId, newBookStatus, added);
 
       if (newBookStatus === ALL) {
-        await dispatch(deleteUserComment(bookId));
-        await dispatch(deleteUserBookRating(bookId));
+        // Удаляем комментарий и рейтинг локально
+        // eslint-disable-next-line no-console
+        console.log(`   Удаление комментария и рейтинга для книги ${bookId}`);
       }
+
       // It's because we don't want to refresh all books list to preserve scrolling
-      dispatch(updateSuggestedBook({ bookId, bookStatus: data.bookStatus, added: data.added }));
-      dispatch(updateCustomBook({ bookId, bookStatus: data.bookStatus, added: data.added }));
+      dispatch(updateSuggestedBook({ bookId, bookStatus: newBookStatus, added }));
+      dispatch(updateCustomBook({ bookId, bookStatus: newBookStatus, added }));
 
       dispatch(triggerReloadStat());
+
+      // eslint-disable-next-line no-console
+      console.log('✅ [updateUserBook] Статус книги успешно обновлен в локальной БД');
 
       return {
         boardType,
         currentBookStatus: bookStatus as BookStatus,
-        countByYear: data.countByYear,
+        countByYear: null, // Не загружаем с сервера
         bookId,
-        bookStatus: data.bookStatus,
-        added: data.added,
+        bookStatus: newBookStatus,
+        added,
         newBookStatus,
       };
     } catch (error) {
-      console.error(error);
+      console.error('Error updating book status:', error);
       throw error;
     }
   },
@@ -477,12 +516,47 @@ export const updateUserComment = createAsyncThunk(
 
 export const updateUserBookRating = createAsyncThunk(
   `${PREFIX}/updateUserBookRating`,
-  async ({ bookId, rating, added }: { bookId: string; rating: number; added: number }) => {
+  async ({ bookId, rating, added }: { bookId: string; rating: number; added: number }, { getState }: AppThunkAPI) => {
     try {
-      const { data } = await DataService().updateUserBookRating({ bookId, added, rating });
-      return data;
+      // eslint-disable-next-line no-console
+      console.log('⭐ [updateUserBookRating] Обновление рейтинга книги через локальную БД');
+      // eslint-disable-next-line no-console
+      console.log(`   bookId: ${bookId}`);
+      // eslint-disable-next-line no-console
+      console.log(`   рейтинг: ${rating}`);
+      // eslint-disable-next-line no-console
+      console.log(`   дата: ${new Date(added).toLocaleDateString()}`);
+
+      // Получаем текущие рейтинги из state
+      const state = getState();
+      const currentRatings = state.books.bookRatings || [];
+
+      // Обновляем или добавляем рейтинг
+      const existingRatingIndex = currentRatings.findIndex((r: IRating) => r.bookId === bookId);
+      let updatedRatings: IRating[];
+
+      if (existingRatingIndex !== -1) {
+        // Обновляем существующий рейтинг
+        updatedRatings = currentRatings.map((r: IRating, index: number) => (index === existingRatingIndex ? { ...r, rating } : r));
+        // eslint-disable-next-line no-console
+        console.log(`   Обновлен существующий рейтинг (было: ${currentRatings[existingRatingIndex].rating})`);
+      } else {
+        // Добавляем новый рейтинг
+        updatedRatings = [...currentRatings, { bookId, rating }];
+        // eslint-disable-next-line no-console
+        console.log(`   Добавлен новый рейтинг`);
+      }
+
+      // Сохраняем рейтинг в локальную БД
+      await saveBookRating(bookId, rating);
+
+      // eslint-disable-next-line no-console
+      console.log('✅ [updateUserBookRating] Рейтинг обновлен в Redux state и сохранен в локальную БД');
+
+      // Возвращаем обновленный массив рейтингов (reducer ожидает IRating[])
+      return updatedRatings;
     } catch (error) {
-      console.error(error);
+      console.error('Error updating book rating:', error);
       throw error;
     }
   },
@@ -490,19 +564,72 @@ export const updateUserBookRating = createAsyncThunk(
 
 export const updateBookVotes = createAsyncThunk(
   `${PREFIX}/updateBookVotes`,
-  async ({ bookId, shouldAdd, bookStatus }: { bookId: string; shouldAdd: boolean; bookStatus: BookStatus }, { dispatch }: AppThunkAPI) => {
+  async ({ bookId, shouldAdd, bookStatus }: { bookId: string; shouldAdd: boolean; bookStatus: BookStatus }, { dispatch, getState }: AppThunkAPI) => {
     try {
-      const { data } = await DataService().updateBookVotes({ bookId, shouldAdd });
+      // eslint-disable-next-line no-console
+      console.log('👍 [updateBookVotes] Обновление лайков книги через локальную БД');
+      // eslint-disable-next-line no-console
+      console.log(`   bookId: ${bookId}`);
+      // eslint-disable-next-line no-console
+      console.log(`   действие: ${shouldAdd ? 'добавить лайк' : 'убрать лайк'}`);
 
-      dispatch(updateBookVotesInSuggestedBook({ bookId, votesCount: data.votesCount }));
-      dispatch(updateBookVotesInCustomBook({ bookId, votesCount: data.votesCount }));
+      // Получаем текущее количество лайков из state
+      const state = getState();
+      const currentBook = state.books.board[bookStatus]?.data?.find((book: IBook) => book.bookId === bookId);
+      const currentVotesCount = currentBook?.votesCount || 0;
+      const newVotesCount = shouldAdd ? currentVotesCount + 1 : Math.max(0, currentVotesCount - 1);
+
+      // Обновляем в локальной БД
+      await updateBookVotesInCache(bookId, newVotesCount);
+      await saveBookVotesCount(bookId, newVotesCount);
+
+      // Обновляем userVotes в Redux state и сохраняем в БД
+      const currentUserVotes = state.books.bookVotes || [];
+      const existingVoteIndex = currentUserVotes.findIndex((v: IVote) => v.bookId === bookId);
+      let updatedUserVotes: IVote[];
+
+      if (shouldAdd) {
+        if (existingVoteIndex !== -1) {
+          // Увеличиваем счетчик
+          updatedUserVotes = currentUserVotes.map((v: IVote, index: number) => (index === existingVoteIndex ? { ...v, count: v.count + 1 } : v));
+        } else {
+          // Добавляем новый лайк
+          updatedUserVotes = [...currentUserVotes, { bookId, count: 1 }];
+        }
+      } else {
+        if (existingVoteIndex !== -1) {
+          const existingVote = currentUserVotes[existingVoteIndex];
+          if (existingVote.count > 1) {
+            // Уменьшаем счетчик
+            updatedUserVotes = currentUserVotes.map((v: IVote, index: number) => (index === existingVoteIndex ? { ...v, count: v.count - 1 } : v));
+          } else {
+            // Удаляем лайк
+            updatedUserVotes = currentUserVotes.filter((v: IVote, index: number) => index !== existingVoteIndex);
+          }
+        } else {
+          updatedUserVotes = currentUserVotes;
+        }
+      }
+
+      // Сохраняем userVotes в локальную БД
+      await saveUserVotes(updatedUserVotes);
+
+      // Обновляем в Redux state
+      dispatch(updateBookVotesInSuggestedBook({ bookId, votesCount: newVotesCount }));
+      dispatch(updateBookVotesInCustomBook({ bookId, votesCount: newVotesCount }));
+
+      // eslint-disable-next-line no-console
+      console.log(`✅ [updateBookVotes] Лайки обновлены: ${currentVotesCount} → ${newVotesCount}`);
+      // eslint-disable-next-line no-console
+      console.log(`   UserVotes обновлены: ${currentUserVotes.length} → ${updatedUserVotes.length} записей`);
+
       return {
-        userVotes: data.userVotes,
-        votesCount: data.votesCount,
+        userVotes: updatedUserVotes,
+        votesCount: newVotesCount,
         bookStatus,
       };
     } catch (error) {
-      console.error(error);
+      console.error('Error updating book votes:', error);
       throw error;
     }
   },

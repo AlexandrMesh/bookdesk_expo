@@ -1,6 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 
-import { BookStatus, IBook } from '~types/books';
+import { BookStatus, IBook, IRating, IVote } from '~types/books';
 
 const DB_NAME = 'bookdesk.db';
 
@@ -57,6 +57,25 @@ export const initDatabase = async (): Promise<void> => {
         );
         CREATE INDEX IF NOT EXISTS idx_board_type ON board_data(board_type);
         CREATE INDEX IF NOT EXISTS idx_timestamp ON board_data(timestamp);
+        CREATE TABLE IF NOT EXISTS book_ratings (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          book_id TEXT NOT NULL UNIQUE,
+          rating INTEGER NOT NULL,
+          timestamp INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_book_ratings_book_id ON book_ratings(book_id);
+        CREATE TABLE IF NOT EXISTS book_votes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          book_id TEXT NOT NULL UNIQUE,
+          votes_count INTEGER NOT NULL,
+          timestamp INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_book_votes_book_id ON book_votes(book_id);
+        CREATE TABLE IF NOT EXISTS user_votes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          data TEXT NOT NULL,
+          timestamp INTEGER NOT NULL
+        );
       `);
       initPromise = null; // Сбрасываем промис после успешной инициализации
     } catch (error) {
@@ -367,6 +386,240 @@ export const getLastTimestamp = async (
   } catch (error) {
     console.error('Error getting last timestamp:', error);
     return null;
+  }
+};
+
+/**
+ * Обновление книги во всех записях кэша
+ */
+export const updateBookInCache = async (
+  bookId: string,
+  updates: Partial<IBook>,
+): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    
+    // Получаем все записи, содержащие эту книгу
+    const allRecords = await database.getAllAsync<{
+      id: number;
+      board_type: string;
+      page_index: number;
+      filter_params: string;
+      sort_type: string;
+      sort_direction: string;
+      language: string;
+      data: string;
+      total_items: number;
+      has_next_page: number;
+      books_count_by_year: string | null;
+      timestamp: number;
+    }>(`SELECT * FROM board_data`);
+
+    let updatedCount = 0;
+
+    for (const record of allRecords) {
+      const books = JSON.parse(record.data) as IBook[];
+      const bookIndex = books.findIndex((book) => book.bookId === bookId);
+
+      if (bookIndex !== -1) {
+        // Обновляем книгу
+        books[bookIndex] = { ...books[bookIndex], ...updates };
+        const updatedData = JSON.stringify(books);
+
+        // Обновляем запись в БД
+        await database.runAsync(
+          `UPDATE board_data SET data = ?, timestamp = ? WHERE id = ?`,
+          [updatedData, Date.now(), record.id],
+        );
+
+        updatedCount++;
+      }
+    }
+
+    if (updatedCount > 0) {
+      // eslint-disable-next-line no-console
+      console.log(`🔄 [SQLite Cache] Книга обновлена в кэше:`);
+      // eslint-disable-next-line no-console
+      console.log(`   bookId: ${bookId}`);
+      // eslint-disable-next-line no-console
+      console.log(`   Обновлено записей: ${updatedCount}`);
+      // eslint-disable-next-line no-console
+      console.log(`   Изменения:`, updates);
+    }
+  } catch (error) {
+    console.error('Error updating book in cache:', error);
+    throw error;
+  }
+};
+
+/**
+ * Обновление votesCount для книги во всех записях кэша
+ */
+export const updateBookVotesInCache = async (bookId: string, votesCount: number): Promise<void> => {
+  await updateBookInCache(bookId, { votesCount });
+  // eslint-disable-next-line no-console
+  console.log(`👍 [SQLite Cache] Обновлен votesCount для книги ${bookId}: ${votesCount}`);
+};
+
+/**
+ * Обновление статуса и даты книги во всех записях кэша
+ */
+export const updateBookStatusInCache = async (
+  bookId: string,
+  bookStatus: BookStatus,
+  added: number,
+): Promise<void> => {
+  await updateBookInCache(bookId, { bookStatus, added });
+  // eslint-disable-next-line no-console
+  console.log(`📝 [SQLite Cache] Обновлен статус книги ${bookId}: ${bookStatus}, дата: ${new Date(added).toLocaleDateString()}`);
+};
+
+/**
+ * Обновление даты добавления книги во всех записях кэша
+ */
+export const updateBookDateInCache = async (bookId: string, added: number): Promise<void> => {
+  await updateBookInCache(bookId, { added });
+  // eslint-disable-next-line no-console
+  console.log(`📅 [SQLite Cache] Обновлена дата для книги ${bookId}: ${new Date(added).toLocaleDateString()}`);
+};
+
+/**
+ * Сохранение рейтинга книги в локальную БД
+ */
+export const saveBookRating = async (bookId: string, rating: number): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    const timestamp = Date.now();
+
+    await database.runAsync(
+      `INSERT OR REPLACE INTO book_ratings (book_id, rating, timestamp) VALUES (?, ?, ?)`,
+      [bookId, rating, timestamp],
+    );
+
+    // eslint-disable-next-line no-console
+    console.log(`⭐ [SQLite Cache] Рейтинг сохранен: bookId=${bookId}, rating=${rating}`);
+  } catch (error) {
+    console.error('Error saving book rating:', error);
+    throw error;
+  }
+};
+
+/**
+ * Загрузка всех рейтингов из локальной БД
+ */
+export const loadBookRatings = async (): Promise<IRating[]> => {
+  try {
+    const database = await getDatabase();
+    const results = await database.getAllAsync<{
+      book_id: string;
+      rating: number;
+      timestamp: number;
+    }>(`SELECT book_id, rating, timestamp FROM book_ratings ORDER BY timestamp DESC`);
+
+    const ratings: IRating[] = results.map((result) => ({
+      bookId: result.book_id,
+      rating: result.rating,
+    }));
+
+    // eslint-disable-next-line no-console
+    console.log(`📖 [SQLite Cache] Загружено рейтингов из локальной БД: ${ratings.length}`);
+    if (ratings.length > 0) {
+      // eslint-disable-next-line no-console
+      console.log(`   Первые 5 рейтингов:`, ratings.slice(0, 5).map((r) => `${r.bookId}:${r.rating}`).join(', '));
+    }
+
+    return ratings;
+  } catch (error) {
+    console.error('Error loading book ratings:', error);
+    return [];
+  }
+};
+
+/**
+ * Удаление рейтинга книги из локальной БД
+ */
+export const deleteBookRating = async (bookId: string): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    await database.runAsync(`DELETE FROM book_ratings WHERE book_id = ?`, [bookId]);
+    // eslint-disable-next-line no-console
+    console.log(`🗑️ [SQLite Cache] Рейтинг удален: bookId=${bookId}`);
+  } catch (error) {
+    console.error('Error deleting book rating:', error);
+    throw error;
+  }
+};
+
+/**
+ * Сохранение количества лайков для книги в локальную БД
+ */
+export const saveBookVotesCount = async (bookId: string, votesCount: number): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    const timestamp = Date.now();
+
+    await database.runAsync(
+      `INSERT OR REPLACE INTO book_votes (book_id, votes_count, timestamp) VALUES (?, ?, ?)`,
+      [bookId, votesCount, timestamp],
+    );
+
+    // eslint-disable-next-line no-console
+    console.log(`👍 [SQLite Cache] Лайки сохранены: bookId=${bookId}, votesCount=${votesCount}`);
+  } catch (error) {
+    console.error('Error saving book votes count:', error);
+    throw error;
+  }
+};
+
+/**
+ * Сохранение массива userVotes (лайки пользователя) в локальную БД
+ */
+export const saveUserVotes = async (userVotes: IVote[]): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    const timestamp = Date.now();
+    const dataStr = JSON.stringify(userVotes);
+
+    // Удаляем старые данные и вставляем новые (таблица хранит только одну запись)
+    await database.runAsync(`DELETE FROM user_votes`);
+    await database.runAsync(`INSERT INTO user_votes (data, timestamp) VALUES (?, ?)`, [dataStr, timestamp]);
+
+    // eslint-disable-next-line no-console
+    console.log(`👍 [SQLite Cache] UserVotes сохранены: ${userVotes.length} записей`);
+  } catch (error) {
+    console.error('Error saving user votes:', error);
+    throw error;
+  }
+};
+
+/**
+ * Загрузка массива userVotes (лайки пользователя) из локальной БД
+ */
+export const loadUserVotes = async (): Promise<IVote[]> => {
+  try {
+    const database = await getDatabase();
+    const result = await database.getFirstAsync<{
+      data: string;
+      timestamp: number;
+    }>(`SELECT data, timestamp FROM user_votes ORDER BY timestamp DESC LIMIT 1`);
+
+    if (!result) {
+      return [];
+    }
+
+    const userVotes: IVote[] = JSON.parse(result.data);
+
+    // eslint-disable-next-line no-console
+    console.log(`👍 [SQLite Cache] Загружено userVotes из локальной БД: ${userVotes.length} записей`);
+    if (userVotes.length > 0) {
+      // eslint-disable-next-line no-console
+      console.log(`   Первые 5 лайков:`, userVotes.slice(0, 5).map((v) => `${v.bookId}:${v.count}`).join(', '));
+    }
+
+    return userVotes;
+  } catch (error) {
+    console.error('Error loading user votes:', error);
+    return [];
   }
 };
 
