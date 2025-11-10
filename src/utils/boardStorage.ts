@@ -1,7 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 
 import { ALL } from '~constants/boardType';
-import { BookStatus, IBook, IBookNote, IRating, IVote } from '~types/books';
+import { BookStatus, IBook, IBookNote, ICategory, IRating, IVote } from '~types/books';
 
 const DB_NAME = 'bookdesk.db';
 
@@ -93,6 +93,14 @@ export const initDatabase = async (): Promise<void> => {
           timestamp INTEGER NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_book_notes_book_id ON book_notes(book_id);
+        CREATE TABLE IF NOT EXISTS categories (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          language TEXT NOT NULL,
+          data TEXT NOT NULL,
+          timestamp INTEGER NOT NULL,
+          UNIQUE(language)
+        );
+        CREATE INDEX IF NOT EXISTS idx_categories_language ON categories(language);
       `);
       initPromise = null; // Сбрасываем промис после успешной инициализации
     } catch (error) {
@@ -909,5 +917,62 @@ export const deleteBookNote = async (bookId: string): Promise<void> => {
   } catch (error) {
     console.error('Error deleting book note:', error);
     throw error;
+  }
+};
+
+/**
+ * Сохранение категорий в локальную БД
+ */
+export const saveCategories = async (categories: ICategory[], language: string): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    const timestamp = Date.now();
+    const dataStr = JSON.stringify(categories);
+
+    await database.runAsync(`INSERT OR REPLACE INTO categories (language, data, timestamp) VALUES (?, ?, ?)`, [language, dataStr, timestamp]);
+
+    // eslint-disable-next-line no-console
+    console.log(`📂 [SQLite Cache] Категории сохранены: language=${language}, количество=${categories.length}`);
+  } catch (error) {
+    console.error('Error saving categories:', error);
+    throw error;
+  }
+};
+
+/**
+ * Загрузка категорий из локальной БД
+ */
+export const loadCategories = async (language: string): Promise<ICategory[]> => {
+  try {
+    const database = await getDatabase();
+    const result = await database.getFirstAsync<{
+      language: string;
+      data: string;
+      timestamp: number;
+    }>(`SELECT language, data, timestamp FROM categories WHERE language = ?`, [language]);
+
+    if (!result) {
+      return [];
+    }
+
+    const categories: ICategory[] = JSON.parse(result.data);
+
+    // eslint-disable-next-line no-console
+    console.log(`📂 [SQLite Cache] Загружено категорий из локальной БД: ${categories.length} для языка ${language}`);
+    if (categories.length > 0) {
+      // eslint-disable-next-line no-console
+      console.log(
+        `   Первые 5 категорий:`,
+        categories
+          .slice(0, 5)
+          .map((c) => `${c.path}:${c.value}`)
+          .join(', '),
+      );
+    }
+
+    return categories;
+  } catch (error) {
+    console.error('Error loading categories:', error);
+    return [];
   }
 };

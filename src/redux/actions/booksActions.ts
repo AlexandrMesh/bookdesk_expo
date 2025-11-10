@@ -40,12 +40,14 @@ import {
   deleteBookNote,
   initDatabase,
   loadBoardData,
+  loadCategories as loadCategoriesFromDB,
   saveBoardData,
   saveBookDate,
   saveBookNote,
   saveBookRating,
   saveBookStatus,
   saveBookVotesCount,
+  saveCategories,
   saveUserVotes,
   updateBookDateInCache,
   updateBookStatusInCache,
@@ -358,14 +360,65 @@ export const loadCategories = createAsyncThunk(`${PREFIX}/loadCategories`, async
   const categories = getCategoriesData(state);
   const shouldReloadCategories = getShouldReloadCategories(state);
   const { language } = i18n;
-  if (categories.length === 0 || shouldReloadCategories || shouldRewrite) {
+
+  // Инициализируем базу данных
+  try {
+    await initDatabase();
+  } catch (error) {
+    console.error('Error initializing database:', error);
+  }
+
+  // Пытаемся загрузить из локальной БД, если не принудительное обновление
+  if (!shouldRewrite && !shouldReloadCategories && categories.length > 0) {
+    // Если категории уже есть в state, используем их
+    return categories;
+  }
+
+  if (!shouldRewrite && !shouldReloadCategories) {
     try {
-      const { data } = (await DataService().getCategories({ language })) || {};
-      return data;
+      const cachedCategories = await loadCategoriesFromDB(language);
+      if (cachedCategories.length > 0) {
+        // eslint-disable-next-line no-console
+        console.log('✅ [loadCategories] Используются категории из локального кэша');
+        return cachedCategories;
+      } else {
+        // eslint-disable-next-line no-console
+        console.log('❌ [loadCategories] Категории не найдены в локальном кэше, загрузка с сервера...');
+      }
     } catch (error) {
-      console.error(error);
-      throw error;
+      console.error('Error loading categories from cache:', error);
+      // Продолжаем загрузку с сервера в случае ошибки
     }
+  } else {
+    if (shouldRewrite) {
+      // eslint-disable-next-line no-console
+      console.log('🔄 [loadCategories] Принудительное обновление - загрузка с сервера');
+    } else {
+      // eslint-disable-next-line no-console
+      console.log('🔄 [loadCategories] Перезагрузка - загрузка с сервера');
+    }
+  }
+
+  // Загружаем с сервера
+  try {
+    const { data } = (await DataService().getCategories({ language })) || {};
+
+    // Сохраняем в локальную БД
+    if (data && data.length > 0) {
+      try {
+        await saveCategories(data, language);
+        // eslint-disable-next-line no-console
+        console.log('✅ [loadCategories] Категории успешно сохранены в кэш');
+      } catch (error) {
+        console.error('Error saving categories to cache:', error);
+        // Не прерываем выполнение, если не удалось сохранить в кэш
+      }
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error loading categories:', error);
+    throw error;
   }
 });
 

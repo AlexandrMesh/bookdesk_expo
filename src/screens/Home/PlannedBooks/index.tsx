@@ -8,7 +8,7 @@ import { useAppDispatch, useAppSelector } from '~hooks';
 
 import { PLANNED } from '~constants/boardType';
 import { IDLE, PENDING, SUCCEEDED } from '~constants/loadingStatuses';
-import { loadBookList, loadMoreBooks, setBoardType } from '~redux/actions/booksActions';
+import { loadBookList, loadCategories, loadMoreBooks, setBoardType } from '~redux/actions/booksActions';
 import {
   deriveLoadingBookListStatus,
   deriveShouldReloadBookList,
@@ -32,6 +32,7 @@ const PlannedBooks = () => {
     [dispatch],
   );
   const _loadMoreBooks = useCallback(() => dispatch(loadMoreBooks(PLANNED)), [dispatch]);
+  const _loadCategories = useCallback(() => dispatch(loadCategories(false)), [dispatch]);
   const _setBoardType = useCallback(() => dispatch(setBoardType(PLANNED)), [dispatch]);
 
   const sectionedBookListData = useAppSelector(deriveSectionedBookListData(PLANNED));
@@ -47,13 +48,17 @@ const PlannedBooks = () => {
 
   useEffect(() => {
     if (isFocused && (loadingDataStatus === IDLE || shouldReloadData)) {
-      _loadBookList({
-        boardType: PLANNED,
-        shouldLoadMoreResults: false,
-        forceRefresh: shouldReloadData,
-      });
+      const loadData = async () => {
+        await _loadCategories();
+        _loadBookList({
+          boardType: PLANNED,
+          shouldLoadMoreResults: false,
+          forceRefresh: shouldReloadData,
+        });
+      };
+      loadData();
     }
-  }, [_loadBookList, loadingDataStatus, shouldReloadData, isFocused]);
+  }, [_loadCategories, _loadBookList, loadingDataStatus, shouldReloadData, isFocused]);
 
   if (sectionedBookListData.length === 0 && loadingDataStatus === SUCCEEDED && !shouldReloadData) {
     return <EmptyBoard />;
