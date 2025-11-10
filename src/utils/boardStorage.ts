@@ -1,5 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 
+import { ALL } from '~constants/boardType';
 import { BookStatus, IBook, IRating, IVote } from '~types/books';
 
 const DB_NAME = 'bookdesk.db';
@@ -110,21 +111,6 @@ const getDatabase = async (): Promise<SQLite.SQLiteDatabase> => {
 };
 
 /**
- * Получение ключа для кэша на основе параметров
- */
-const getCacheKey = (
-  boardType: BookStatus,
-  pageIndex: number,
-  filterParams: string[],
-  sortType: string,
-  sortDirection: string,
-  language: string,
-): string => {
-  const filterKey = filterParams.sort().join(',');
-  return `${boardType}_${pageIndex}_${filterKey}_${sortType}_${sortDirection}_${language}`;
-};
-
-/**
  * Сохранение данных доски в базу данных
  */
 export const saveBoardData = async (
@@ -203,6 +189,91 @@ export const loadBoardData = async (
   try {
     const database = await getDatabase();
     const filterParamsStr = JSON.stringify(filterParams);
+
+    // Загружаем сохраненные даты и статусы заранее
+    const datesMap = await loadBookDates();
+
+    // Если это не доска ALL, собираем книги с нужным статусом из всех кэшей
+    // Это нужно, чтобы книги, перемещенные на другую доску, появлялись на правильной доске
+    if (boardType !== ALL) {
+      // Получаем все записи с такими же параметрами фильтрации и сортировки, но для всех досок
+      const allRecords = await database.getAllAsync<{
+        board_type: string;
+        page_index: number;
+        filter_params: string;
+        sort_type: string;
+        sort_direction: string;
+        language: string;
+        data: string;
+        total_items: number;
+        has_next_page: number;
+        books_count_by_year: string | null;
+        timestamp: number;
+      }>(
+        `SELECT * FROM board_data 
+         WHERE page_index = ? AND filter_params = ? 
+         AND sort_type = ? AND sort_direction = ? AND language = ?`,
+        [pageIndex, filterParamsStr, sortType, sortDirection, language],
+      );
+
+      if (allRecords.length > 0) {
+        // Собираем все книги из всех записей
+        const allBooks: IBook[] = [];
+        let latestTimestamp = 0;
+        let booksCountByYear: any = undefined;
+
+        for (const record of allRecords) {
+          const books = JSON.parse(record.data) as IBook[];
+          allBooks.push(...books);
+          if (record.timestamp > latestTimestamp) {
+            latestTimestamp = record.timestamp;
+            if (record.books_count_by_year) {
+              booksCountByYear = JSON.parse(record.books_count_by_year);
+            }
+          }
+        }
+
+        // Применяем сохраненные статусы и даты
+        let booksWithDates = applyBookDatesToData(allBooks, datesMap);
+
+        // Фильтруем книги по статусу доски
+        booksWithDates = booksWithDates.filter((book) => book.bookStatus === boardType);
+
+        // Удаляем дубликаты по bookId
+        const uniqueBooks = new Map<string, IBook>();
+        for (const book of booksWithDates) {
+          if (!uniqueBooks.has(book.bookId)) {
+            uniqueBooks.set(book.bookId, book);
+          }
+        }
+        const finalBooks = Array.from(uniqueBooks.values());
+
+        // eslint-disable-next-line no-console
+        console.log(`📖 [SQLite Cache] Загружены данные из локальной БД (собрано из всех досок):`);
+        // eslint-disable-next-line no-console
+        console.log(`   Доска: ${boardType}`);
+        // eslint-disable-next-line no-console
+        console.log(`   Количество книг после фильтрации: ${finalBooks.length}`);
+
+        if (finalBooks.length > 0) {
+          return {
+            boardType,
+            data: finalBooks,
+            totalItems: finalBooks.length,
+            hasNextPage: false, // Не знаем точно, но для первой страницы это нормально
+            pageIndex,
+            filterParams,
+            sortType,
+            sortDirection,
+            language,
+            booksCountByYear,
+            timestamp: latestTimestamp,
+          };
+        }
+      }
+    }
+
+    // Для доски ALL или если не нашли книги, загружаем стандартным способом
     const result = await database.getFirstAsync<{
       board_type: string;
       page_index: number;
@@ -273,14 +344,20 @@ export const loadBoardData = async (
       });
     }
 
-    // Загружаем сохраненные даты и применяем их к книгам
-    const datesMap = await loadBookDates();
-    const booksWithDates = applyBookDatesToData(parsedData, datesMap);
+    // Применяем сохраненные статусы и даты
+    let booksWithDates = applyBookDatesToData(parsedData, datesMap);
+
+    // Для доски ALL не фильтруем, для остальных фильтруем по статусу
+    if (boardType !== ALL) {
+      booksWithDates = booksWithDates.filter((book) => book.bookStatus === boardType);
+      // eslint-disable-next-line no-console
+      console.log(`   После фильтрации по статусу ${boardType}: ${booksWithDates.length} книг`);
+    }
 
     return {
       boardType: result.board_type as BookStatus,
       data: booksWithDates,
-      totalItems: result.total_items,
+      totalItems: booksWithDates.length,
       hasNextPage: result.has_next_page === 1,
       pageIndex: result.page_index,
       filterParams: filterParamsParsed,
@@ -475,6 +552,8 @@ export const updateBookStatusInCache = async (bookId: string, bookStatus: BookSt
   await saveBookDate(bookId, added, bookStatus);
   // eslint-disable-next-line no-console
   console.log(`📝 [SQLite Cache] Обновлен статус книги ${bookId}: ${bookStatus}, дата: ${new Date(added).toLocaleDateString()}`);
+  // eslint-disable-next-line no-console
+  console.log(`   Статус и дата сохранены в таблицу book_dates`);
 };
 
 /**
@@ -501,6 +580,38 @@ export const saveBookDate = async (bookId: string, added: number, bookStatus?: B
 };
 
 /**
+ * Сохранение статуса книги в локальную БД (без изменения даты)
+ */
+export const saveBookStatus = async (bookId: string, bookStatus: BookStatus | null, added?: number): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    const timestamp = Date.now();
+
+    // Получаем текущую дату, если она не передана
+    let currentAdded = added;
+    if (!currentAdded) {
+      const existingDate = await database.getFirstAsync<{ added: number }>(`SELECT added FROM book_dates WHERE book_id = ?`, [bookId]);
+      currentAdded = existingDate?.added || Date.now();
+    }
+
+    await database.runAsync(`INSERT OR REPLACE INTO book_dates (book_id, added, book_status, timestamp) VALUES (?, ?, ?, ?)`, [
+      bookId,
+      currentAdded,
+      bookStatus || null,
+      timestamp,
+    ]);
+
+    // eslint-disable-next-line no-console
+    console.log(
+      `📝 [SQLite Cache] Статус сохранен: bookId=${bookId}, status=${bookStatus || 'null'}, added=${new Date(currentAdded).toLocaleDateString()}`,
+    );
+  } catch (error) {
+    console.error('Error saving book status:', error);
+    throw error;
+  }
+};
+
+/**
  * Загрузка всех дат книг из локальной БД
  */
 export const loadBookDates = async (): Promise<Map<string, { added: number; bookStatus: BookStatus | null }>> => {
@@ -522,11 +633,16 @@ export const loadBookDates = async (): Promise<Map<string, { added: number; book
     });
 
     // eslint-disable-next-line no-console
-    console.log(`📅 [SQLite Cache] Загружено дат из локальной БД: ${datesMap.size} записей`);
+    console.log(`📅 [SQLite Cache] Загружено дат и статусов из локальной БД: ${datesMap.size} записей`);
     if (datesMap.size > 0) {
       const firstFive = Array.from(datesMap.entries()).slice(0, 5);
       // eslint-disable-next-line no-console
-      console.log(`   Первые 5 дат:`, firstFive.map(([bookId, data]) => `${bookId}:${new Date(data.added).toLocaleDateString()}`).join(', '));
+      console.log(
+        `   Первые 5 записей:`,
+        firstFive
+          .map(([bookId, data]) => `${bookId}: дата=${new Date(data.added).toLocaleDateString()}, статус=${data.bookStatus || 'null'}`)
+          .join(', '),
+      );
     }
 
     return datesMap;

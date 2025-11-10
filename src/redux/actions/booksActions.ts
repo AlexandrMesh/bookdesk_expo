@@ -42,6 +42,7 @@ import {
   saveBoardData,
   saveBookDate,
   saveBookRating,
+  saveBookStatus,
   saveBookVotesCount,
   saveUserVotes,
   updateBookDateInCache,
@@ -290,15 +291,21 @@ export const loadBookList = createAsyncThunk(
         const sortType = (sortParams.type ?? '') as string;
         const sortDirection = (sortParams.direction ?? '') as string;
 
-        // Сохраняем даты книг отдельно
+        // Сохраняем даты и статусы книг отдельно
         if (items && items.length > 0) {
           for (const book of items) {
-            if (book.added && book.bookStatus) {
-              try {
+            try {
+              if (book.added && book.bookStatus) {
                 await saveBookDate(book.bookId, book.added, book.bookStatus);
-              } catch (error) {
-                console.error(`Error saving date for book ${book.bookId}:`, error);
+              } else if (book.bookStatus) {
+                // Сохраняем только статус, если даты нет
+                await saveBookStatus(book.bookId, book.bookStatus);
+              } else if (book.added) {
+                // Сохраняем только дату, если статуса нет
+                await saveBookDate(book.bookId, book.added);
               }
+            } catch (error) {
+              console.error(`Error saving date/status for book ${book.bookId}:`, error);
             }
           }
         }
@@ -479,7 +486,11 @@ export const updateUserBook = createAsyncThunk(
       console.log(`   дата: ${new Date(added).toLocaleDateString()}`);
 
       // Обновляем в локальной БД
+      // updateBookStatusInCache обновляет статус книги во всех записях кэша
       await updateBookStatusInCache(bookId, newBookStatus, added);
+
+      // НЕ очищаем кэш - updateBookStatusInCache уже обновил статус во всех записях кэша
+      // При следующей загрузке из кэша будут использованы обновленные данные
 
       if (newBookStatus === ALL) {
         // Удаляем комментарий и рейтинг локально

@@ -3,7 +3,7 @@ import isEmpty from 'lodash/isEmpty';
 import union from 'lodash/union';
 import uniqBy from 'lodash/uniqBy';
 
-import { ALL } from '~constants/boardType';
+import { ALL, COMPLETED, IN_PROGRESS, PLANNED } from '~constants/boardType';
 import { FAILED, IDLE, PENDING, SUCCEEDED } from '~constants/loadingStatuses';
 import * as booksActions from '~redux/actions/booksActions';
 import { BookStatus, IBook, IBookNote, ICategory, IRating, IVote } from '~types/books';
@@ -276,33 +276,57 @@ export default createReducer(defaultState, (builder) => {
           state.bookDetails.data.added = added;
         }
 
-        // Удаляем книгу со старой доски (если книга имела конкретный статус)
-        // currentBookStatus - это старый статус книги (откуда переводим)
+        // Находим книгу на старой доске или в ALL
+        let updatedBook: IBook | undefined = undefined;
         if (currentBookStatus && currentBookStatus !== ALL) {
-          state.board[currentBookStatus].data = state.board[currentBookStatus].data.filter((book) => book.bookId !== bookId);
-          state.board[currentBookStatus].pagination.totalItems =
-            state.board[currentBookStatus].pagination.totalItems > 0 ? state.board[currentBookStatus].pagination.totalItems - 1 : 0;
+          updatedBook = state.board[currentBookStatus].data.find((book) => book.bookId === bookId);
+        }
+        if (!updatedBook) {
+          updatedBook = state.board[ALL].data.find((book) => book.bookId === bookId);
+        }
+        // Если не нашли, ищем на всех досках
+        if (!updatedBook) {
+          for (const boardKey of [PLANNED, IN_PROGRESS, COMPLETED]) {
+            updatedBook = state.board[boardKey].data.find((book) => book.bookId === bookId);
+            if (updatedBook) break;
+          }
+        }
+
+        if (updatedBook) {
+          const bookWithNewStatus = { ...updatedBook, bookStatus, added };
+
+          // Удаляем книгу со старой доски (если книга имела конкретный статус)
+          if (currentBookStatus && currentBookStatus !== ALL) {
+            state.board[currentBookStatus].data = state.board[currentBookStatus].data.filter((book) => book.bookId !== bookId);
+            state.board[currentBookStatus].pagination.totalItems =
+              state.board[currentBookStatus].pagination.totalItems > 0 ? state.board[currentBookStatus].pagination.totalItems - 1 : 0;
+          }
+
+          // Обновляем книгу в доске ALL (если она там есть)
+          state.board[ALL].data = state.board[ALL].data.map((book) => (book.bookId === bookId ? bookWithNewStatus : book));
+          state.search.data = state.search.data.map((book) => (book.bookId === bookId ? bookWithNewStatus : book));
+
+          // Добавляем книгу на новую доску локально (если это не ALL)
+          if (newBookStatus !== ALL) {
+            // Проверяем, нет ли уже этой книги на новой доске
+            const existsOnNewBoard = state.board[newBookStatus].data.some((book) => book.bookId === bookId);
+            if (!existsOnNewBoard) {
+              // Добавляем книгу в начало списка новой доски
+              state.board[newBookStatus].data = [bookWithNewStatus, ...state.board[newBookStatus].data];
+              state.board[newBookStatus].pagination.totalItems = (state.board[newBookStatus].pagination.totalItems || 0) + 1;
+            } else {
+              // Если книга уже есть, просто обновляем её
+              state.board[newBookStatus].data = state.board[newBookStatus].data.map((book) =>
+                book.bookId === bookId ? bookWithNewStatus : book,
+              );
+            }
+          }
+        } else {
+          // eslint-disable-next-line no-console
+          console.warn(`[updateUserBook] Книга ${bookId} не найдена ни на одной доске для обновления`);
         }
 
         state.updatingBookStatus = SUCCEEDED;
-
-        // Обновляем книгу в доске ALL (она всегда там присутствует, меняется только статус)
-        state.board[ALL].data = state.board[ALL].data.map((book) => (book.bookId === bookId ? { ...book, bookStatus, added } : book));
-        state.search.data = state.search.data.map((book) => (book.bookId === bookId ? { ...book, bookStatus, added } : book));
-
-        // Ставим метку о том что надо перезагрузить новую доску куда добавилась книга
-        // ВАЖНО: перезагружаем целевую доску, чтобы книга появилась там в правильном порядке
-        if (newBookStatus !== ALL) {
-          // Если переводим на конкретную доску (planned/inProgress/completed), очищаем и перезагружаем её
-          state.board[newBookStatus].data = [];
-          state.board[newBookStatus].shouldReloadData = true;
-        }
-
-        // Если текущая доска опустела и есть еще книги в пагинации, перезагружаем её
-        if (state.board[boardType].data.length === 0 && state.board[boardType].pagination.totalItems > 0) {
-          state.board[boardType].data = [];
-          state.board[boardType].shouldReloadData = true;
-        }
       },
     )
     .addCase(booksActions.updateBookOnBoardAndSearch, (state, { payload: { bookId, bookStatus, title, pages, authorsList } }) => {
