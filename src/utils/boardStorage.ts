@@ -211,8 +211,9 @@ export const loadBoardData = async (
 
     // Если это не доска ALL, собираем книги с нужным статусом из всех кэшей
     // Это нужно, чтобы книги, перемещенные на другую доску, появлялись на правильной доске
+    // Теперь загружаем все страницы (page_index), так как мы больше не используем пагинацию
     if (boardType !== ALL) {
-      // Получаем все записи с такими же параметрами фильтрации и сортировки, но для всех досок
+      // Получаем все записи с такими же параметрами фильтрации и сортировки, но для всех досок и всех страниц
       const allRecords = await database.getAllAsync<{
         board_type: string;
         page_index: number;
@@ -227,9 +228,10 @@ export const loadBoardData = async (
         timestamp: number;
       }>(
         `SELECT * FROM board_data 
-         WHERE page_index = ? AND filter_params = ? 
-         AND sort_type = ? AND sort_direction = ? AND language = ?`,
-        [pageIndex, filterParamsStr, sortType, sortDirection, language],
+         WHERE filter_params = ? 
+         AND sort_type = ? AND sort_direction = ? AND language = ?
+         ORDER BY page_index ASC`,
+        [filterParamsStr, sortType, sortDirection, language],
       );
 
       if (allRecords.length > 0) {
@@ -290,7 +292,8 @@ export const loadBoardData = async (
     }
 
     // Для доски ALL или если не нашли книги, загружаем стандартным способом
-    const result = await database.getFirstAsync<{
+    // Загружаем все страницы, так как мы больше не используем пагинацию
+    const allResults = await database.getAllAsync<{
       board_type: string;
       page_index: number;
       filter_params: string;
@@ -304,18 +307,34 @@ export const loadBoardData = async (
       timestamp: number;
     }>(
       `SELECT * FROM board_data 
-       WHERE board_type = ? AND page_index = ? AND filter_params = ? 
-       AND sort_type = ? AND sort_direction = ? AND language = ?`,
-      [boardType, pageIndex, filterParamsStr, sortType, sortDirection, language],
+       WHERE board_type = ? AND filter_params = ? 
+       AND sort_type = ? AND sort_direction = ? AND language = ?
+       ORDER BY page_index ASC`,
+      [boardType, filterParamsStr, sortType, sortDirection, language],
     );
 
-    if (!result) {
+    if (!allResults || allResults.length === 0) {
       return null;
     }
 
-    const parsedData = JSON.parse(result.data) as IBook[];
-    const filterParamsParsed = JSON.parse(result.filter_params) as string[];
-    const cacheAge = Date.now() - result.timestamp;
+    // Собираем все книги из всех страниц
+    const allBooks: IBook[] = [];
+    let latestTimestamp = 0;
+    let booksCountByYear: any = undefined;
+    const filterParamsParsed = JSON.parse(allResults[0].filter_params) as string[];
+
+    for (const result of allResults) {
+      const parsedData = JSON.parse(result.data) as IBook[];
+      allBooks.push(...parsedData);
+      if (result.timestamp > latestTimestamp) {
+        latestTimestamp = result.timestamp;
+        if (result.books_count_by_year) {
+          booksCountByYear = JSON.parse(result.books_count_by_year);
+        }
+      }
+    }
+
+    const cacheAge = Date.now() - latestTimestamp;
     const cacheAgeMinutes = Math.floor(cacheAge / 60000);
     const cacheAgeHours = Math.floor(cacheAgeMinutes / 60);
     const cacheAgeDays = Math.floor(cacheAgeHours / 24);
@@ -334,34 +353,30 @@ export const loadBoardData = async (
     // eslint-disable-next-line no-console
     console.log('📦 [SQLite Cache] Данные загружены из локальной базы:');
     // eslint-disable-next-line no-console
-    console.log(`   Доска: ${result.board_type}`);
+    console.log(`   Доска: ${allResults[0].board_type}`);
     // eslint-disable-next-line no-console
-    console.log(`   Количество книг: ${parsedData.length}`);
+    console.log(`   Количество книг (все страницы): ${allBooks.length}`);
     // eslint-disable-next-line no-console
-    console.log(`   Всего элементов: ${result.total_items}`);
-    // eslint-disable-next-line no-console
-    console.log(`   Страница: ${result.page_index}`);
+    console.log(`   Количество страниц в кэше: ${allResults.length}`);
     // eslint-disable-next-line no-console
     console.log(`   Фильтры: ${filterParamsParsed.length > 0 ? filterParamsParsed.join(', ') : 'нет'}`);
     // eslint-disable-next-line no-console
-    console.log(`   Сортировка: ${result.sort_type} (${result.sort_direction})`);
+    console.log(`   Сортировка: ${allResults[0].sort_type} (${allResults[0].sort_direction})`);
     // eslint-disable-next-line no-console
-    console.log(`   Язык: ${result.language}`);
-    // eslint-disable-next-line no-console
-    console.log(`   Есть следующая страница: ${result.has_next_page === 1 ? 'да' : 'нет'}`);
+    console.log(`   Язык: ${allResults[0].language}`);
     // eslint-disable-next-line no-console
     console.log(`   Возраст кэша: ${cacheAgeStr}`);
-    if (parsedData.length > 0) {
+    if (allBooks.length > 0) {
       // eslint-disable-next-line no-console
       console.log(`   Первые 3 книги:`);
-      parsedData.slice(0, 3).forEach((book, idx) => {
+      allBooks.slice(0, 3).forEach((book, idx) => {
         // eslint-disable-next-line no-console
         console.log(`     ${idx + 1}. ${book.title} (${book.bookId})`);
       });
     }
 
     // Применяем сохраненные статусы и даты
-    let booksWithDates = applyBookDatesToData(parsedData, datesMap);
+    let booksWithDates = applyBookDatesToData(allBooks, datesMap);
 
     // Для доски ALL не фильтруем, для остальных фильтруем по статусу
     if (boardType !== ALL) {
@@ -371,17 +386,17 @@ export const loadBoardData = async (
     }
 
     return {
-      boardType: result.board_type as BookStatus,
+      boardType: allResults[0].board_type as BookStatus,
       data: booksWithDates,
       totalItems: booksWithDates.length,
-      hasNextPage: result.has_next_page === 1,
-      pageIndex: result.page_index,
+      hasNextPage: false, // Больше не используем пагинацию
+      pageIndex: 0,
       filterParams: filterParamsParsed,
-      sortType: result.sort_type,
-      sortDirection: result.sort_direction,
-      language: result.language,
-      booksCountByYear: result.books_count_by_year ? JSON.parse(result.books_count_by_year) : undefined,
-      timestamp: result.timestamp,
+      sortType: allResults[0].sort_type,
+      sortDirection: allResults[0].sort_direction,
+      language: allResults[0].language,
+      booksCountByYear,
+      timestamp: latestTimestamp,
     };
   } catch (error) {
     console.error('Error loading board data:', error);

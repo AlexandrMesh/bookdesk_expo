@@ -118,7 +118,8 @@ export const deriveSectionedBookListData = (status: BookStatus) =>
           'monthAndYear',
         ),
         (value: any[], key: string) => {
-          const count = booksCountByYear?.find(({ monthAndYear }) => key === monthAndYear)?.count || 0;
+          // Используем реальное количество книг в группе вместо booksCountByYear
+          const count = value.length;
           const data = [`${key}/${count}`, value.sort((a, b) => b.added - a.added)].flat();
           return data;
         },

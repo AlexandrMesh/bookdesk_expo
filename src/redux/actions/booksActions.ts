@@ -56,6 +56,30 @@ import {
 
 const PREFIX = 'BOOKS';
 
+/**
+ * Подсчет количества книг по месяцам из массива книг
+ */
+const calculateBooksCountByYear = (books: IBook[], language: string): Array<{ monthAndYear: string; count: number }> => {
+  const monthCountMap = new Map<string, number>();
+
+  books.forEach((book) => {
+    if (book.added) {
+      const date = new Date(book.added);
+      const monthAndYear = date.toLocaleString(language, { month: 'long', year: 'numeric' });
+      monthCountMap.set(monthAndYear, (monthCountMap.get(monthAndYear) || 0) + 1);
+    }
+  });
+
+  return Array.from(monthCountMap.entries())
+    .map(([monthAndYear, count]) => ({ monthAndYear, count }))
+    .sort((a, b) => {
+      // Сортируем по дате (новые сначала)
+      const dateA = new Date(a.monthAndYear);
+      const dateB = new Date(b.monthAndYear);
+      return dateB.getTime() - dateA.getTime();
+    });
+};
+
 export const userBookRatingsLoaded = createAction<IRating[]>(`${PREFIX}/userBookRatingsLoaded`);
 export const setBookToUpdate = createAction<{ bookId: string; bookStatus: BookStatus; added: number }>(`${PREFIX}/setBookToUpdate`);
 export const setBoardType = createAction<BookStatus>(`${PREFIX}/setBoardType`);
@@ -211,8 +235,9 @@ export const loadBookList = createAsyncThunk(
       console.error('Error initializing database:', error);
     }
 
-    // Пытаемся загрузить из кэша, если не принудительное обновление и не загружаем больше результатов
-    if (!forceRefresh && !shouldLoadMoreResults) {
+    // Пытаемся загрузить из кэша, если не принудительное обновление
+    // Больше не используем пагинацию, поэтому всегда загружаем все книги
+    if (!forceRefresh) {
       try {
         const sortType = (sortParams.type ?? '') as string;
         const sortDirection = (sortParams.direction ?? '') as string;
@@ -221,24 +246,19 @@ export const loadBookList = createAsyncThunk(
           // eslint-disable-next-line no-console
           console.log('✅ [loadBookList] Используются данные из локального кэша');
 
-          // Загружаем booksCountByYear отдельно, если нужно
-          let booksCountByYear = cachedData.booksCountByYear;
-          if (boardType !== ALL && !booksCountByYear) {
-            try {
-              // eslint-disable-next-line no-console
-              console.log('   Загрузка booksCountByYear с сервера...');
-              const { data } = await DataService().getBooksCountByYear({ boardType, language });
-              booksCountByYear = data;
-            } catch (error) {
-              console.error('Error loading booksCountByYear:', error);
-            }
+          // Подсчитываем booksCountByYear локально из всех книг в кэше
+          let booksCountByYear: any = null;
+          if (boardType !== ALL && cachedData.data && cachedData.data.length > 0) {
+            booksCountByYear = calculateBooksCountByYear(cachedData.data, language);
+            // eslint-disable-next-line no-console
+            console.log(`   Подсчитано booksCountByYear из кэша: ${booksCountByYear?.length || 0} месяцев`);
           }
 
           return {
             boardType,
             data: cachedData.data,
-            totalItems: cachedData.totalItems,
-            hasNextPage: cachedData.hasNextPage,
+            totalItems: cachedData.data.length, // Используем реальное количество книг
+            hasNextPage: false, // Больше не используем пагинацию
             shouldLoadMoreResults: false,
             booksCountByYear,
             fromCache: true,
@@ -254,17 +274,17 @@ export const loadBookList = createAsyncThunk(
     } else {
       if (forceRefresh) {
         // eslint-disable-next-line no-console
-        console.log('🔄 [loadBookList] Принудительное обновление - загрузка с сервера');
+        console.log('🔄 [loadBookList] Принудительное обновление - загрузка всех книг с сервера');
       } else {
         // eslint-disable-next-line no-console
-        console.log('📄 [loadBookList] Загрузка следующей страницы с сервера');
+        console.log('📄 [loadBookList] Загрузка всех книг с сервера');
       }
     }
 
-    // Загружаем с сервера
+    // Загружаем с сервера - загружаем ВСЕ книги сразу (без пагинации)
     const params = {
-      pageIndex: targetPageIndex,
-      limit: PAGE_SIZE,
+      pageIndex: 0,
+      limit: 10000, // Большой лимит, чтобы загрузить все книги сразу
       boardType,
       categoryPaths: filterParams,
       sortType: sortParams.type,
@@ -273,18 +293,24 @@ export const loadBookList = createAsyncThunk(
     };
 
     try {
-      const { data } =
-        boardType !== ALL && !shouldLoadMoreResults ? await DataService().getBooksCountByYear({ boardType, language }) : { data: null };
       const result = await DataService().getBookList({ ...params });
-      const { items, pagination } = result?.data || {};
+      const { items } = result?.data || {};
+
+      // Подсчитываем booksCountByYear локально из всех загруженных книг
+      let booksCountByYear: any = null;
+      if (boardType !== ALL && items && items.length > 0) {
+        booksCountByYear = calculateBooksCountByYear(items, language);
+        // eslint-disable-next-line no-console
+        console.log(`   Подсчитано booksCountByYear локально: ${booksCountByYear?.length || 0} месяцев`);
+      }
 
       const responseData = {
         boardType,
         data: items || [],
-        totalItems: pagination?.totalItems,
-        hasNextPage: pagination?.hasNextPage,
-        shouldLoadMoreResults,
-        booksCountByYear: data,
+        totalItems: items?.length || 0, // Используем реальное количество загруженных книг
+        hasNextPage: false, // Больше не используем пагинацию
+        shouldLoadMoreResults: false,
+        booksCountByYear,
         fromCache: false,
       };
 
@@ -322,9 +348,9 @@ export const loadBookList = createAsyncThunk(
           sortDirection,
           language,
           items || [],
-          pagination?.totalItems || 0,
-          pagination?.hasNextPage || false,
-          data,
+          items?.length || 0,
+          false,
+          booksCountByYear,
         );
         // eslint-disable-next-line no-console
         console.log('✅ [loadBookList] Данные успешно сохранены в кэш');

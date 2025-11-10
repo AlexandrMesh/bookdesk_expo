@@ -316,13 +316,10 @@ export default createReducer(defaultState, (builder) => {
               state.board[newBookStatus].pagination.totalItems = (state.board[newBookStatus].pagination.totalItems || 0) + 1;
             } else {
               // Если книга уже есть, просто обновляем её
-              state.board[newBookStatus].data = state.board[newBookStatus].data.map((book) =>
-                book.bookId === bookId ? bookWithNewStatus : book,
-              );
+              state.board[newBookStatus].data = state.board[newBookStatus].data.map((book) => (book.bookId === bookId ? bookWithNewStatus : book));
             }
           }
         } else {
-          // eslint-disable-next-line no-console
           console.warn(`[updateUserBook] Книга ${bookId} не найдена ни на одной доске для обновления`);
         }
 
@@ -348,10 +345,11 @@ export default createReducer(defaultState, (builder) => {
       (state, { payload: { boardType, data = [], totalItems = 0, hasNextPage = false, shouldLoadMoreResults, booksCountByYear } }) => {
         state.board[boardType].loadingDataStatus = SUCCEEDED;
         state.board[boardType].shouldReloadData = false;
-        state.board[boardType].data = shouldLoadMoreResults ? uniqBy([...state.board[boardType].data, ...data], 'bookId') : data;
-        state.board[boardType].pagination.pageIndex = shouldLoadMoreResults ? state.board[boardType].pagination.pageIndex + 1 : 0;
+        // Больше не используем пагинацию, всегда заменяем данные полностью
+        state.board[boardType].data = data;
+        state.board[boardType].pagination.pageIndex = 0;
         state.board[boardType].pagination.totalItems = totalItems;
-        state.board[boardType].pagination.hasNextPage = hasNextPage;
+        state.board[boardType].pagination.hasNextPage = false;
         state.board[boardType].booksCountByYear = booksCountByYear || state.board[boardType].booksCountByYear;
       },
     )
