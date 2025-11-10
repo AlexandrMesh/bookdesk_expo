@@ -37,10 +37,12 @@ import { AppThunkAPI } from '~redux/store/configureStore';
 import i18n from '~translations/i18n';
 import { BookStatus, IBook, IBookNote, IRating, IVote } from '~types/books';
 import {
+  deleteBookNote,
   initDatabase,
   loadBoardData,
   saveBoardData,
   saveBookDate,
+  saveBookNote,
   saveBookRating,
   saveBookStatus,
   saveBookVotesCount,
@@ -448,10 +450,20 @@ export const updateUserBookAddedDate = createAsyncThunk(
 
 export const deleteUserComment = createAsyncThunk(`${PREFIX}/deleteUserComment`, async (bookId: string) => {
   try {
-    await DataService().deleteUserComment({ bookId });
+    // eslint-disable-next-line no-console
+    console.log('🗑️ [deleteUserComment] Удаление заметки через локальную БД');
+    // eslint-disable-next-line no-console
+    console.log(`   bookId: ${bookId}`);
+
+    // Удаляем из локальной БД
+    await deleteBookNote(bookId);
+
+    // eslint-disable-next-line no-console
+    console.log('✅ [deleteUserComment] Заметка успешно удалена из локальной БД');
+
     return bookId;
   } catch (error) {
-    console.error(error);
+    console.error('Error deleting user comment:', error);
     throw error;
   }
 });
@@ -525,16 +537,43 @@ export const updateUserBook = createAsyncThunk(
 
 export const updateUserComment = createAsyncThunk(
   `${PREFIX}/updateUserComment`,
-  async ({ bookId, comment, added }: { bookId: string; comment: string; added: number }) => {
+  async ({ bookId, comment, added }: { bookId: string; comment: string; added: number }, { getState }: AppThunkAPI) => {
     try {
-      const { data } = await DataService().updateUserComment({ bookId, added, comment });
+      // eslint-disable-next-line no-console
+      console.log('📝 [updateUserComment] Обновление заметки через локальную БД');
+      // eslint-disable-next-line no-console
+      console.log(`   bookId: ${bookId}`);
+      // eslint-disable-next-line no-console
+      console.log(`   comment: ${comment.substring(0, 50)}${comment.length > 50 ? '...' : ''}`);
+      // eslint-disable-next-line no-console
+      console.log(`   дата: ${new Date(added).toLocaleDateString()}`);
+
+      // Сохраняем в локальную БД
+      await saveBookNote(bookId, comment, added);
+
+      // Redux state обновится через reducer на основе возвращаемых данных
+      const state = getState();
+      const currentNotes = state.books.bookNotes || [];
+      const existingNoteIndex = currentNotes.findIndex((note: IBookNote) => note.bookId === bookId);
+
+      if (existingNoteIndex !== -1) {
+        // eslint-disable-next-line no-console
+        console.log(`   Обновлена существующая заметка`);
+      } else {
+        // eslint-disable-next-line no-console
+        console.log(`   Добавлена новая заметка`);
+      }
+
+      // eslint-disable-next-line no-console
+      console.log('✅ [updateUserComment] Заметка обновлена в Redux state и сохранена в локальную БД');
+
       return {
         bookId,
-        comment: data.comment,
-        added: data.added,
+        comment,
+        added,
       };
     } catch (error) {
-      console.error(error);
+      console.error('Error updating user comment:', error);
       throw error;
     }
   },

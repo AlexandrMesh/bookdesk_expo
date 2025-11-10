@@ -13,7 +13,7 @@ import { clearData as clearGoalsData, setGoal } from '~redux/actions/goalsAction
 import { clearData as clearStatisticData } from '~redux/actions/statisticActions';
 import i18n, { getT } from '~translations/i18n';
 import { removeToken, saveToken } from '~utils/secureStorage';
-import { initDatabase, loadBookRatings, loadUserVotes } from '~utils/boardStorage';
+import { initDatabase, loadBookNotes, loadBookRatings, loadUserVotes } from '~utils/boardStorage';
 
 // Динамический импорт GoogleSignin для совместимости с Expo Go
 let GoogleSigninModule: any = null;
@@ -173,7 +173,25 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
       if (numberOfPagesForGoal) {
         dispatch(setGoal({ pages: numberOfPagesForGoal, type: goalType }));
       }
-      dispatch(setBookNotes(data.userComments));
+      // Загружаем заметки из локальной БД вместо сервера
+      try {
+        await initDatabase();
+        const localBookNotes = await loadBookNotes();
+        if (localBookNotes.length > 0) {
+          // eslint-disable-next-line no-console
+          console.log('📝 [checkAuth] Загружены заметки из локальной БД');
+          dispatch(setBookNotes(localBookNotes));
+        } else {
+          // Если в локальной БД нет заметок, используем с сервера (первый раз)
+          // eslint-disable-next-line no-console
+          console.log('📝 [checkAuth] Заметок в локальной БД нет, используем с сервера');
+          dispatch(setBookNotes(data.userComments || []));
+        }
+      } catch (error) {
+        console.error('Error loading book notes from local DB:', error);
+        // В случае ошибки используем данные с сервера
+        dispatch(setBookNotes(data.userComments || []));
+      }
 
       // Загружаем лайки из локальной БД вместо сервера
       try {
@@ -279,7 +297,23 @@ export const signIn = createAsyncThunk(
           if (data.numberOfPagesForGoal) {
             dispatch(setGoal({ pages: data.numberOfPagesForGoal, type: data.goalType }));
           }
-          dispatch(setBookNotes(data.userComments));
+          // Загружаем заметки из локальной БД вместо сервера
+          try {
+            await initDatabase();
+            const localBookNotes = await loadBookNotes();
+            if (localBookNotes.length > 0) {
+              // eslint-disable-next-line no-console
+              console.log('📝 [signIn] Загружены заметки из локальной БД');
+              dispatch(setBookNotes(localBookNotes));
+            } else {
+              // eslint-disable-next-line no-console
+              console.log('📝 [signIn] Заметок в локальной БД нет, используем с сервера');
+              dispatch(setBookNotes(data.userComments || []));
+            }
+          } catch (error) {
+            console.error('Error loading book notes from local DB:', error);
+            dispatch(setBookNotes(data.userComments || []));
+          }
 
           // Загружаем лайки из локальной БД вместо сервера
           try {
@@ -371,7 +405,23 @@ export const signIn = createAsyncThunk(
           if (data.numberOfPagesForGoal) {
             dispatch(setGoal({ pages: data.numberOfPagesForGoal, type: data.goalType }));
           }
-          dispatch(setBookNotes(data.userComments));
+          // Загружаем заметки из локальной БД вместо сервера
+          try {
+            await initDatabase();
+            const localBookNotes = await loadBookNotes();
+            if (localBookNotes.length > 0) {
+              // eslint-disable-next-line no-console
+              console.log('📝 [signIn] Загружены заметки из локальной БД');
+              dispatch(setBookNotes(localBookNotes));
+            } else {
+              // eslint-disable-next-line no-console
+              console.log('📝 [signIn] Заметок в локальной БД нет, используем с сервера');
+              dispatch(setBookNotes(data.userComments || []));
+            }
+          } catch (error) {
+            console.error('Error loading book notes from local DB:', error);
+            dispatch(setBookNotes(data.userComments || []));
+          }
 
           // Загружаем лайки из локальной БД вместо сервера
           try {
