@@ -118,10 +118,8 @@ export const deriveSectionedBookListData = (status: BookStatus) =>
           'monthAndYear',
         ),
         (value: any[], key: string) => {
-          const data = [
-            `${key}/${booksCountByYear.find(({ monthAndYear }) => key === monthAndYear)?.count}`,
-            value.sort((a, b) => b.added - a.added),
-          ].flat();
+          const count = booksCountByYear?.find(({ monthAndYear }) => key === monthAndYear)?.count || 0;
+          const data = [`${key}/${count}`, value.sort((a, b) => b.added - a.added)].flat();
           return data;
         },
       ).flat() as any[],

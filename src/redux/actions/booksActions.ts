@@ -40,6 +40,7 @@ import {
   initDatabase,
   loadBoardData,
   saveBoardData,
+  saveBookDate,
   saveBookRating,
   saveBookVotesCount,
   saveUserVotes,
@@ -288,6 +289,20 @@ export const loadBookList = createAsyncThunk(
         console.log('💾 [loadBookList] Сохранение данных в локальный кэш...');
         const sortType = (sortParams.type ?? '') as string;
         const sortDirection = (sortParams.direction ?? '') as string;
+
+        // Сохраняем даты книг отдельно
+        if (items && items.length > 0) {
+          for (const book of items) {
+            if (book.added && book.bookStatus) {
+              try {
+                await saveBookDate(book.bookId, book.added, book.bookStatus);
+              } catch (error) {
+                console.error(`Error saving date for book ${book.bookId}:`, error);
+              }
+            }
+          }
+        }
+
         await saveBoardData(
           boardType,
           targetPageIndex,
@@ -402,7 +417,7 @@ export const updateUserBookAddedDate = createAsyncThunk(
       console.log(`   новая дата: ${new Date(added).toLocaleDateString()}`);
 
       // Обновляем в локальной БД
-      await updateBookDateInCache(bookId, added);
+      await updateBookDateInCache(bookId, added, bookStatus);
 
       dispatch(updateSuggestedBook({ bookId, bookStatus, added }));
       dispatch(updateCustomBook({ bookId, bookStatus, added }));

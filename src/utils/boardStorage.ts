@@ -76,6 +76,14 @@ export const initDatabase = async (): Promise<void> => {
           data TEXT NOT NULL,
           timestamp INTEGER NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS book_dates (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          book_id TEXT NOT NULL UNIQUE,
+          added INTEGER NOT NULL,
+          book_status TEXT,
+          timestamp INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_book_dates_book_id ON book_dates(book_id);
       `);
       initPromise = null; // Сбрасываем промис после успешной инициализации
     } catch (error) {
@@ -265,9 +273,13 @@ export const loadBoardData = async (
       });
     }
 
+    // Загружаем сохраненные даты и применяем их к книгам
+    const datesMap = await loadBookDates();
+    const booksWithDates = applyBookDatesToData(parsedData, datesMap);
+
     return {
       boardType: result.board_type as BookStatus,
-      data: parsedData,
+      data: booksWithDates,
       totalItems: result.total_items,
       hasNextPage: result.has_next_page === 1,
       pageIndex: result.page_index,
@@ -470,15 +482,94 @@ export const updateBookStatusInCache = async (
   added: number,
 ): Promise<void> => {
   await updateBookInCache(bookId, { bookStatus, added });
+  await saveBookDate(bookId, added, bookStatus);
   // eslint-disable-next-line no-console
   console.log(`📝 [SQLite Cache] Обновлен статус книги ${bookId}: ${bookStatus}, дата: ${new Date(added).toLocaleDateString()}`);
 };
 
 /**
+ * Сохранение даты книги в локальную БД
+ */
+export const saveBookDate = async (bookId: string, added: number, bookStatus?: BookStatus | null): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    const timestamp = Date.now();
+
+    await database.runAsync(
+      `INSERT OR REPLACE INTO book_dates (book_id, added, book_status, timestamp) VALUES (?, ?, ?, ?)`,
+      [bookId, added, bookStatus || null, timestamp],
+    );
+
+    // eslint-disable-next-line no-console
+    console.log(`📅 [SQLite Cache] Дата сохранена: bookId=${bookId}, added=${new Date(added).toLocaleDateString()}, status=${bookStatus || 'null'}`);
+  } catch (error) {
+    console.error('Error saving book date:', error);
+    throw error;
+  }
+};
+
+/**
+ * Загрузка всех дат книг из локальной БД
+ */
+export const loadBookDates = async (): Promise<Map<string, { added: number; bookStatus: BookStatus | null }>> => {
+  try {
+    const database = await getDatabase();
+    const results = await database.getAllAsync<{
+      book_id: string;
+      added: number;
+      book_status: string | null;
+      timestamp: number;
+    }>(`SELECT book_id, added, book_status, timestamp FROM book_dates ORDER BY timestamp DESC`);
+
+    const datesMap = new Map<string, { added: number; bookStatus: BookStatus | null }>();
+    results.forEach((result) => {
+      datesMap.set(result.book_id, {
+        added: result.added,
+        bookStatus: (result.book_status as BookStatus) || null,
+      });
+    });
+
+    // eslint-disable-next-line no-console
+    console.log(`📅 [SQLite Cache] Загружено дат из локальной БД: ${datesMap.size} записей`);
+    if (datesMap.size > 0) {
+      const firstFive = Array.from(datesMap.entries()).slice(0, 5);
+      // eslint-disable-next-line no-console
+      console.log(
+        `   Первые 5 дат:`,
+        firstFive.map(([bookId, data]) => `${bookId}:${new Date(data.added).toLocaleDateString()}`).join(', '),
+      );
+    }
+
+    return datesMap;
+  } catch (error) {
+    console.error('Error loading book dates:', error);
+    return new Map();
+  }
+};
+
+/**
+ * Применение сохраненных дат к книгам в данных доски
+ */
+export const applyBookDatesToData = (books: IBook[], datesMap: Map<string, { added: number; bookStatus: BookStatus | null }>): IBook[] => {
+  return books.map((book) => {
+    const dateData = datesMap.get(book.bookId);
+    if (dateData) {
+      return {
+        ...book,
+        added: dateData.added,
+        bookStatus: dateData.bookStatus !== null ? dateData.bookStatus : book.bookStatus,
+      };
+    }
+    return book;
+  });
+};
+
+/**
  * Обновление даты добавления книги во всех записях кэша
  */
-export const updateBookDateInCache = async (bookId: string, added: number): Promise<void> => {
+export const updateBookDateInCache = async (bookId: string, added: number, bookStatus?: BookStatus | null): Promise<void> => {
   await updateBookInCache(bookId, { added });
+  await saveBookDate(bookId, added, bookStatus);
   // eslint-disable-next-line no-console
   console.log(`📅 [SQLite Cache] Обновлена дата для книги ${bookId}: ${new Date(added).toLocaleDateString()}`);
 };
