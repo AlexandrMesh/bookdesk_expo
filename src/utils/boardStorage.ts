@@ -404,13 +404,10 @@ export const getLastTimestamp = async (
 /**
  * Обновление книги во всех записях кэша
  */
-export const updateBookInCache = async (
-  bookId: string,
-  updates: Partial<IBook>,
-): Promise<void> => {
+export const updateBookInCache = async (bookId: string, updates: Partial<IBook>): Promise<void> => {
   try {
     const database = await getDatabase();
-    
+
     // Получаем все записи, содержащие эту книгу
     const allRecords = await database.getAllAsync<{
       id: number;
@@ -439,10 +436,7 @@ export const updateBookInCache = async (
         const updatedData = JSON.stringify(books);
 
         // Обновляем запись в БД
-        await database.runAsync(
-          `UPDATE board_data SET data = ?, timestamp = ? WHERE id = ?`,
-          [updatedData, Date.now(), record.id],
-        );
+        await database.runAsync(`UPDATE board_data SET data = ?, timestamp = ? WHERE id = ?`, [updatedData, Date.now(), record.id]);
 
         updatedCount++;
       }
@@ -476,11 +470,7 @@ export const updateBookVotesInCache = async (bookId: string, votesCount: number)
 /**
  * Обновление статуса и даты книги во всех записях кэша
  */
-export const updateBookStatusInCache = async (
-  bookId: string,
-  bookStatus: BookStatus,
-  added: number,
-): Promise<void> => {
+export const updateBookStatusInCache = async (bookId: string, bookStatus: BookStatus, added: number): Promise<void> => {
   await updateBookInCache(bookId, { bookStatus, added });
   await saveBookDate(bookId, added, bookStatus);
   // eslint-disable-next-line no-console
@@ -495,10 +485,12 @@ export const saveBookDate = async (bookId: string, added: number, bookStatus?: B
     const database = await getDatabase();
     const timestamp = Date.now();
 
-    await database.runAsync(
-      `INSERT OR REPLACE INTO book_dates (book_id, added, book_status, timestamp) VALUES (?, ?, ?, ?)`,
-      [bookId, added, bookStatus || null, timestamp],
-    );
+    await database.runAsync(`INSERT OR REPLACE INTO book_dates (book_id, added, book_status, timestamp) VALUES (?, ?, ?, ?)`, [
+      bookId,
+      added,
+      bookStatus || null,
+      timestamp,
+    ]);
 
     // eslint-disable-next-line no-console
     console.log(`📅 [SQLite Cache] Дата сохранена: bookId=${bookId}, added=${new Date(added).toLocaleDateString()}, status=${bookStatus || 'null'}`);
@@ -534,10 +526,7 @@ export const loadBookDates = async (): Promise<Map<string, { added: number; book
     if (datesMap.size > 0) {
       const firstFive = Array.from(datesMap.entries()).slice(0, 5);
       // eslint-disable-next-line no-console
-      console.log(
-        `   Первые 5 дат:`,
-        firstFive.map(([bookId, data]) => `${bookId}:${new Date(data.added).toLocaleDateString()}`).join(', '),
-      );
+      console.log(`   Первые 5 дат:`, firstFive.map(([bookId, data]) => `${bookId}:${new Date(data.added).toLocaleDateString()}`).join(', '));
     }
 
     return datesMap;
@@ -582,10 +571,7 @@ export const saveBookRating = async (bookId: string, rating: number): Promise<vo
     const database = await getDatabase();
     const timestamp = Date.now();
 
-    await database.runAsync(
-      `INSERT OR REPLACE INTO book_ratings (book_id, rating, timestamp) VALUES (?, ?, ?)`,
-      [bookId, rating, timestamp],
-    );
+    await database.runAsync(`INSERT OR REPLACE INTO book_ratings (book_id, rating, timestamp) VALUES (?, ?, ?)`, [bookId, rating, timestamp]);
 
     // eslint-disable-next-line no-console
     console.log(`⭐ [SQLite Cache] Рейтинг сохранен: bookId=${bookId}, rating=${rating}`);
@@ -616,7 +602,13 @@ export const loadBookRatings = async (): Promise<IRating[]> => {
     console.log(`📖 [SQLite Cache] Загружено рейтингов из локальной БД: ${ratings.length}`);
     if (ratings.length > 0) {
       // eslint-disable-next-line no-console
-      console.log(`   Первые 5 рейтингов:`, ratings.slice(0, 5).map((r) => `${r.bookId}:${r.rating}`).join(', '));
+      console.log(
+        `   Первые 5 рейтингов:`,
+        ratings
+          .slice(0, 5)
+          .map((r) => `${r.bookId}:${r.rating}`)
+          .join(', '),
+      );
     }
 
     return ratings;
@@ -649,10 +641,7 @@ export const saveBookVotesCount = async (bookId: string, votesCount: number): Pr
     const database = await getDatabase();
     const timestamp = Date.now();
 
-    await database.runAsync(
-      `INSERT OR REPLACE INTO book_votes (book_id, votes_count, timestamp) VALUES (?, ?, ?)`,
-      [bookId, votesCount, timestamp],
-    );
+    await database.runAsync(`INSERT OR REPLACE INTO book_votes (book_id, votes_count, timestamp) VALUES (?, ?, ?)`, [bookId, votesCount, timestamp]);
 
     // eslint-disable-next-line no-console
     console.log(`👍 [SQLite Cache] Лайки сохранены: bookId=${bookId}, votesCount=${votesCount}`);
@@ -704,7 +693,13 @@ export const loadUserVotes = async (): Promise<IVote[]> => {
     console.log(`👍 [SQLite Cache] Загружено userVotes из локальной БД: ${userVotes.length} записей`);
     if (userVotes.length > 0) {
       // eslint-disable-next-line no-console
-      console.log(`   Первые 5 лайков:`, userVotes.slice(0, 5).map((v) => `${v.bookId}:${v.count}`).join(', '));
+      console.log(
+        `   Первые 5 лайков:`,
+        userVotes
+          .slice(0, 5)
+          .map((v) => `${v.bookId}:${v.count}`)
+          .join(', '),
+      );
     }
 
     return userVotes;
@@ -713,4 +708,3 @@ export const loadUserVotes = async (): Promise<IVote[]> => {
     return [];
   }
 };
-
