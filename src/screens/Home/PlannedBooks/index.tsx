@@ -27,8 +27,8 @@ const PlannedBooks = () => {
 
   const dispatch = useAppDispatch();
   const _loadBookList = useCallback(
-    ({ boardType, shouldLoadMoreResults }: { boardType: BookStatus; shouldLoadMoreResults: boolean }) =>
-      dispatch(loadBookList({ boardType, shouldLoadMoreResults })),
+    ({ boardType, shouldLoadMoreResults, forceRefresh }: { boardType: BookStatus; shouldLoadMoreResults: boolean; forceRefresh?: boolean }) =>
+      dispatch(loadBookList({ boardType, shouldLoadMoreResults, forceRefresh })),
     [dispatch],
   );
   const _loadMoreBooks = useCallback(() => dispatch(loadMoreBooks(PLANNED)), [dispatch]);
@@ -50,6 +50,7 @@ const PlannedBooks = () => {
       _loadBookList({
         boardType: PLANNED,
         shouldLoadMoreResults: false,
+        forceRefresh: shouldReloadData,
       });
     }
   }, [_loadBookList, loadingDataStatus, shouldReloadData, isFocused]);

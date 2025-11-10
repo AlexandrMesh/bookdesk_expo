@@ -8,7 +8,6 @@ import { SceneMap, TabView } from 'react-native-tab-view';
 
 import colors from '~styles/colors';
 
-import AllBooks from './AllBooks';
 import CompletedBooks from './CompletedBooks';
 import InProgressBooks from './InProgressBooks';
 import PlannedBooks from './PlannedBooks';
@@ -19,7 +18,6 @@ const { width: screenWidth } = Dimensions.get('window');
 const renderLazyPlaceholder = () => <View style={{ flex: 1, backgroundColor: colors.primary_dark }} />;
 
 const renderScene = SceneMap({
-  all: AllBooks,
   planned: PlannedBooks,
   inProgress: InProgressBooks,
   completed: CompletedBooks,
@@ -41,7 +39,6 @@ const Home = () => {
 
   const routes = useMemo(
     () => [
-      { key: 'all', title: t('recommended') },
       { key: 'planned', title: t('planned') },
       { key: 'inProgress', title: t('inProgress') },
       { key: 'completed', title: t('completed') },

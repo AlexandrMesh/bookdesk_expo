@@ -8,6 +8,7 @@ import { Provider } from 'react-redux';
 import configureStore from './src/redux/store/configureStore';
 import Main from './src/screens/Main';
 import i18n from './src/translations/i18n';
+import { initDatabase } from './src/utils/boardStorage';
 
 // Условная инициализация нативных модулей
 // Работает только в production build, не в Expo Go
@@ -44,6 +45,10 @@ const initializeNativeModules = async () => {
 const App = () => {
   React.useEffect(() => {
     initializeNativeModules();
+    // Инициализируем базу данных при старте приложения
+    initDatabase().catch((error) => {
+      console.error('Error initializing database:', error);
+    });
   }, []);
 
   return (

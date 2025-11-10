@@ -9,7 +9,7 @@ import { useAppDispatch, useAppSelector } from '~hooks';
 
 import { COMPLETED, IN_PROGRESS, PLANNED } from '~constants/boardType';
 import { PENDING } from '~constants/loadingStatuses';
-import { ALL_BOOKS_ROUTE, COMPLETED_BOOKS_ROUTE, HOME_NAVIGATOR_ROUTE, IN_PROGRESS_BOOKS_ROUTE, PLANNED_BOOKS_ROUTE } from '~constants/routes';
+import { COMPLETED_BOOKS_ROUTE, HOME_NAVIGATOR_ROUTE, IN_PROGRESS_BOOKS_ROUTE, PLANNED_BOOKS_ROUTE } from '~constants/routes';
 import { SECONDARY } from '~constants/themes';
 import { clearAddCustomBookState, setCurrentStep } from '~redux/actions/customBookActions';
 import { getAddedCustomBook, getAvailableStep, getCurrentStep, getSavingCustomBookStatus, getStatus } from '~redux/selectors/customBook';
@@ -30,8 +30,8 @@ const getBoardRoute = (bookStatus: BookStatus | null) => {
   if (bookStatus === PLANNED) return PLANNED_BOOKS_ROUTE;
   if (bookStatus === IN_PROGRESS) return IN_PROGRESS_BOOKS_ROUTE;
   if (bookStatus === COMPLETED) return COMPLETED_BOOKS_ROUTE;
-  // Если книга без статуса или null, переходим в Рекомендуемые (ALL)
-  return ALL_BOOKS_ROUTE;
+  // Если книга без статуса или null, переходим в Запланированные
+  return PLANNED_BOOKS_ROUTE;
 };
 
 const AddCustomBook = () => {
@@ -83,10 +83,10 @@ const AddCustomBook = () => {
       });
     } catch (error) {
       console.error('Navigation error:', error);
-      // В случае ошибки переходим в Рекомендуемые
+      // В случае ошибки переходим в Запланированные
       dispatch(clearAddCustomBookState());
       navigation.getParent()?.navigate(HOME_NAVIGATOR_ROUTE, {
-        screen: ALL_BOOKS_ROUTE,
+        screen: PLANNED_BOOKS_ROUTE,
       });
     }
   };
