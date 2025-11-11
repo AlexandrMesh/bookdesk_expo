@@ -347,7 +347,12 @@ const EditCustomBook = () => {
                   <View style={styles.coverPlaceholder} />
                 )}
               </View>
-              <Button style={styles.editChangeButton} titleStyle={styles.buttonTitle} title={t('common:edit')} onPress={() => setIsCoverModalVisible(true)} />
+              <Button
+                style={styles.editChangeButton}
+                titleStyle={styles.buttonTitle}
+                title={t('common:edit')}
+                onPress={() => setIsCoverModalVisible(true)}
+              />
             </View>
           </View>
 
@@ -447,7 +452,8 @@ const EditCustomBook = () => {
                       </View>
                     )}
 
-                    {(draftIsPickingFromDevice || (draftShouldAddCover && !draftIsSelectedFromDevice && !draftIsCurrentCover && draftLoadingDataStatus === 'pending')) && (
+                    {(draftIsPickingFromDevice ||
+                      (draftShouldAddCover && !draftIsSelectedFromDevice && !draftIsCurrentCover && draftLoadingDataStatus === 'pending')) && (
                       <View style={styles.contentSpinnerWrapper}>
                         <Spinner />
                       </View>
