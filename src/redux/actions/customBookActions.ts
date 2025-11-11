@@ -14,6 +14,7 @@ import { deriveCustomBookParams, getNewCustomBookNameValue, getStatus } from '~r
 import { AppThunkAPI } from '~redux/store/configureStore';
 import i18n from '~translations/i18n';
 import { BookStatus } from '~types/books';
+import type { IBook } from '~types/books';
 
 const PREFIX = 'CUSTOM_BOOKS';
 
@@ -109,6 +110,14 @@ export const addCustomBook = createAsyncThunk(`${PREFIX}/addCustomBook`, async (
     };
     dispatch(updateBookOnBoardAndSearch(response));
     dispatch(triggerReloadCustomBookList());
+
+    // Сохраняем книгу в кэш board_data для выбранной доски, чтобы после перезапуска она загрузилась из локальной БД
+    try {
+      const { addBookToCache } = await import('~utils/boardStorage');
+      await addBookToCache((bookStatus as BookStatus) || null, response as IBook);
+    } catch (e) {
+      console.error('Failed to cache custom book in board_data', e);
+    }
   } catch (error) {
     console.error(error);
     throw error;

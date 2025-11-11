@@ -673,6 +673,56 @@ export const updateBookInCache = async (bookId: string, updates: Partial<IBook>)
 };
 
 /**
+ * Добавление новой книги в кэш доски (во все записи board_data для указанной доски)
+ */
+export const addBookToCache = async (boardType: BookStatus, newBook: IBook): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    // Берём все записи, относящиеся к этой доске
+    const records = await database.getAllAsync<{
+      id: number;
+      board_type: string;
+      page_index: number;
+      filter_params: string;
+      sort_type: string;
+      sort_direction: string;
+      language: string;
+      data: string;
+      total_items: number;
+      has_next_page: number;
+      books_count_by_year: string | null;
+      timestamp: number;
+    }>(`SELECT * FROM board_data WHERE board_type = ?`, [boardType]);
+
+    // Если записей нет, просто выходим — список будет пересохранён при следующей загрузке
+    if (!records || records.length === 0) {
+      // eslint-disable-next-line no-console
+      console.log(`ℹ️ [SQLite Cache] Нет существующих записей board_data для доски ${boardType}; пропускаю addBookToCache`);
+      return;
+    }
+
+    const now = Date.now();
+    for (const record of records) {
+      const books = JSON.parse(record.data) as IBook[];
+      const exists = books.some((b) => b.bookId === newBook.bookId);
+      if (!exists) {
+        const updatedBooks = [newBook, ...books];
+        const updatedData = JSON.stringify(updatedBooks);
+        await database.runAsync(
+          `UPDATE board_data SET data = ?, total_items = ?, timestamp = ? WHERE id = ?`,
+          [updatedData, (record.total_items || 0) + 1, now, record.id],
+        );
+      }
+    }
+
+    // eslint-disable-next-line no-console
+    console.log(`➕ [SQLite Cache] Книга добавлена в кэш доски ${boardType}: ${newBook.bookId}`);
+  } catch (error) {
+    console.error('Error adding book to cache:', error);
+  }
+};
+
+/**
  * Обновление votesCount для книги во всех записях кэша
  */
 export const updateBookVotesInCache = async (bookId: string, votesCount: number): Promise<void> => {
