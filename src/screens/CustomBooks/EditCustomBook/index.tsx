@@ -70,6 +70,13 @@ const EditCustomBook = () => {
   const initialCoverPath = params.coverPath || DEFAULT_COVER;
   const [shouldAddCover, setShouldAddCover] = useState<boolean | undefined>(initialCoverPath === DEFAULT_COVER ? false : true);
   const [selectedCover, setSelectedCover] = useState<string>(initialCoverPath === DEFAULT_COVER ? '' : initialCoverPath);
+
+  useEffect(() => {
+    console.log('EditCustomBook mounted - params.coverPath:', params.coverPath);
+    console.log('initialCoverPath:', initialCoverPath);
+    console.log('imgUrl:', imgUrl);
+    console.log('selectedCover:', selectedCover);
+  }, []);
   const [isPickingFromDevice, setIsPickingFromDevice] = useState(false);
   const [suggestedCoversData, setSuggestedCoversData] = useState<Array<{ coverPath: string }>>([]);
   const [loadingDataStatus, setLoadingDataStatus] = useState<'idle' | 'pending' | 'succeeded' | 'failed'>('idle');
@@ -236,16 +243,31 @@ const EditCustomBook = () => {
   };
 
   const getImageUri = (cover: string) => {
-    if (!cover) return '';
+    console.log('getImageUri called with cover:', cover, 'imgUrl:', imgUrl);
+    if (!cover || cover === DEFAULT_COVER) {
+      // Для дефолтной обложки всегда возвращаем URI, даже если imgUrl еще не готов
+      const uri = imgUrl ? `${imgUrl}/${DEFAULT_COVER}.webp` : '';
+      console.log('Default cover URI:', uri);
+      return uri;
+    }
     const lower = String(cover);
     const isAbsolute = /^https?:\/\//i.test(lower) || lower.startsWith('file:') || lower.startsWith('content:') || lower.startsWith('data:');
-    return isAbsolute ? cover : `${imgUrl}/${cover}.webp`;
+    if (isAbsolute) {
+      console.log('Absolute URI:', cover);
+      return cover;
+    }
+    const uri = imgUrl ? `${imgUrl}/${cover}.webp` : '';
+    console.log('Relative URI:', uri);
+    return uri;
   };
 
   const currentCoverThumb = useMemo(() => {
     const cover = selectedCover || initialCoverPath;
-    return getImageUri(cover === DEFAULT_COVER ? DEFAULT_COVER : cover);
-  }, [selectedCover, initialCoverPath]);
+    console.log('currentCoverThumb useMemo - cover:', cover, 'selectedCover:', selectedCover, 'initialCoverPath:', initialCoverPath);
+    const uri = getImageUri(cover);
+    console.log('currentCoverThumb result:', uri);
+    return uri;
+  }, [selectedCover, initialCoverPath, imgUrl]);
 
   return (
     <View style={styles.wrapper}>
@@ -271,17 +293,26 @@ const EditCustomBook = () => {
           <View style={styles.block}>
             <Text style={styles.subTitle}>{t('customBook:bookCover')}</Text>
             <View style={styles.editThumbWrapper}>
-              {!!currentCoverThumb && (
-                <View style={styles.editThumbCover}>
+              <View style={styles.editThumbCover}>
+                {currentCoverThumb ? (
                   <Image
                     style={styles.cover as ImageStyle}
                     source={{
                       uri: currentCoverThumb,
                     }}
+                    onError={(e) => {
+                      console.log('Image load error:', e.nativeEvent.error);
+                      console.log('Failed URI:', currentCoverThumb);
+                    }}
+                    onLoad={() => {
+                      console.log('Image loaded successfully:', currentCoverThumb);
+                    }}
                   />
-                </View>
-              )}
-              <Button style={styles.editChangeButton} title={t('common:edit')} onPress={() => setIsCoverModalVisible(true)} />
+                ) : (
+                  <View style={styles.coverPlaceholder} />
+                )}
+              </View>
+              <Button style={styles.editChangeButton} titleStyle={styles.buttonTitle} title={t('common:edit')} onPress={() => setIsCoverModalVisible(true)} />
             </View>
           </View>
 

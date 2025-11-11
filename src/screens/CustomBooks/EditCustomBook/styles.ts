@@ -10,7 +10,8 @@ export default StyleSheet.create({
     backgroundColor: colors.primary_dark,
   },
   editThumbWrapper: {
-    marginVertical: 10,
+    marginTop: 6,
+    marginBottom: 10,
     display: 'flex',
     alignItems: 'flex-start',
     justifyContent: 'flex-start',
@@ -23,8 +24,14 @@ export default StyleSheet.create({
     borderWidth: 3,
     borderColor: colors.neutral_medium,
   },
+  coverPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.primary_medium,
+  },
   editChangeButton: {
-    width: 140,
+    width: 110,
+    height: 36,
     marginTop: 10,
   },
   modalCloseButton: {
