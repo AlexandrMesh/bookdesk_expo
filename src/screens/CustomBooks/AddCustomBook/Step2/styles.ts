@@ -28,6 +28,13 @@ export default StyleSheet.create({
   suggestedCovers: {
     marginVertical: 25,
   },
+  deviceCoverWrapper: {
+    flex: 1,
+    marginVertical: 25,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   coversScrollContent: {
     paddingRight: 10,
   },
@@ -85,7 +92,13 @@ export default StyleSheet.create({
     alignItems: 'center',
   },
   button: {
-    maxWidth: 180,
+    flex: 1,
+    minWidth: 0,
+    marginHorizontal: 5,
+  },
+  buttonTitle: {
+    textAlign: 'center',
+    fontSize: 14,
   },
   footerButtonsWrapper: {
     display: 'flex',

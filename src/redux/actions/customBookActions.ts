@@ -162,7 +162,6 @@ export const loadSuggestedCovers = createAsyncThunk(`${PREFIX}/loadSuggestedCove
 
     return items;
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error('Error loading suggested covers:', error);
     throw error;
   }
