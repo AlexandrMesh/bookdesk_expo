@@ -126,7 +126,7 @@ const BookItem: FC<Props> = memo(
         </View>
         <View style={styles.bottom}>
           <View>
-            <Like bookId={bookId} votesCount={votesCount as number} bookStatus={bookStatus as BookStatus} />
+            <Like bookId={bookId} bookStatus={bookStatus as BookStatus} />
           </View>
         </View>
       </View>

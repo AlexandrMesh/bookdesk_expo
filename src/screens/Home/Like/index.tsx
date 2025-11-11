@@ -1,6 +1,6 @@
 import React, { useState, useCallback, FC, memo } from 'react';
 
-import { Animated, Pressable, Text, Vibration } from 'react-native';
+import { Animated, Pressable, Vibration } from 'react-native';
 
 import { useAppDispatch, useAppSelector } from '~hooks';
 
@@ -16,11 +16,10 @@ import styles from './styles';
 
 export type Props = {
   bookId: string;
-  votesCount: number;
   bookStatus: BookStatus;
 };
 
-const Like: FC<Props> = ({ bookId, votesCount, bookStatus }) => {
+const Like: FC<Props> = ({ bookId, bookStatus }) => {
   const [isLoading, setIsloading] = useState(false);
   const bookWithVote = useAppSelector(deriveBookVotes(bookId));
   const dispatch = useAppDispatch();
@@ -50,7 +49,6 @@ const Like: FC<Props> = ({ bookId, votesCount, bookStatus }) => {
         ) : (
           <LikeIcon width={LIKE_ICON.width} height={LIKE_ICON.width} />
         )}
-        <Text style={[styles.lightColor, styles.votesCount]}>{votesCount}</Text>
       </Pressable>
     </Animated.View>
   );

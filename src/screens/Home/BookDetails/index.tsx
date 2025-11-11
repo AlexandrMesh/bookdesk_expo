@@ -102,7 +102,7 @@ const BookDetails = () => {
               wrapperStyle={styles.statusButton}
               buttonLabelStyle={styles.buttonTitle}
             />
-            <Like bookId={params?.bookId} bookStatus={bookStatus as BookStatus} votesCount={votesCount as number} />
+            <Like bookId={params?.bookId} bookStatus={bookStatus as BookStatus} />
           </View>
           <View style={[styles.info, styles.marginTop]}>
             <Text style={[styles.item, styles.lightColor]}>{t(`categories:${categoryValue}`)}</Text>
