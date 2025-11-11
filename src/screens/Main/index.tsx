@@ -66,7 +66,7 @@ const Search = lazy(() => import('~screens/Search'));
 const BookNote = lazy(() => import('~screens/Home/BookNote'));
 const Filtering = lazy(() => import('~screens/Home/Filtering'));
 const CategoryChooser = lazy(() => import('~screens/CustomBooks/AddCustomBook/CategoryChooser'));
-const CustomBooks = lazy(() => import('~screens/CustomBooks'));
+const AddCustomBook = lazy(() => import('~screens/CustomBooks/AddCustomBook'));
 const EditCustomBook = lazy(() => import('~screens/CustomBooks/EditCustomBook'));
 const Statistic = lazy(() => import('~screens/Statistic'));
 const Goals = lazy(() => import('~screens/Goals/Goals'));
@@ -240,13 +240,20 @@ const AddCustomBookNavigator: FC = () => {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerShown: false,
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: colors.primary_dark,
+          shadowColor: 'transparent',
+          borderBottomWidth: 1,
+          borderBottomColor: colors.neutral_medium,
+        },
+        headerTintColor: colors.neutral_light,
       }}
     >
-      <Stack.Screen name={CUSTOM_BOOKS_ROUTE}>
+      <Stack.Screen name={CUSTOM_BOOKS_ROUTE} options={{ title: t('addCustomBook') }}>
         {() => (
           <InSuspense>
-            <CustomBooks />
+            <AddCustomBook />
           </InSuspense>
         )}
       </Stack.Screen>
