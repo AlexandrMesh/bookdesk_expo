@@ -90,6 +90,16 @@ const EditCustomBook = () => {
   const [draftSuggestedCoversData, setDraftSuggestedCoversData] = useState<Array<{ coverPath: string }>>([]);
   const [draftLoadingDataStatus, setDraftLoadingDataStatus] = useState<'idle' | 'pending' | 'succeeded' | 'failed'>('idle');
 
+  // Computed values for draft state (used in modal)
+  const draftSuggestedCoversExist = draftSuggestedCoversData.length > 0;
+  const draftIsSelectedInSuggestedList = !!draftSelectedCover && draftSuggestedCoversData.some((item) => item.coverPath === draftSelectedCover);
+  const draftIsCurrentCover = draftSelectedCover === initialCoverPath && initialCoverPath !== DEFAULT_COVER;
+  const draftIsSelectedFromDevice =
+    !!draftSelectedCover &&
+    !draftIsSelectedInSuggestedList &&
+    !draftIsCurrentCover &&
+    (draftSelectedCover.startsWith('file:') || draftSelectedCover.startsWith('content:') || draftSelectedCover.startsWith('data:'));
+
   const suggestedCoversExist = suggestedCoversData.length > 0;
   const isSelectedInSuggestedList = !!selectedCover && suggestedCoversData.some((item) => item.coverPath === selectedCover);
   const isCurrentCover = selectedCover === initialCoverPath && initialCoverPath !== DEFAULT_COVER;
@@ -151,7 +161,7 @@ const EditCustomBook = () => {
     }
   };
 
-  // Cover handlers
+  // Cover handlers (for modal - use draft states)
   const handlePressOnWithoutCover = () => {
     setDraftShouldAddCover(false);
     setDraftSelectedCover(DEFAULT_COVER);
@@ -162,6 +172,11 @@ const EditCustomBook = () => {
     setDraftSelectedCover('');
     setDraftSuggestedCoversData([]);
     setDraftLoadingDataStatus('idle');
+  };
+
+  const handleSelectCurrentCover = () => {
+    setDraftShouldAddCover(true);
+    setDraftSelectedCover(initialCoverPath);
   };
 
   const pickImageFromDevice = async () => {
@@ -190,7 +205,7 @@ const EditCustomBook = () => {
 
   // Load suggested covers (modal drafts)
   useEffect(() => {
-    if (_title && draftShouldAddCover && !draftSuggestedCoversData.length && !draftSelectedCover) {
+    if (_title && draftShouldAddCover && !draftSuggestedCoversExist && !draftSelectedCover) {
       setDraftLoadingDataStatus('pending');
       const loadCovers = async () => {
         try {
@@ -226,7 +241,7 @@ const EditCustomBook = () => {
       };
       loadCovers();
     }
-  }, [_title, draftShouldAddCover, draftSuggestedCoversData.length, draftSelectedCover]);
+  }, [_title, draftShouldAddCover, draftSuggestedCoversExist, draftSelectedCover]);
 
   // Reset all state when switching to another book
   useEffect(() => {
@@ -342,10 +357,22 @@ const EditCustomBook = () => {
             transparent
             animationType='slide'
             onShow={() => {
+              // Backup current state
               backupSelectedCoverRef.current = selectedCover;
               backupShouldAddCoverRef.current = shouldAddCover;
+              // Initialize draft state from current state
+              setDraftShouldAddCover(shouldAddCover);
+              setDraftSelectedCover(selectedCover);
+              setDraftIsPickingFromDevice(false);
+              setDraftSuggestedCoversData([]);
+              setDraftLoadingDataStatus('idle');
             }}
-            onRequestClose={() => setIsCoverModalVisible(false)}
+            onRequestClose={() => {
+              // discard changes
+              setSelectedCover(backupSelectedCoverRef.current);
+              setShouldAddCover(backupShouldAddCoverRef.current);
+              setIsCoverModalVisible(false);
+            }}
           >
             <View style={styles.wrapper}>
               <View style={styles.container}>
@@ -363,21 +390,19 @@ const EditCustomBook = () => {
                   </Pressable>
                 </View>
                 <ScrollView style={styles.inputWrapper} keyboardShouldPersistTaps='handled'>
-                  {shouldAddCover === undefined && <Text style={styles.suggestionLabel}>{t('customBook:chooseTheOptionForBookCover')}</Text>}
+                  {draftShouldAddCover === undefined && <Text style={styles.suggestionLabel}>{t('customBook:chooseTheOptionForBookCover')}</Text>}
 
                   <View style={styles.buttonsWrapper}>
                     <Button
+                      disabled={draftIsCurrentCover}
                       theme={SECONDARY}
                       style={styles.button as ViewStyle}
                       titleStyle={styles.buttonTitle}
-                      onPress={() => {
-                        setShouldAddCover(true);
-                        setSelectedCover(initialCoverPath);
-                      }}
+                      onPress={handleSelectCurrentCover}
                       title={t('customBook:currentCover')}
                     />
                     <Button
-                      disabled={shouldAddCover === false}
+                      disabled={draftShouldAddCover === false}
                       theme={SECONDARY}
                       style={styles.button as ViewStyle}
                       titleStyle={styles.buttonTitle}
@@ -385,7 +410,7 @@ const EditCustomBook = () => {
                       title={t('customBook:withoutCover')}
                     />
                     <Button
-                      disabled={!!(shouldAddCover && !isSelectedFromDevice && !isCurrentCover)}
+                      disabled={!!(draftShouldAddCover && !draftIsSelectedFromDevice && !draftIsCurrentCover)}
                       style={styles.button}
                       titleStyle={styles.buttonTitle}
                       onPress={handleFindCover}
@@ -395,7 +420,7 @@ const EditCustomBook = () => {
                   </View>
 
                   <ScrollView style={styles.contentWrapper} keyboardShouldPersistTaps='handled'>
-                    {shouldAddCover === false && !isPickingFromDevice && (
+                    {draftShouldAddCover === false && !draftIsPickingFromDevice && (
                       <View style={styles.defaultCoverWrapper}>
                         <Text style={styles.suggestionLabel}>{t('customBook:theExampleOfTheBookCover')}</Text>
                         <View>
@@ -414,27 +439,27 @@ const EditCustomBook = () => {
                       </View>
                     )}
 
-                    {(isPickingFromDevice || (shouldAddCover && !isSelectedFromDevice && !isCurrentCover && loadingDataStatus === 'pending')) && (
+                    {(draftIsPickingFromDevice || (draftShouldAddCover && !draftIsSelectedFromDevice && !draftIsCurrentCover && draftLoadingDataStatus === 'pending')) && (
                       <View style={styles.contentSpinnerWrapper}>
                         <Spinner />
                       </View>
                     )}
 
-                    {shouldAddCover && !isPickingFromDevice && isSelectedFromDevice && (
+                    {draftShouldAddCover && !draftIsPickingFromDevice && draftIsSelectedFromDevice && (
                       <View style={styles.deviceCoverWrapper}>
                         <View style={[styles.coverWrapper, styles.selectedCover]}>
                           <RadioButton style={styles.selectedCoverRadioButton as ViewStyle} isSelected={true} />
                           <Image
                             style={styles.cover as ImageStyle}
                             source={{
-                              uri: selectedCover,
+                              uri: draftSelectedCover,
                             }}
                           />
                         </View>
                       </View>
                     )}
 
-                    {shouldAddCover === true && !isPickingFromDevice && isCurrentCover && (
+                    {draftShouldAddCover === true && !draftIsPickingFromDevice && draftIsCurrentCover && (
                       <View style={styles.deviceCoverWrapper}>
                         <Text style={styles.suggestionLabel}>{t('customBook:currentCover')}</Text>
                         <View style={[styles.coverWrapper, styles.selectedCover]}>
@@ -442,29 +467,29 @@ const EditCustomBook = () => {
                           <Image
                             style={styles.cover as ImageStyle}
                             source={{
-                              uri: getImageUri(selectedCover),
+                              uri: getImageUri(draftSelectedCover),
                             }}
                           />
                         </View>
                       </View>
                     )}
 
-                    {shouldAddCover &&
-                      !isSelectedFromDevice &&
-                      !isCurrentCover &&
-                      !isPickingFromDevice &&
-                      loadingDataStatus === 'succeeded' &&
-                      suggestedCoversData.length > 0 && (
+                    {draftShouldAddCover &&
+                      !draftIsSelectedFromDevice &&
+                      !draftIsCurrentCover &&
+                      !draftIsPickingFromDevice &&
+                      draftLoadingDataStatus === 'succeeded' &&
+                      draftSuggestedCoversData.length > 0 && (
                         <View style={styles.suggestedCovers}>
                           <Text style={styles.suggestionLabel}>{t('customBook:chooseTheBookCover')}</Text>
                           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.coversScrollContent}>
-                            {suggestedCoversData.map((item) => {
-                              const selected = selectedCover === item.coverPath;
+                            {draftSuggestedCoversData.map((item) => {
+                              const selected = draftSelectedCover === item.coverPath;
                               return (
                                 <Pressable
                                   key={item.coverPath}
                                   style={[styles.coverWrapper, selected && styles.selectedCover]}
-                                  onPress={() => setSelectedCover(item.coverPath)}
+                                  onPress={() => setDraftSelectedCover(item.coverPath)}
                                 >
                                   <RadioButton style={styles.selectedCoverRadioButton as ViewStyle} isSelected={selected} />
                                   <Image
@@ -493,7 +518,16 @@ const EditCustomBook = () => {
                     }}
                     title={t('common:back')}
                   />
-                  <Button style={styles.footerButton} onPress={() => setIsCoverModalVisible(false)} title={t('common:save')} />
+                  <Button
+                    style={styles.footerButton}
+                    onPress={() => {
+                      // apply draft changes to main state
+                      setSelectedCover(draftSelectedCover);
+                      setShouldAddCover(draftShouldAddCover);
+                      setIsCoverModalVisible(false);
+                    }}
+                    title={t('common:save')}
+                  />
                 </View>
               </View>
             </View>
