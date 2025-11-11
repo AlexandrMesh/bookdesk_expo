@@ -13,17 +13,8 @@ import CloseIcon from '~assets/close.svg';
 import { CLOSE_ICON } from '~constants/dimensions';
 import { CUSTOM_CATEGORY_CHOOSER_ROUTE } from '~constants/routes';
 import { SECONDARY } from '~constants/themes';
-import {
-  setPages,
-  addAuthor,
-  removeAuthor,
-  updateAuthor,
-  setAnnotation,
-  setAnnotationError,
-  setCurrentStep,
-  addCustomBook,
-} from '~redux/actions/customBookActions';
-import { getSelectedCategoryLabel, getPages, getAuthorsList, getAnnotation, deriveIsValidFullForm } from '~redux/selectors/customBook';
+import { setPages, addAuthor, removeAuthor, updateAuthor, setCurrentStep, addCustomBook } from '~redux/actions/customBookActions';
+import { getSelectedCategoryLabel, getPages, getAuthorsList } from '~redux/selectors/customBook';
 import colors from '~styles/colors';
 import Button from '~UI/Button';
 import Input from '~UI/TextInput';
@@ -42,76 +33,48 @@ const Step3 = () => {
   const _addAuthor = (id: string) => dispatch(addAuthor(id));
   const _removeAuthor = (id: string) => dispatch(removeAuthor(id));
   const _updateAuthor = (id: string, name: string, error?: string | null) => dispatch(updateAuthor({ id, name, error }));
-  const _setAnnotation = (annotation: string, error?: string | null) => dispatch(setAnnotation({ annotation, error }));
-  const _setAnnotationError = (error: string | null) => dispatch(setAnnotationError(error));
   const _addCustomBook = () => dispatch(addCustomBook());
 
   const selectedCategoryLabel = useAppSelector(getSelectedCategoryLabel);
   const pages = useAppSelector(getPages);
   const authorsList = useAppSelector(getAuthorsList);
-  const annotation = useAppSelector(getAnnotation);
-  const isValidForm = useAppSelector(deriveIsValidFullForm);
 
   const handleAddAuthor = () => {
     _addAuthor(uniqueId());
   };
 
   const handleAuthorChange = (value: string, id: string) => {
+    // Авторы не обязательны, валидация мягкая (только буквы)
     const params = {
-      minLength: 6,
+      minLength: 0,
       maxLength: 64,
     };
-    const error = getValidationFailure(
-      value,
-      [validationTypes.mustContainOnlyLetters, validationTypes.isTooShort, validationTypes.isTooLong],
-      params,
-    );
+    const error = value
+      ? getValidationFailure(value, [validationTypes.mustContainOnlyLetters, validationTypes.isTooLong], params)
+      : null;
     _updateAuthor(id, value, error ? t(`errors:${error}`, params) : null);
   };
 
   const handleChangePages = (value: string) => {
+    // Страницы не обязательны, допускаем пустое значение
     const params = {
-      minLength: 2,
+      minLength: 0,
       maxLength: 5,
     };
-    const error = getValidationFailure(
-      value,
-      [validationTypes.mustContainOnlyNumbers, validationTypes.isTooShort, validationTypes.isTooLong],
-      params,
-    );
+    const error = value ? getValidationFailure(value, [validationTypes.mustContainOnlyNumbers, validationTypes.isTooLong], params) : null;
     _setPages(value, error ? t(`errors:${error}`, params) : null);
   };
 
-  const handleChangeAnnotation = (value: string) => {
-    _setAnnotation(value, null);
-  };
-
-  const validateAnnotation = () => {
-    const params = {
-      minLength: 100,
-      maxLength: 1000,
-    };
-    const error = getValidationFailure(
-      annotation.value,
-      [validationTypes.containsSpecialCharacters, validationTypes.isTooShort, validationTypes.isTooLong],
-      params,
-    );
-    _setAnnotationError(error ? t(`errors:${error}`, params) : null);
-    return !error;
-  };
-
   const handleAddBook = () => {
-    const isAnnotationValid = validateAnnotation();
-
-    if (isAnnotationValid) {
-      _addCustomBook();
-    }
+    _addCustomBook();
   };
 
   useBackHandler(() => {
     onPressBack();
     return true;
   });
+
+  const isAddDisabled = !!pages.error || authorsList.some((a) => !!a.error);
 
   return (
     <View style={styles.container}>
@@ -139,10 +102,7 @@ const Step3 = () => {
         </View>
 
         <View>
-          <Text style={styles.subTitle}>
-            {t('customBook:pages')}
-            {t('common:required')}
-          </Text>
+          <Text style={styles.subTitle}>{t('customBook:pages')}</Text>
           <Input
             placeholder={t('customBook:enterPagesCount')}
             onChangeText={handleChangePages}
@@ -155,10 +115,7 @@ const Step3 = () => {
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.subTitle}>
-            {t('customBook:authorsList')}
-            {t('common:required')}
-          </Text>
+          <Text style={styles.subTitle}>{t('customBook:authorsList')}</Text>
           {authorsList.map(({ id, name, error }) => (
             <View style={styles.authorWrapper} key={id}>
               <Input
@@ -183,38 +140,12 @@ const Step3 = () => {
             title={t(authorsList.length > 0 ? 'customBook:addAnotherAuthor' : 'customBook:addAuthor')}
           />
         </View>
-
-        <View style={styles.block}>
-          <View style={styles.annotationLabelWrapper}>
-            <Text style={styles.subTitle}>
-              {t('customBook:annotation')}
-              {t('common:required')}
-            </Text>
-            {annotation.value && (
-              <Text style={styles.subTitle}>{t('common:charactersCount', { count: annotation.value.length, maxCount: 100 })}</Text>
-            )}
-          </View>
-
-          <Input
-            placeholder={t('customBook:enterAnnotation')}
-            wrapperClassName={styles.annotationWrapperClassName}
-            className={styles.annotationInput}
-            onChangeText={handleChangeAnnotation}
-            value={annotation.value as string}
-            error={annotation.error}
-            shouldDisplayClearButton={!!annotation.value}
-            onClear={() => _setAnnotation('')}
-            multiline
-            numberOfLines={5}
-          />
-        </View>
       </ScrollView>
 
       <View>
-        <Text style={styles.tip}>{t('common:requiredFields')}</Text>
         <View style={styles.footerButtonsWrapper}>
           <Button theme={SECONDARY} style={styles.footerButton} onPress={onPressBack} title={t('common:back')} />
-          <Button disabled={!isValidForm} style={styles.footerButton} onPress={handleAddBook} title={t('common:add')} />
+          <Button disabled={isAddDisabled || !selectedCategoryLabel} style={styles.footerButton} onPress={handleAddBook} title={t('common:add')} />
         </View>
       </View>
     </View>

@@ -1,7 +1,7 @@
 import { createReducer } from '@reduxjs/toolkit';
-import uniqBy from 'lodash/uniqBy';
+// uniqBy removed: not used in local flow
 
-import { ALL } from '~constants/boardType';
+import { PLANNED } from '~constants/boardType';
 import { IDLE, PENDING, FAILED, SUCCEEDED } from '~constants/loadingStatuses';
 import * as customBooksActions from '~redux/actions/customBookActions';
 import { BookStatus, IBook } from '~types/books';
@@ -139,7 +139,7 @@ export interface IStep3State {
 const getDefaultStep3State = (): IStep3State => ({
   category: getDefaultCategoryState(),
   editableCategory: getDefaultCategoryState(),
-  status: ALL,
+  status: PLANNED,
   pages: getDefaultValueState(),
   authorsList: [{ id: 'default', name: null, error: null }],
   annotation: getDefaultValueState(),
@@ -195,24 +195,7 @@ const defaultState = getDefaultState();
 
 export default createReducer(defaultState, (builder) => {
   builder
-    .addCase(customBooksActions.loadCustomBookList.pending, (state, action) => {
-      state.booksData.loadingDataStatus = action.meta.arg.shouldLoadMoreResults ? PENDING : state.booksData.loadingDataStatus;
-    })
-    .addCase(
-      customBooksActions.loadCustomBookList.fulfilled,
-      (state, { payload: { data = [], totalItems = 0, hasNextPage = false, shouldLoadMoreResults } }) => {
-        state.booksData.loadingDataStatus = SUCCEEDED;
-        state.booksData.shouldReloadData = false;
-        state.booksData.data = shouldLoadMoreResults ? uniqBy([...state.booksData.data, ...data], 'bookId') : data;
-        state.booksData.pagination.pageIndex = shouldLoadMoreResults ? state.booksData.pagination.pageIndex + 1 : 0;
-        state.booksData.pagination.totalItems = totalItems;
-        state.booksData.pagination.hasNextPage = hasNextPage;
-      },
-    )
-    .addCase(customBooksActions.loadCustomBookList.rejected, (state) => {
-      state.booksData.loadingDataStatus = FAILED;
-      state.booksData.shouldReloadData = false;
-    })
+    // loadCustomBookList handlers removed; local flow no longer uses remote list
     .addCase(customBooksActions.setNewCustomBookName, (state, { payload: { name, error } }) => {
       state.add.steps[1].name.value = name;
       state.add.steps[1].name.error = error;
@@ -243,17 +226,6 @@ export default createReducer(defaultState, (builder) => {
     .addCase(customBooksActions.clearStep3, (state) => {
       state.add.steps[3] = getDefaultStep3State();
     })
-    .addCase(customBooksActions.allowToAddBook, (state, action) => {
-      state.add.steps[1].allowToAddBook = action.payload;
-    })
-    .addCase(customBooksActions.setNewCustomBookError, (state, action) => {
-      state.add.steps[1].name.error = action.payload;
-    })
-    .addCase(customBooksActions.toggleExpandedCategoryCustomBooks, (state, action) => {
-      state.add.steps[3].editableCategory.expanded = state.add.steps[3].editableCategory.expanded.includes(action.payload)
-        ? state.add.steps[3].editableCategory.expanded.filter((item) => item !== action.payload)
-        : [...state.add.steps[3].editableCategory.expanded, action.payload];
-    })
     .addCase(customBooksActions.setStatus, (state, action) => {
       state.add.steps[3].status = action.payload;
     })
@@ -277,17 +249,20 @@ export default createReducer(defaultState, (builder) => {
       state.add.steps[3].pages.value = pages;
       state.add.steps[3].pages.error = error;
     })
-    .addCase(customBooksActions.selectCategory, (state, action) => {
-      state.add.steps[3].editableCategory.selectedCategory = action.payload;
-    })
-    .addCase(customBooksActions.submitCategory, (state) => {
-      state.add.steps[3].category = state.add.steps[3].editableCategory;
+    .addCase(customBooksActions.toggleExpandedCategoryCustomBooks, (state, action) => {
+      const expanded = state.add.steps[3].editableCategory.expanded;
+      state.add.steps[3].editableCategory.expanded = expanded.includes(action.payload)
+        ? expanded.filter((path) => path !== action.payload)
+        : [...expanded, action.payload];
     })
     .addCase(customBooksActions.setSearchQuery, (state, action) => {
       state.add.steps[3].editableCategory.searchQuery = action.payload;
     })
     .addCase(customBooksActions.clearCategory, (state) => {
       state.add.steps[3].editableCategory.searchQuery = '';
+    })
+    .addCase(customBooksActions.submitCategory, (state) => {
+      state.add.steps[3].category = state.add.steps[3].editableCategory;
     })
     .addCase(customBooksActions.updateSuggestedBook, (state, { payload: { bookId, bookStatus, added } }) => {
       state.add.steps[1].updatingBookStatus = SUCCEEDED;
@@ -315,21 +290,6 @@ export default createReducer(defaultState, (builder) => {
         book.bookId === bookId ? { ...book, title, pages, authorsList } : book,
       );
     })
-    .addCase(customBooksActions.loadSuggestedBooks.pending, (state) => {
-      state.add.steps[1].suggestedBooks.data = [];
-      state.add.steps[1].suggestedBooks.loadingDataStatus = PENDING;
-    })
-    .addCase(customBooksActions.loadSuggestedBooks.fulfilled, (state, { payload: { error, data, totalItems, hasNextPage, allowToAddBook } }) => {
-      state.add.steps[1].name.error = error;
-      state.add.steps[1].allowToAddBook = allowToAddBook;
-      state.add.steps[1].suggestedBooks.loadingDataStatus = SUCCEEDED;
-      state.add.steps[1].suggestedBooks.data = data;
-      state.add.steps[1].suggestedBooks.pagination.totalItems = totalItems;
-      state.add.steps[1].suggestedBooks.pagination.hasNextPage = hasNextPage;
-    })
-    .addCase(customBooksActions.loadSuggestedBooks.rejected, (state) => {
-      state.add.steps[1].suggestedBooks.loadingDataStatus = FAILED;
-    })
     .addCase(customBooksActions.clearSuggestedBooks, (state) => {
       state.add.steps[1].suggestedBooks = getDefaultSuggestedBooksState();
     })
@@ -348,6 +308,9 @@ export default createReducer(defaultState, (builder) => {
     })
     .addCase(customBooksActions.selectCover, (state, action) => {
       state.add.steps[2].selectedCover = action.payload;
+    })
+    .addCase(customBooksActions.selectCategory, (state, action) => {
+      state.add.steps[3].editableCategory.selectedCategory = action.payload;
     })
     .addCase(customBooksActions.clearData, () => defaultState);
 });

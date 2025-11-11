@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 
 import { useTranslation } from 'react-i18next';
 
@@ -32,7 +32,6 @@ const CustomBookStatusDropdown = () => {
 
   const actionTypes: { title: string; value: BookStatus }[] = useMemo(
     () => [
-      { title: t('books:noStatus'), value: ALL },
       {
         title: t('books:planned'),
         value: PLANNED,
@@ -43,9 +42,16 @@ const CustomBookStatusDropdown = () => {
     [t],
   );
 
+  // Устанавливаем значение по умолчанию, если статус ещё не выбран или равен ALL
+  useEffect(() => {
+    if (!bookStatus || bookStatus === ALL) {
+      _setStatus(actionTypes[0].value);
+    }
+  }, [bookStatus, _setStatus, actionTypes]);
+
   const handleUpdateBookStatus = useCallback(
     async (newBookStatus: BookStatus) => {
-      if (isLoading || (bookStatus || ALL) === newBookStatus) {
+      if (isLoading || bookStatus === newBookStatus) {
         return;
       }
       try {
@@ -65,8 +71,8 @@ const CustomBookStatusDropdown = () => {
       wrapperStyle={{ borderColor: statusColor }}
       buttonLabelStyle={{ color: statusColor }}
       iconStyle={{ fill: statusColor } as any}
-      selectedItem={bookStatus || ALL}
-      buttonLabel={bookStatus === ALL ? t('books:noStatus') : t(`books:${bookStatus}`)}
+      selectedItem={bookStatus || actionTypes[0].value}
+      buttonLabel={t(`books:${bookStatus || actionTypes[0].value}`)}
       onChange={handleUpdateBookStatus}
     />
   );

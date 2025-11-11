@@ -1,11 +1,11 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback } from 'react';
 
 import { View } from 'react-native';
 
-import { useAppDispatch, useAppSelector } from '~hooks';
+import { useAppSelector } from '~hooks';
 
 import { IDLE, PENDING, SUCCEEDED } from '~constants/loadingStatuses';
-import { loadCustomBookList, loadMoreBooks } from '~redux/actions/customBookActions';
+// loadCustomBookList removed: custom books are now added to boards locally
 import {
   deriveCustomBookListData,
   getCustomBooksLoadingDataStatus,
@@ -19,25 +19,17 @@ import EmptyBoard from '~screens/Home/EmptyBoard';
 import styles from './styles';
 
 const CustomBooksList = () => {
-  const dispatch = useAppDispatch();
-  const _loadBookList = useCallback(
-    ({ shouldLoadMoreResults }: { shouldLoadMoreResults: boolean }) => dispatch(loadCustomBookList({ shouldLoadMoreResults })),
-    [dispatch],
-  );
-  const _loadMoreBooks = useCallback(() => dispatch(loadMoreBooks()), [dispatch]);
+  // Custom books are now added to boards locally, no separate loading needed
+  const _loadMoreBooks = useCallback(() => {
+    // No-op: custom books are loaded with board data
+  }, []);
 
   const data = useAppSelector(deriveCustomBookListData);
   const loadingDataStatus = useAppSelector(getCustomBooksLoadingDataStatus);
   const shouldReloadData = useAppSelector(getCustomBooksShouldReloadData);
   const totalItems = useAppSelector(getCustomBooksTotalItems);
 
-  useEffect(() => {
-    if (loadingDataStatus === IDLE || shouldReloadData) {
-      _loadBookList({
-        shouldLoadMoreResults: false,
-      });
-    }
-  }, [_loadBookList, loadingDataStatus, shouldReloadData]);
+  // Removed useEffect: custom books are loaded with board data locally
 
   if (data.length === 0 && loadingDataStatus === SUCCEEDED && !shouldReloadData) {
     return <EmptyBoard />;

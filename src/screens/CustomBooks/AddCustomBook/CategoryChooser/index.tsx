@@ -142,7 +142,7 @@ const CategoryChooser = () => {
   );
 
   useEffect(() => {
-    dispatch(clearCategory());
+    dispatch(setSearchQuery(''));
   }, [dispatch]);
 
   return (
