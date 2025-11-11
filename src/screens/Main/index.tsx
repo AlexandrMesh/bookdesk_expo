@@ -75,7 +75,6 @@ const EditGoal = lazy(() => import('~screens/Goals/EditGoal'));
 const GoalDetails = lazy(() => import('~screens/Goals/GoalDetails'));
 const About = lazy(() => import('~screens/Profile/About'));
 const Profile = lazy(() => import('~screens/Profile'));
-const BookDetails = lazy(() => import('~screens/Home/BookDetails'));
 const Modals = lazy(() => import('~screens/Modals'));
 const DateUpdater = lazy(() => import('~screens/Home/DateUpdater'));
 const CoverViewer = lazy(() => import('~screens/Home/CoverViewer'));
@@ -425,19 +424,6 @@ const MainNavigator: FC<MainNavigatorProps> = ({ isTheLatestAppVersion, googlePl
     >
       <Stack.Screen name='MainTabs' options={{ headerShown: false }}>
         {() => <TabNavigator isTheLatestAppVersion={isTheLatestAppVersion} googlePlayUrl={googlePlayUrl} goalType={goalType} hasGoal={hasGoal} />}
-      </Stack.Screen>
-      <Stack.Screen
-        name={BOOK_DETAILS_ROUTE}
-        options={{
-          headerRight: CloseComponent,
-          title: t('books:bookDetails'),
-        }}
-      >
-        {() => (
-          <InSuspense>
-            <BookDetails />
-          </InSuspense>
-        )}
       </Stack.Screen>
       <Stack.Screen
         name={BOOK_NOTE_ROUTE}

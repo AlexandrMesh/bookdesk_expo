@@ -12,8 +12,7 @@ import { useSelector } from 'react-redux';
 import { useAppDispatch } from '~hooks';
 
 import { COVER_VIEWER } from '~constants/modalTypes';
-import { BOOK_DETAILS_ROUTE, EDIT_CUSTOM_BOOK_ROUTE } from '~constants/routes';
-import { SECONDARY } from '~constants/themes';
+import { ADD_CUSTOM_BOOK_NAVIGATOR_ROUTE, EDIT_CUSTOM_BOOK_ROUTE } from '~constants/routes';
 import { setCoverUrl, showModal } from '~redux/actions/booksActions';
 import { deriveUserBookRating } from '~redux/selectors/books';
 import BookNotePreview from '~screens/Home/BookNotePreview';
@@ -42,12 +41,12 @@ const BookItem: FC<Props> = memo(
     const dispatch = useAppDispatch();
     const bookRating = useSelector(deriveUserBookRating(bookId))?.rating;
 
-    const navigateToBookDetails = useCallback(() => navigation.navigate(BOOK_DETAILS_ROUTE, { bookId }), [bookId, navigation]);
-
-    const navigateToEditCustomBook = useCallback(
-      () => navigation.navigate(EDIT_CUSTOM_BOOK_ROUTE, { bookId, title, pages, authorsList, annotation, bookStatus }),
-      [bookId, title, pages, authorsList, annotation, bookStatus, navigation],
-    );
+    const navigateToEditCustomBook = useCallback(() => {
+      navigation.navigate(ADD_CUSTOM_BOOK_NAVIGATOR_ROUTE, {
+        screen: EDIT_CUSTOM_BOOK_ROUTE,
+        params: { bookId, title, pages, authorsList, annotation, bookStatus },
+      });
+    }, [navigation, bookId, title, pages, authorsList, annotation, bookStatus]);
 
     const getImageUri = useCallback(() => {
       if (!coverPath) return '';
@@ -84,16 +83,7 @@ const BookItem: FC<Props> = memo(
               )}
             </View>
             <View>
-              <Button style={styles.more} titleStyle={styles.moreTitle} title={t('common:moreDetails')} onPress={navigateToBookDetails} />
-              {book.isEditable ? (
-                <Button
-                  style={[styles.more, styles.editButton]}
-                  theme={SECONDARY}
-                  titleStyle={styles.moreTitle}
-                  title={t('common:edit')}
-                  onPress={navigateToEditCustomBook}
-                />
-              ) : null}
+              <Button style={styles.more} titleStyle={styles.moreTitle} title={t('common:edit')} onPress={navigateToEditCustomBook} />
               <BookStatusDropdown bookStatus={bookStatus as BookStatus} bookId={bookId} dropdownLeftPosition={16} />
             </View>
           </View>
