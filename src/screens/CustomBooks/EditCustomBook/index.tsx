@@ -1,20 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
-import { ScrollView, View, ToastAndroid, Pressable, Text } from 'react-native';
+import { ScrollView, View, ToastAndroid, Pressable, Text, ImageStyle, ViewStyle, Modal } from 'react-native';
 
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
+import axios from 'axios';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import uniqueId from 'lodash/uniqueId';
 import { useTranslation } from 'react-i18next';
 
 import { useAppDispatch } from '~hooks';
 
 import CloseIcon from '~assets/close.svg';
+import { DEFAULT_COVER } from '~constants/customBooks';
 import { CLOSE_ICON } from '~constants/dimensions';
+import { RU } from '~constants/languages';
+import { PENDING, SUCCEEDED } from '~constants/loadingStatuses';
 import { SECONDARY } from '~constants/themes';
+import useGetImgUrl from '~hooks/useGetImgUrl';
 import { updateUserCustomBook } from '~redux/actions/customBookActions';
 import colors from '~styles/colors';
+import i18n from '~translations/i18n';
 import { BookStatus } from '~types/books';
 import Button from '~UI/Button';
+import RadioButton from '~UI/RadioButton';
 import { Spinner } from '~UI/Spinner';
 import Input from '~UI/TextInput';
 import { getValidationFailure, validationTypes } from '~utils/validation';
@@ -29,6 +38,7 @@ type ParamList = {
     authorsList: string[];
     annotation: string;
     bookStatus: BookStatus;
+    coverPath?: string;
   };
 };
 
@@ -43,17 +53,39 @@ const EditCustomBook = () => {
 
   const navigation = useNavigation();
   const dispatch = useAppDispatch();
+  const imgUrl = useGetImgUrl();
 
   const [_title, setTitle] = useState<string | null>(params.title);
   const [titleError, setTitleError] = useState<string | null>(null);
   const [_pages, setPages] = useState<string | null>(params.pages.toString());
-  const [authors, setAuthors] = useState(params.authorsList.map((item: string) => ({ id: uniqueId(), name: item, error: null })));
-  const [_annotation, setAnnotation] = useState(params.annotation);
+  const [authors, setAuthors] = useState(
+    params.authorsList && params.authorsList.length > 0
+      ? params.authorsList.map((item: string) => ({ id: uniqueId(), name: item, error: null }))
+      : [],
+  );
   const [pagesError, setPagesError] = useState<string | null>(null);
-  const [annotationError, setAnnotationError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const isValidForm = !titleError && !pagesError && !annotationError && authors.length > 0 && authors.every((item: any) => item.name && !item.error);
+  // Cover state
+  const initialCoverPath = params.coverPath || DEFAULT_COVER;
+  const [shouldAddCover, setShouldAddCover] = useState<boolean | undefined>(initialCoverPath === DEFAULT_COVER ? false : true);
+  const [selectedCover, setSelectedCover] = useState<string>(initialCoverPath === DEFAULT_COVER ? '' : initialCoverPath);
+  const [isPickingFromDevice, setIsPickingFromDevice] = useState(false);
+  const [suggestedCoversData, setSuggestedCoversData] = useState<Array<{ coverPath: string }>>([]);
+  const [loadingDataStatus, setLoadingDataStatus] = useState<'idle' | 'pending' | 'succeeded' | 'failed'>('idle');
+  const [isCoverModalVisible, setIsCoverModalVisible] = useState(false);
+
+  const suggestedCoversExist = suggestedCoversData.length > 0;
+  const isSelectedInSuggestedList = !!selectedCover && suggestedCoversData.some((item) => item.coverPath === selectedCover);
+  const isCurrentCover = selectedCover === initialCoverPath && initialCoverPath !== DEFAULT_COVER;
+  const isSelectedFromDevice =
+    !!selectedCover &&
+    !isSelectedInSuggestedList &&
+    !isCurrentCover &&
+    (selectedCover.startsWith('file:') || selectedCover.startsWith('content:') || selectedCover.startsWith('data:'));
+
+  // Валидация: только название обязательно, страницы и авторы необязательны
+  const isValidForm = !titleError && _title && _title.trim().length > 0 && authors.every((item: any) => !item.error);
 
   const handleAddAuthor = () => {
     setAuthors([...authors, { id: uniqueId(), name: '', error: null }]);
@@ -65,15 +97,12 @@ const EditCustomBook = () => {
   const removeAuthor = (id: string) => setAuthors(authors.filter((item: any) => item.id !== id));
 
   const handleAuthorChange = (value: string, id: string) => {
+    // Авторы не обязательны, валидация мягкая (только буквы)
     const params = {
-      minLength: 6,
+      minLength: 0,
       maxLength: 64,
     };
-    const error = getValidationFailure(
-      value,
-      [validationTypes.mustContainOnlyLetters, validationTypes.isTooShort, validationTypes.isTooLong],
-      params,
-    );
+    const error = value ? getValidationFailure(value, [validationTypes.mustContainOnlyLetters, validationTypes.isTooLong], params) : null;
     updateAuthor(id, value, error ? t(`errors:${error}`, params) : null);
   };
 
@@ -93,15 +122,12 @@ const EditCustomBook = () => {
   };
 
   const handleChangePages = (value: string) => {
+    // Страницы не обязательны, допускаем пустое значение
     const params = {
-      minLength: 2,
+      minLength: 0,
       maxLength: 5,
     };
-    const error = getValidationFailure(
-      value,
-      [validationTypes.mustContainOnlyNumbers, validationTypes.isTooShort, validationTypes.isTooLong],
-      params,
-    );
+    const error = value ? getValidationFailure(value, [validationTypes.mustContainOnlyNumbers, validationTypes.isTooLong], params) : null;
     if (error) {
       setPagesError(t(`errors:${error}`, params));
     } else {
@@ -110,50 +136,116 @@ const EditCustomBook = () => {
     }
   };
 
-  const handleChangeAnnotation = (value: string) => {
-    setAnnotationError(null);
-    setAnnotation(value);
+  // Cover handlers
+  const handlePressOnWithoutCover = () => {
+    setShouldAddCover(false);
+    setSelectedCover(DEFAULT_COVER);
   };
 
-  const validateAnnotation = () => {
-    const params = {
-      minLength: 100,
-      maxLength: 1000,
-    };
-    const error = getValidationFailure(
-      _annotation,
-      [validationTypes.containsSpecialCharacters, validationTypes.isTooShort, validationTypes.isTooLong],
-      params,
-    );
-    if (error) {
-      setAnnotationError(t(`errors:${error}`, params));
-    }
-    return !error;
+  const handleFindCover = () => {
+    setShouldAddCover(true);
+    setSelectedCover('');
+    setSuggestedCoversData([]);
+    setLoadingDataStatus('idle');
   };
+
+  const pickImageFromDevice = async () => {
+    try {
+      setIsPickingFromDevice(true);
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permission.status !== 'granted') {
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.9,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const uri = result.assets[0].uri;
+        setShouldAddCover(true);
+        setSelectedCover(uri);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsPickingFromDevice(false);
+    }
+  };
+
+  // Load suggested covers
+  useEffect(() => {
+    if (_title && shouldAddCover && !suggestedCoversExist && !selectedCover) {
+      setLoadingDataStatus('pending');
+      const loadCovers = async () => {
+        try {
+          const bookName = _title.trim();
+          const { language } = i18n;
+          const query = language === RU ? `${bookName} книга` : `${bookName} book`;
+          const gl = language === RU ? 'ru' : 'us';
+
+          const { data } = await axios.get('https://www.googleapis.com/customsearch/v1', {
+            params: {
+              gl,
+              searchType: 'image',
+              key: 'AIzaSyD0Gx2sBVthtxNrNGLZwQYVpGSeKaBnvUM',
+              q: query,
+              cx: '42a8480a652154a54',
+              num: 10,
+            },
+          });
+
+          const items =
+            (data as unknown as { items?: Array<{ fileFormat?: string; link: string }> }).items
+              ?.filter(({ fileFormat }) => fileFormat === 'image/jpeg' || fileFormat === 'image/png' || fileFormat === 'image/webp')
+              .map(({ link }) => ({
+                coverPath: link,
+              })) || [];
+
+          setSuggestedCoversData(items);
+          setLoadingDataStatus('succeeded');
+        } catch (error) {
+          console.error('Error loading suggested covers:', error);
+          setLoadingDataStatus('failed');
+        }
+      };
+      loadCovers();
+    }
+  }, [_title, shouldAddCover, suggestedCoversExist, selectedCover]);
 
   const handleEditBook = async () => {
-    const isAnnotationValid = validateAnnotation();
-
-    if (isAnnotationValid) {
-      setIsSaving(true);
-      try {
-        await dispatch(
-          updateUserCustomBook({
-            bookId: params.bookId,
-            title: _title as string,
-            pages: _pages as string,
-            authorsList: authors.map((item) => item.name),
-            annotation: _annotation,
-            bookStatus: params.bookStatus,
-          }),
-        );
-        navigation.goBack();
-        showToast(t('customBook:bookSuccessfullyUpdated'));
-      } finally {
-        setIsSaving(false);
-      }
+    setIsSaving(true);
+    try {
+      const coverPath = shouldAddCover === false ? DEFAULT_COVER : selectedCover || params.coverPath || DEFAULT_COVER;
+      await dispatch(
+        updateUserCustomBook({
+          bookId: params.bookId,
+          title: _title as string,
+          pages: _pages || '',
+          authorsList: authors.map((item) => item.name).filter(Boolean),
+          annotation: '',
+          bookStatus: params.bookStatus,
+          coverPath,
+        }),
+      );
+      navigation.goBack();
+      showToast(t('customBook:bookSuccessfullyUpdated'));
+    } finally {
+      setIsSaving(false);
     }
   };
+
+  const getImageUri = (cover: string) => {
+    if (!cover) return '';
+    const lower = String(cover);
+    const isAbsolute = /^https?:\/\//i.test(lower) || lower.startsWith('file:') || lower.startsWith('content:') || lower.startsWith('data:');
+    return isAbsolute ? cover : `${imgUrl}/${cover}.webp`;
+  };
+
+  const currentCoverThumb = useMemo(() => {
+    const cover = selectedCover || initialCoverPath;
+    return getImageUri(cover === DEFAULT_COVER ? DEFAULT_COVER : cover);
+  }, [selectedCover, initialCoverPath]);
 
   return (
     <View style={styles.wrapper}>
@@ -175,11 +267,153 @@ const EditCustomBook = () => {
             />
           </View>
 
+          {/* Cover block with thumbnail and Change button */}
+          <View style={styles.block}>
+            <Text style={styles.subTitle}>{t('customBook:bookCover')}</Text>
+            <View style={styles.editThumbWrapper}>
+              {!!currentCoverThumb && (
+                <View style={styles.editThumbCover}>
+                  <Image
+                    style={styles.cover as ImageStyle}
+                    source={{
+                      uri: currentCoverThumb,
+                    }}
+                  />
+                </View>
+              )}
+              <Button style={styles.editChangeButton} title={t('common:edit')} onPress={() => setIsCoverModalVisible(true)} />
+            </View>
+          </View>
+
+          {/* Cover selection modal (reuses step 2 logic) */}
+          <Modal visible={isCoverModalVisible} transparent animationType='slide' onRequestClose={() => setIsCoverModalVisible(false)}>
+            <View style={styles.wrapper}>
+              <View style={styles.container}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalHeaderTitle}>{t('customBook:bookCover')}</Text>
+                  <Pressable onPress={() => setIsCoverModalVisible(false)}>
+                    <CloseIcon width={CLOSE_ICON.width} height={CLOSE_ICON.height} fill={colors.neutral_light} />
+                  </Pressable>
+                </View>
+                <ScrollView style={styles.inputWrapper} keyboardShouldPersistTaps='handled'>
+                  {shouldAddCover === undefined && <Text style={styles.suggestionLabel}>{t('customBook:chooseTheOptionForBookCover')}</Text>}
+
+                  <View style={styles.buttonsWrapper}>
+                    <Button
+                      disabled={shouldAddCover === false}
+                      theme={SECONDARY}
+                      style={styles.button as ViewStyle}
+                      titleStyle={styles.buttonTitle}
+                      onPress={handlePressOnWithoutCover}
+                      title={t('customBook:withoutCover')}
+                    />
+                    <Button
+                      disabled={!!(shouldAddCover && !isSelectedFromDevice && !isCurrentCover)}
+                      style={styles.button}
+                      titleStyle={styles.buttonTitle}
+                      onPress={handleFindCover}
+                      title={t('customBook:findCover')}
+                    />
+                    <Button style={styles.button} titleStyle={styles.buttonTitle} onPress={pickImageFromDevice} title={t('common:choose')} />
+                  </View>
+
+                  <ScrollView style={styles.contentWrapper} keyboardShouldPersistTaps='handled'>
+                    {shouldAddCover === false && !isPickingFromDevice && (
+                      <View style={styles.defaultCoverWrapper}>
+                        <Text style={styles.suggestionLabel}>{t('customBook:theExampleOfTheBookCover')}</Text>
+                        <View>
+                          <View style={[styles.defaultCover, styles.selectedCover]}>
+                            <RadioButton style={styles.selectedCoverRadioButton as ViewStyle} isSelected />
+                            {imgUrl && (
+                              <Image
+                                style={styles.cover as ImageStyle}
+                                source={{
+                                  uri: `${imgUrl}/${DEFAULT_COVER}.webp`,
+                                }}
+                              />
+                            )}
+                          </View>
+                        </View>
+                      </View>
+                    )}
+
+                    {(isPickingFromDevice || (shouldAddCover && !isSelectedFromDevice && !isCurrentCover && loadingDataStatus === 'pending')) && (
+                      <View style={styles.contentSpinnerWrapper}>
+                        <Spinner />
+                      </View>
+                    )}
+
+                    {shouldAddCover && !isPickingFromDevice && isSelectedFromDevice && (
+                      <View style={styles.deviceCoverWrapper}>
+                        <View style={[styles.coverWrapper, styles.selectedCover]}>
+                          <RadioButton style={styles.selectedCoverRadioButton as ViewStyle} isSelected={true} />
+                          <Image
+                            style={styles.cover as ImageStyle}
+                            source={{
+                              uri: selectedCover,
+                            }}
+                          />
+                        </View>
+                      </View>
+                    )}
+
+                    {shouldAddCover === true && !isPickingFromDevice && isCurrentCover && (
+                      <View style={styles.deviceCoverWrapper}>
+                        <Text style={styles.suggestionLabel}>{t('customBook:currentCover')}</Text>
+                        <View style={[styles.coverWrapper, styles.selectedCover]}>
+                          <RadioButton style={styles.selectedCoverRadioButton as ViewStyle} isSelected={true} />
+                          <Image
+                            style={styles.cover as ImageStyle}
+                            source={{
+                              uri: getImageUri(selectedCover),
+                            }}
+                          />
+                        </View>
+                      </View>
+                    )}
+
+                    {shouldAddCover &&
+                      !isSelectedFromDevice &&
+                      !isCurrentCover &&
+                      !isPickingFromDevice &&
+                      loadingDataStatus === 'succeeded' &&
+                      suggestedCoversData.length > 0 && (
+                        <View style={styles.suggestedCovers}>
+                          <Text style={styles.suggestionLabel}>{t('customBook:chooseTheBookCover')}</Text>
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.coversScrollContent}>
+                            {suggestedCoversData.map((item) => {
+                              const selected = selectedCover === item.coverPath;
+                              return (
+                                <Pressable
+                                  key={item.coverPath}
+                                  style={[styles.coverWrapper, selected && styles.selectedCover]}
+                                  onPress={() => setSelectedCover(item.coverPath)}
+                                >
+                                  <RadioButton style={styles.selectedCoverRadioButton as ViewStyle} isSelected={selected} />
+                                  <Image
+                                    style={styles.cover as ImageStyle}
+                                    source={{
+                                      uri: item.coverPath,
+                                    }}
+                                  />
+                                </Pressable>
+                              );
+                            })}
+                          </ScrollView>
+                        </View>
+                      )}
+                  </ScrollView>
+                </ScrollView>
+                <View style={styles.footerButtonsWrapper}>
+                  <Button theme={SECONDARY} style={styles.footerButton} onPress={() => setIsCoverModalVisible(false)} title={t('common:back')} />
+                  <Button style={styles.footerButton} onPress={() => setIsCoverModalVisible(false)} title={t('common:save')} />
+                </View>
+              </View>
+            </View>
+          </Modal>
+
           <View>
-            <Text style={styles.subTitle}>
-              {t('customBook:pages')}
-              {t('common:required')}
-            </Text>
+            <Text style={styles.subTitle}>{t('customBook:pages')}</Text>
             <Input
               placeholder={t('customBook:enterPagesCount')}
               disabled={isSaving}
@@ -193,10 +427,7 @@ const EditCustomBook = () => {
           </View>
 
           <View style={styles.block}>
-            <Text style={styles.subTitle}>
-              {t('customBook:authorsList')}
-              {t('common:required')}
-            </Text>
+            <Text style={styles.subTitle}>{t('customBook:authorsList')}</Text>
             {authors.map(({ id, name, error }) => (
               <View style={styles.authorWrapper} key={id}>
                 <Input
@@ -220,30 +451,6 @@ const EditCustomBook = () => {
               style={[styles.button, styles.addAuthorButton]}
               onPress={handleAddAuthor}
               title={t(authors.length > 0 ? 'customBook:addAnotherAuthor' : 'customBook:addAuthor')}
-            />
-          </View>
-
-          <View style={styles.block}>
-            <View style={styles.annotationLabelWrapper}>
-              <Text style={styles.subTitle}>
-                {t('customBook:annotation')}
-                {t('common:required')}
-              </Text>
-              {_annotation && <Text style={styles.subTitle}>{t('common:charactersCount', { count: _annotation.length, maxCount: 100 })}</Text>}
-            </View>
-
-            <Input
-              placeholder={t('customBook:enterAnnotation')}
-              disabled={isSaving}
-              wrapperClassName={styles.annotationWrapperClassName}
-              className={styles.annotationInput}
-              onChangeText={handleChangeAnnotation}
-              value={_annotation}
-              error={annotationError}
-              shouldDisplayClearButton={!!_annotation}
-              onClear={() => setAnnotation('')}
-              multiline
-              numberOfLines={5}
             />
           </View>
         </ScrollView>

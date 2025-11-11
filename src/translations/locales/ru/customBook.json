@@ -30,5 +30,6 @@
   "bookTitle": "Название книги",
   "enterBookTitle": "Введите название книги",
   "editCustomBookTitle": "Изменить книгу",
-  "bookSuccessfullyUpdated": "Книга обновлена!"
+  "bookSuccessfullyUpdated": "Книга обновлена!",
+  "currentCover": "Текущая обложка"
 }

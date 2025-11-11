@@ -2,7 +2,6 @@ import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
 import { RU } from '~constants/languages';
-import CustomBooksService from '~http/services/customBooks';
 import {
   updateBookVotesInCustomBook as sharedUpdateBookVotesInCustomBook,
   updateBookVotesInSuggestedBook as sharedUpdateBookVotesInSuggestedBook,
@@ -127,28 +126,45 @@ export const addCustomBook = createAsyncThunk(`${PREFIX}/addCustomBook`, async (
 export const updateUserCustomBook = createAsyncThunk(
   `${PREFIX}/updateCustomBook`,
   async (
-    params: { bookId: string; pages: string; title: string; authorsList: string[]; annotation: string; bookStatus: BookStatus },
+    params: {
+      bookId: string;
+      pages: string;
+      title: string;
+      authorsList: string[];
+      annotation: string;
+      bookStatus: BookStatus;
+      coverPath?: string;
+    },
     { dispatch }: AppThunkAPI,
   ) => {
-    const { language } = i18n;
     try {
-      const { data } = await CustomBooksService().updateCustomBook({ ...params, language });
+      // Локальное обновление: обновляем книгу в Redux и кэше
       const response = {
-        bookId: data._id,
-        title: data.title,
-        pages: data.pages,
-        authorsList: data.authorsList,
-        annotation: data.annotation,
+        bookId: params.bookId,
+        title: params.title,
+        pages: Number(params.pages) || 0,
+        authorsList: params.authorsList,
+        annotation: params.annotation || '',
         bookStatus: params.bookStatus,
+        coverPath: params.coverPath,
       };
       dispatch(updateBookOnBoardAndSearch(response));
+
+      // Обновляем книгу в кэше board_data
+      try {
+        const { updateBookInCache } = await import('~utils/boardStorage');
+        await updateBookInCache(params.bookId, response);
+      } catch (e) {
+        console.error('Failed to update custom book in board_data cache', e);
+      }
+
       return response;
     } catch (error) {
       console.error(error);
       return {
         bookId: '',
         title: '',
-        pages: '',
+        pages: 0,
         authorsList: [],
         annotation: '',
         bookStatus: '' as unknown as BookStatus,

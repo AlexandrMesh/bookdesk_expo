@@ -30,5 +30,6 @@
   "bookTitle": "Book title",
   "enterBookTitle": "Enter the book title",
   "editCustomBookTitle": "Edit book",
-  "bookSuccessfullyUpdated": "Book has updated!"
+  "bookSuccessfullyUpdated": "Book has updated!",
+  "currentCover": "Current cover"
 }

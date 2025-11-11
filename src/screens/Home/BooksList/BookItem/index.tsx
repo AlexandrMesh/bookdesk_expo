@@ -35,7 +35,7 @@ export type Props = {
 
 const BookItem: FC<Props> = memo(
   (book) => {
-    const { bookId, title, coverPath, pages, categoryValue, authorsList, added, votesCount, bookStatus, annotation } = book.bookItem;
+    const { bookId, title, coverPath, pages, categoryValue, authorsList, added, bookStatus, annotation } = book.bookItem;
     const { t } = useTranslation(['books', 'categories', 'common']);
     const navigation = useNavigation<any>();
     const dispatch = useAppDispatch();
@@ -44,9 +44,9 @@ const BookItem: FC<Props> = memo(
     const navigateToEditCustomBook = useCallback(() => {
       navigation.navigate(ADD_CUSTOM_BOOK_NAVIGATOR_ROUTE, {
         screen: EDIT_CUSTOM_BOOK_ROUTE,
-        params: { bookId, title, pages, authorsList, annotation, bookStatus },
+        params: { bookId, title, pages, authorsList, annotation, bookStatus, coverPath },
       });
-    }, [navigation, bookId, title, pages, authorsList, annotation, bookStatus]);
+    }, [navigation, bookId, title, pages, authorsList, annotation, bookStatus, coverPath]);
 
     const getImageUri = useCallback(() => {
       if (!coverPath) return '';
