@@ -49,9 +49,7 @@ const Step3 = () => {
       minLength: 0,
       maxLength: 64,
     };
-    const error = value
-      ? getValidationFailure(value, [validationTypes.mustContainOnlyLetters, validationTypes.isTooLong], params)
-      : null;
+    const error = value ? getValidationFailure(value, [validationTypes.mustContainOnlyLetters, validationTypes.isTooLong], params) : null;
     _updateAuthor(id, value, error ? t(`errors:${error}`, params) : null);
   };
 
