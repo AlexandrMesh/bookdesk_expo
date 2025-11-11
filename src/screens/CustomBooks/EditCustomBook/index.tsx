@@ -361,8 +361,14 @@ const EditCustomBook = () => {
               backupSelectedCoverRef.current = selectedCover;
               backupShouldAddCoverRef.current = shouldAddCover;
               // Initialize draft state from current state
-              setDraftShouldAddCover(shouldAddCover);
-              setDraftSelectedCover(selectedCover);
+              if (initialCoverPath === DEFAULT_COVER || shouldAddCover === false) {
+                // У книги нет обложки — сразу выставляем режим "Без обложки"
+                setDraftShouldAddCover(false);
+                setDraftSelectedCover(DEFAULT_COVER);
+              } else {
+                setDraftShouldAddCover(shouldAddCover);
+                setDraftSelectedCover(selectedCover);
+              }
               setDraftIsPickingFromDevice(false);
               setDraftSuggestedCoversData([]);
               setDraftLoadingDataStatus('idle');
@@ -393,14 +399,16 @@ const EditCustomBook = () => {
                   {draftShouldAddCover === undefined && <Text style={styles.suggestionLabel}>{t('customBook:chooseTheOptionForBookCover')}</Text>}
 
                   <View style={styles.buttonsWrapper}>
-                    <Button
-                      disabled={draftIsCurrentCover}
-                      theme={SECONDARY}
-                      style={styles.button as ViewStyle}
-                      titleStyle={styles.buttonTitle}
-                      onPress={handleSelectCurrentCover}
-                      title={t('customBook:currentCover')}
-                    />
+                    {initialCoverPath !== DEFAULT_COVER && (
+                      <Button
+                        disabled={draftIsCurrentCover}
+                        theme={SECONDARY}
+                        style={styles.button as ViewStyle}
+                        titleStyle={styles.buttonTitle}
+                        onPress={handleSelectCurrentCover}
+                        title={t('customBook:currentCover')}
+                      />
+                    )}
                     <Button
                       disabled={draftShouldAddCover === false}
                       theme={SECONDARY}
