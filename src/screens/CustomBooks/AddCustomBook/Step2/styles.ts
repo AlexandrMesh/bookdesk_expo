@@ -25,6 +25,13 @@ export default StyleSheet.create({
   contentWrapper: {
     flex: 1,
   },
+  contentSpinnerWrapper: {
+    width: '100%',
+    minHeight: 180,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   suggestedCovers: {
     marginVertical: 25,
   },
@@ -109,5 +116,11 @@ export default StyleSheet.create({
   footerButton: {
     maxWidth: 160,
     marginHorizontal: 10,
+  },
+  spinnerBottom: {
+    width: '100%',
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -1,5 +1,5 @@
 /* eslint-disable import/order */
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { ImageStyle, Pressable, ScrollView, Text, View, ViewStyle } from 'react-native';
 
@@ -46,6 +46,7 @@ const Step2 = () => {
   const selectedCover = useAppSelector(getSelectedCover);
 
   const imgUrl = useGetImgUrl();
+  const [isPickingFromDevice, setIsPickingFromDevice] = useState(false);
 
   const handlePressOnWithoutCover = () => {
     dispatch(setShouldAddCover(false));
@@ -60,6 +61,7 @@ const Step2 = () => {
 
   const pickImageFromDevice = async () => {
     try {
+      setIsPickingFromDevice(true);
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (permission.status !== 'granted') {
         return;
@@ -76,6 +78,8 @@ const Step2 = () => {
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      setIsPickingFromDevice(false);
     }
   };
 
@@ -111,12 +115,18 @@ const Step2 = () => {
             onPress={handlePressOnWithoutCover}
             title={t('customBook:withoutCover')}
           />
-          <Button style={styles.button} titleStyle={styles.buttonTitle} onPress={handleFindCover} title={t('customBook:findCover')} />
+          <Button
+            disabled={!!(shouldAddCover && !isSelectedFromDevice)}
+            style={styles.button}
+            titleStyle={styles.buttonTitle}
+            onPress={handleFindCover}
+            title={t('customBook:findCover')}
+          />
           <Button style={styles.button} titleStyle={styles.buttonTitle} onPress={pickImageFromDevice} title={t('common:choose')} />
         </View>
 
         <ScrollView style={styles.contentWrapper} keyboardShouldPersistTaps='handled'>
-          {shouldAddCover === false && (
+          {shouldAddCover === false && !isPickingFromDevice && (
             <View style={styles.defaultCoverWrapper}>
               <Text style={styles.suggestionLabel}>{t('customBook:theExampleOfTheBookCover')}</Text>
               <View>
@@ -135,8 +145,15 @@ const Step2 = () => {
             </View>
           )}
 
+          {/* Спиннер в контентной области: для поиска из интернета или выбора с устройства */}
+          {(isPickingFromDevice || (shouldAddCover && !isSelectedFromDevice && loadingDataStatus === PENDING)) && (
+            <View style={styles.contentSpinnerWrapper}>
+              <Spinner />
+            </View>
+          )}
+
           {/* Показываем только свою обложку, если она выбрана с устройства */}
-          {shouldAddCover && isSelectedFromDevice && (
+          {shouldAddCover && !isPickingFromDevice && isSelectedFromDevice && (
             <View style={styles.deviceCoverWrapper}>
               <View style={[styles.coverWrapper, styles.selectedCover]}>
                 <RadioButton style={styles.selectedCoverRadioButton as ViewStyle} isSelected={true} />
@@ -150,15 +167,8 @@ const Step2 = () => {
             </View>
           )}
 
-          {/* Показываем спиннер только если нет выбранной обложки с устройства */}
-          {shouldAddCover && !isSelectedFromDevice && loadingDataStatus === PENDING && (
-            <View style={styles.contentWrapper}>
-              <Spinner />
-            </View>
-          )}
-
           {/* Показываем предложенные обложки только если нет выбранной обложки с устройства */}
-          {shouldAddCover && !isSelectedFromDevice && loadingDataStatus === SUCCEEDED && suggestedCoversData.length > 0 && (
+          {shouldAddCover && !isSelectedFromDevice && !isPickingFromDevice && loadingDataStatus === SUCCEEDED && suggestedCoversData.length > 0 && (
             <View style={styles.suggestedCovers}>
               <Text style={styles.suggestionLabel}>{t('customBook:chooseTheBookCover')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.coversScrollContent}>
