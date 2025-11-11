@@ -5,24 +5,24 @@ import { Pressable, StyleProp, Text, View, ViewStyle } from 'react-native';
 
 import { useNavigation } from '@react-navigation/native';
 import { Image } from 'expo-image';
+import { ZoomIn } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
 
-import { ZoomIn } from 'lucide-react-native';
-
-import { BOOK_DETAILS_ROUTE, EDIT_CUSTOM_BOOK_ROUTE } from '~constants/routes';
-import { COVER_VIEWER } from '~constants/modalTypes';
-import { SECONDARY } from '~constants/themes';
 import { useAppDispatch } from '~hooks';
+
+import { COVER_VIEWER } from '~constants/modalTypes';
+import { BOOK_DETAILS_ROUTE, EDIT_CUSTOM_BOOK_ROUTE } from '~constants/routes';
+import { SECONDARY } from '~constants/themes';
 import { setCoverUrl, showModal } from '~redux/actions/booksActions';
 import { deriveUserBookRating } from '~redux/selectors/books';
 import BookNotePreview from '~screens/Home/BookNotePreview';
 import BookStatusDropdown from '~screens/Home/BookStatusDropdown';
 import Like from '~screens/Home/Like';
 import Rating from '~screens/Home/Rating';
+import colors from '~styles/colors';
 import { BookStatus, IBook } from '~types/books';
 import Button from '~UI/Button';
-import colors from '~styles/colors';
 
 import styles from './styles';
 import ModifiedDate from '../../ModifiedDate';
@@ -49,27 +49,32 @@ const BookItem: FC<Props> = memo(
       [bookId, title, pages, authorsList, annotation, bookStatus, navigation],
     );
 
-    const getFullImgUrl = useCallback(() => `${book.imgUrl}/${coverPath}.webp`, [coverPath, book.imgUrl]);
+    const getImageUri = useCallback(() => {
+      if (!coverPath) return '';
+      const lower = String(coverPath);
+      const isAbsolute = /^https?:\/\//i.test(lower) || lower.startsWith('file:') || lower.startsWith('content:') || lower.startsWith('data:');
+      return isAbsolute ? coverPath : `${book.imgUrl}/${coverPath}.webp`;
+    }, [coverPath, book.imgUrl]);
 
     const handleCoverPress = useCallback(() => {
-      if (book.imgUrl && coverPath) {
-        const fullUrl = getFullImgUrl();
+      if (coverPath) {
+        const fullUrl = getImageUri();
         dispatch(setCoverUrl(fullUrl));
         dispatch(showModal(COVER_VIEWER));
       }
-    }, [book.imgUrl, coverPath, getFullImgUrl, dispatch]);
+    }, [coverPath, getImageUri, dispatch]);
 
     return (
       <View style={[styles.wrapper, book.itemStyle]}>
         <View style={styles.bookItem}>
           <View style={styles.leftSide}>
             <View style={styles.coverWrapper}>
-              {book.imgUrl && (
+              {coverPath && (
                 <Pressable onPress={handleCoverPress} style={styles.coverPressable}>
                   <Image
                     style={styles.cover}
                     source={{
-                      uri: getFullImgUrl(),
+                      uri: getImageUri(),
                     }}
                   />
                   <View style={styles.zoomIconContainer}>

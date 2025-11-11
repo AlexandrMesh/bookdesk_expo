@@ -332,11 +332,47 @@ export default createReducer(defaultState, (builder) => {
         state.updatingBookStatus = SUCCEEDED;
       },
     )
-    .addCase(booksActions.updateBookOnBoardAndSearch, (state, { payload: { bookId, bookStatus, title, pages, authorsList } }) => {
-      state.board[bookStatus || ALL].data = state.board[bookStatus || ALL].data.map((book) =>
-        book.bookId === bookId ? { ...book, title, pages, authorsList } : book,
-      );
-      state.search.data = state.search.data.map((book) => (book.bookId === bookId ? { ...book, title, pages, authorsList } : book));
+    .addCase(booksActions.updateBookOnBoardAndSearch, (state, { payload }) => {
+      const { bookId, bookStatus, title, pages, authorsList, coverPath, categoryPath, added, annotation } = payload;
+      const targetBoard = bookStatus || ALL;
+      
+      // Проверяем, есть ли книга в списке доски
+      const existingBookIndex = state.board[targetBoard].data.findIndex((book) => book.bookId === bookId);
+      
+      const updatedBook: IBook = {
+        bookId,
+        title,
+        pages,
+        authorsList,
+        bookStatus,
+        ...(coverPath && { coverPath }),
+        ...(categoryPath && { categoryPath }),
+        ...(added && { added }),
+        ...(annotation && { annotation }),
+      };
+      
+      if (existingBookIndex >= 0) {
+        // Обновляем существующую книгу
+        state.board[targetBoard].data[existingBookIndex] = {
+          ...state.board[targetBoard].data[existingBookIndex],
+          ...updatedBook,
+        };
+      } else {
+        // Добавляем новую книгу в начало списка
+        state.board[targetBoard].data = [updatedBook, ...state.board[targetBoard].data];
+        state.board[targetBoard].pagination.totalItems = (state.board[targetBoard].pagination.totalItems || 0) + 1;
+      }
+      
+      // Обновляем или добавляем в поиск
+      const existingSearchIndex = state.search.data.findIndex((book) => book.bookId === bookId);
+      if (existingSearchIndex >= 0) {
+        state.search.data[existingSearchIndex] = {
+          ...state.search.data[existingSearchIndex],
+          ...updatedBook,
+        };
+      } else {
+        state.search.data = [updatedBook, ...state.search.data];
+      }
     })
     .addCase(booksActions.triggerReloadBookList, (state, action) => {
       state.board[action.payload].data = [];

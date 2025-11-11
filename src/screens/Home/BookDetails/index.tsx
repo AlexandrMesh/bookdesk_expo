@@ -49,13 +49,20 @@ const BookDetails = () => {
   const _loadBookDetails = useCallback((bookId: string) => dispatch(loadBookDetails(bookId)), [dispatch]);
   const _clearBookDetails = useCallback(() => dispatch(clearBookDetails()), [dispatch]);
 
+  const getImageUri = useCallback(() => {
+    if (!coverPath) return '';
+    const lower = String(coverPath);
+    const isAbsolute = /^https?:\/\//i.test(lower) || lower.startsWith('file:') || lower.startsWith('content:') || lower.startsWith('data:');
+    return isAbsolute ? coverPath : `${imgUrl}/${coverPath}.webp`;
+  }, [coverPath, imgUrl]);
+
   const handleCoverPress = useCallback(() => {
-    if (imgUrl && coverPath) {
-      const fullUrl = `${imgUrl}/${coverPath}.webp`;
+    if (coverPath) {
+      const fullUrl = getImageUri();
       dispatch(setCoverUrl(fullUrl));
       dispatch(showModal(COVER_VIEWER));
     }
-  }, [imgUrl, coverPath, dispatch]);
+  }, [coverPath, getImageUri, dispatch]);
 
   useEffect(() => {
     _loadBookDetails(params?.bookId);
@@ -73,12 +80,12 @@ const BookDetails = () => {
     <SafeAreaView style={styles.container}>
       <ScrollView keyboardShouldPersistTaps='handled'>
         <View style={styles.header}>
-          {imgUrl && (
+          {coverPath && (
             <Pressable onPress={handleCoverPress} style={styles.coverPressable}>
               <Image
                 style={styles.cover}
                 source={{
-                  uri: `${imgUrl}/${coverPath}.webp`,
+                  uri: getImageUri(),
                 }}
               />
               <View style={styles.zoomIconContainer}>
