@@ -1,7 +1,9 @@
 import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
+import axios from 'axios';
 
 import { ALL } from '~constants/boardType';
 import { PAGE_SIZE } from '~constants/bookList';
+import { EN, RU } from '~constants/languages';
 import DataService from '~http/services/books';
 import CustomBooksService from '~http/services/customBooks';
 import {
@@ -136,17 +138,32 @@ export const loadSuggestedCovers = createAsyncThunk(`${PREFIX}/loadSuggestedCove
   const bookName = getNewCustomBookNameValue(state);
   const { language } = i18n;
 
-  const params = {
-    bookName,
-    language,
-  };
-
   try {
-    const { data } = (await CustomBooksService().getSuggestCoversList({ ...params })) || {};
-    const { items } = data || {};
-    return items || [];
+    const query = language === RU ? `${bookName} книга` : `${bookName} book`;
+    const gl = language === RU ? 'ru' : 'us';
+
+    const { data } = await axios.get('https://www.googleapis.com/customsearch/v1', {
+      params: {
+        gl,
+        searchType: 'image',
+        key: 'AIzaSyD0Gx2sBVthtxNrNGLZwQYVpGSeKaBnvUM',
+        q: query,
+        cx: '42a8480a652154a54',
+        num: 10,
+      },
+    });
+
+    const items =
+      data.items
+        ?.filter(({ fileFormat }: { fileFormat: string }) => fileFormat === 'image/jpeg' || fileFormat === 'image/png' || fileFormat === 'image/webp')
+        .map(({ link }: { link: string }) => ({
+          coverPath: link,
+        })) || [];
+
+    return items;
   } catch (error) {
-    console.error(error);
+    // eslint-disable-next-line no-console
+    console.error('Error loading suggested covers:', error);
     throw error;
   }
 });
