@@ -3,7 +3,6 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ScrollView, View, ToastAndroid, Pressable, Text, ImageStyle, ViewStyle, Modal } from 'react-native';
 
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
-import axios from 'axios';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import uniqueId from 'lodash/uniqueId';
@@ -15,18 +14,16 @@ import { useAppDispatch } from '~hooks';
 import CloseIcon from '~assets/close.svg';
 import { DEFAULT_COVER } from '~constants/customBooks';
 import { CLOSE_ICON } from '~constants/dimensions';
-import { RU } from '~constants/languages';
-import { PENDING, SUCCEEDED } from '~constants/loadingStatuses';
 import { SECONDARY } from '~constants/themes';
 import useGetImgUrl from '~hooks/useGetImgUrl';
 import { updateUserCustomBook } from '~redux/actions/customBookActions';
 import colors from '~styles/colors';
-import i18n from '~translations/i18n';
 import { BookStatus } from '~types/books';
 import Button from '~UI/Button';
 import RadioButton from '~UI/RadioButton';
 import { Spinner } from '~UI/Spinner';
 import Input from '~UI/TextInput';
+import { loadSuggestedCovers } from '~utils/coversLoader';
 import { getValidationFailure, validationTypes } from '~utils/validation';
 
 import styles from './styles';
@@ -211,29 +208,7 @@ const EditCustomBook = () => {
       setDraftLoadingDataStatus('pending');
       const loadCovers = async () => {
         try {
-          const bookName = _title.trim();
-          const { language } = i18n;
-          const query = language === RU ? `${bookName} книга` : `${bookName} book`;
-          const gl = language === RU ? 'ru' : 'us';
-
-          const { data } = await axios.get('https://www.googleapis.com/customsearch/v1', {
-            params: {
-              gl,
-              searchType: 'image',
-              key: 'AIzaSyD0Gx2sBVthtxNrNGLZwQYVpGSeKaBnvUM',
-              q: query,
-              cx: '42a8480a652154a54',
-              num: 10,
-            },
-          });
-
-          const items =
-            (data as unknown as { items?: Array<{ fileFormat?: string; link: string }> }).items
-              ?.filter(({ fileFormat }) => fileFormat === 'image/jpeg' || fileFormat === 'image/png' || fileFormat === 'image/webp')
-              .map(({ link }) => ({
-                coverPath: link,
-              })) || [];
-
+          const items = await loadSuggestedCovers(_title);
           setDraftSuggestedCoversData(items);
           setDraftLoadingDataStatus('succeeded');
         } catch (error) {

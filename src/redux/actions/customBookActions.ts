@@ -1,7 +1,5 @@
 import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
 
-import { RU } from '~constants/languages';
 import {
   updateBookVotesInCustomBook as sharedUpdateBookVotesInCustomBook,
   updateBookVotesInSuggestedBook as sharedUpdateBookVotesInSuggestedBook,
@@ -14,6 +12,7 @@ import { AppThunkAPI } from '~redux/store/configureStore';
 import i18n from '~translations/i18n';
 import { BookStatus } from '~types/books';
 import type { IBook } from '~types/books';
+import { loadSuggestedCovers as loadSuggestedCoversUtil } from '~utils/coversLoader';
 
 const PREFIX = 'CUSTOM_BOOKS';
 
@@ -45,35 +44,7 @@ export const triggerReloadCustomBookList = createAction(`${PREFIX}/triggerReload
 export const loadSuggestedCovers = createAsyncThunk(`${PREFIX}/loadSuggestedCovers`, async (_, { getState }: AppThunkAPI) => {
   const state = getState();
   const bookName = getNewCustomBookNameValue(state);
-  const { language } = i18n;
-
-  try {
-    const query = language === RU ? `${bookName} книга` : `${bookName} book`;
-    const gl = language === RU ? 'ru' : 'us';
-
-    const { data } = await axios.get('https://www.googleapis.com/customsearch/v1', {
-      params: {
-        gl,
-        searchType: 'image',
-        key: 'AIzaSyD0Gx2sBVthtxNrNGLZwQYVpGSeKaBnvUM',
-        q: query,
-        cx: '42a8480a652154a54',
-        num: 10,
-      },
-    });
-
-    const items =
-      (data as unknown as { items?: Array<{ fileFormat?: string; link: string }> }).items
-        ?.filter(({ fileFormat }) => fileFormat === 'image/jpeg' || fileFormat === 'image/png' || fileFormat === 'image/webp')
-        .map(({ link }) => ({
-          coverPath: link,
-        })) || [];
-
-    return items;
-  } catch (error) {
-    console.error('Error loading suggested covers:', error);
-    throw error;
-  }
+  return loadSuggestedCoversUtil(bookName);
 });
 
 export const addCustomBook = createAsyncThunk(`${PREFIX}/addCustomBook`, async (_, { dispatch, getState }: AppThunkAPI) => {
