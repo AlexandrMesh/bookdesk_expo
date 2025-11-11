@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 
 import { ScrollView, View, ToastAndroid, Pressable, Text, ImageStyle, ViewStyle, Modal } from 'react-native';
 
@@ -81,6 +81,14 @@ const EditCustomBook = () => {
   const [suggestedCoversData, setSuggestedCoversData] = useState<Array<{ coverPath: string }>>([]);
   const [loadingDataStatus, setLoadingDataStatus] = useState<'idle' | 'pending' | 'succeeded' | 'failed'>('idle');
   const [isCoverModalVisible, setIsCoverModalVisible] = useState(false);
+  const backupSelectedCoverRef = useRef<string>('');
+  const backupShouldAddCoverRef = useRef<boolean | undefined>(undefined);
+  // Draft state for modal (apply on Save only)
+  const [draftShouldAddCover, setDraftShouldAddCover] = useState<boolean | undefined>(undefined);
+  const [draftSelectedCover, setDraftSelectedCover] = useState<string>('');
+  const [draftIsPickingFromDevice, setDraftIsPickingFromDevice] = useState(false);
+  const [draftSuggestedCoversData, setDraftSuggestedCoversData] = useState<Array<{ coverPath: string }>>([]);
+  const [draftLoadingDataStatus, setDraftLoadingDataStatus] = useState<'idle' | 'pending' | 'succeeded' | 'failed'>('idle');
 
   const suggestedCoversExist = suggestedCoversData.length > 0;
   const isSelectedInSuggestedList = !!selectedCover && suggestedCoversData.some((item) => item.coverPath === selectedCover);
@@ -145,20 +153,20 @@ const EditCustomBook = () => {
 
   // Cover handlers
   const handlePressOnWithoutCover = () => {
-    setShouldAddCover(false);
-    setSelectedCover(DEFAULT_COVER);
+    setDraftShouldAddCover(false);
+    setDraftSelectedCover(DEFAULT_COVER);
   };
 
   const handleFindCover = () => {
-    setShouldAddCover(true);
-    setSelectedCover('');
-    setSuggestedCoversData([]);
-    setLoadingDataStatus('idle');
+    setDraftShouldAddCover(true);
+    setDraftSelectedCover('');
+    setDraftSuggestedCoversData([]);
+    setDraftLoadingDataStatus('idle');
   };
 
   const pickImageFromDevice = async () => {
     try {
-      setIsPickingFromDevice(true);
+      setDraftIsPickingFromDevice(true);
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (permission.status !== 'granted') {
         return;
@@ -170,20 +178,20 @@ const EditCustomBook = () => {
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const uri = result.assets[0].uri;
-        setShouldAddCover(true);
-        setSelectedCover(uri);
+        setDraftShouldAddCover(true);
+        setDraftSelectedCover(uri);
       }
     } catch (e) {
       console.error(e);
     } finally {
-      setIsPickingFromDevice(false);
+      setDraftIsPickingFromDevice(false);
     }
   };
 
-  // Load suggested covers
+  // Load suggested covers (modal drafts)
   useEffect(() => {
-    if (_title && shouldAddCover && !suggestedCoversExist && !selectedCover) {
-      setLoadingDataStatus('pending');
+    if (_title && draftShouldAddCover && !draftSuggestedCoversData.length && !draftSelectedCover) {
+      setDraftLoadingDataStatus('pending');
       const loadCovers = async () => {
         try {
           const bookName = _title.trim();
@@ -209,16 +217,28 @@ const EditCustomBook = () => {
                 coverPath: link,
               })) || [];
 
-          setSuggestedCoversData(items);
-          setLoadingDataStatus('succeeded');
+          setDraftSuggestedCoversData(items);
+          setDraftLoadingDataStatus('succeeded');
         } catch (error) {
           console.error('Error loading suggested covers:', error);
-          setLoadingDataStatus('failed');
+          setDraftLoadingDataStatus('failed');
         }
       };
       loadCovers();
     }
-  }, [_title, shouldAddCover, suggestedCoversExist, selectedCover]);
+  }, [_title, draftShouldAddCover, draftSuggestedCoversData.length, draftSelectedCover]);
+
+  // Reset all state when switching to another book
+  useEffect(() => {
+    setTitle(params.title);
+    setPages(params.pages.toString());
+    setAuthors(params.authorsList.map((item: string) => ({ id: uniqueId(), name: item, error: null })));
+    const init = params.coverPath || DEFAULT_COVER;
+    setShouldAddCover(init === DEFAULT_COVER ? false : true);
+    setSelectedCover(init === DEFAULT_COVER ? '' : init);
+    setSuggestedCoversData([]);
+    setLoadingDataStatus('idle');
+  }, [params.bookId]);
 
   const handleEditBook = async () => {
     setIsSaving(true);
@@ -317,12 +337,28 @@ const EditCustomBook = () => {
           </View>
 
           {/* Cover selection modal (reuses step 2 logic) */}
-          <Modal visible={isCoverModalVisible} transparent animationType='slide' onRequestClose={() => setIsCoverModalVisible(false)}>
+          <Modal
+            visible={isCoverModalVisible}
+            transparent
+            animationType='slide'
+            onShow={() => {
+              backupSelectedCoverRef.current = selectedCover;
+              backupShouldAddCoverRef.current = shouldAddCover;
+            }}
+            onRequestClose={() => setIsCoverModalVisible(false)}
+          >
             <View style={styles.wrapper}>
               <View style={styles.container}>
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalHeaderTitle}>{t('customBook:bookCover')}</Text>
-                  <Pressable onPress={() => setIsCoverModalVisible(false)}>
+                  <Pressable
+                    onPress={() => {
+                      // discard changes
+                      setSelectedCover(backupSelectedCoverRef.current);
+                      setShouldAddCover(backupShouldAddCoverRef.current);
+                      setIsCoverModalVisible(false);
+                    }}
+                  >
                     <CloseIcon width={CLOSE_ICON.width} height={CLOSE_ICON.height} fill={colors.neutral_light} />
                   </Pressable>
                 </View>
@@ -330,6 +366,16 @@ const EditCustomBook = () => {
                   {shouldAddCover === undefined && <Text style={styles.suggestionLabel}>{t('customBook:chooseTheOptionForBookCover')}</Text>}
 
                   <View style={styles.buttonsWrapper}>
+                    <Button
+                      theme={SECONDARY}
+                      style={styles.button as ViewStyle}
+                      titleStyle={styles.buttonTitle}
+                      onPress={() => {
+                        setShouldAddCover(true);
+                        setSelectedCover(initialCoverPath);
+                      }}
+                      title={t('customBook:currentCover')}
+                    />
                     <Button
                       disabled={shouldAddCover === false}
                       theme={SECONDARY}
@@ -436,7 +482,17 @@ const EditCustomBook = () => {
                   </ScrollView>
                 </ScrollView>
                 <View style={styles.footerButtonsWrapper}>
-                  <Button theme={SECONDARY} style={styles.footerButton} onPress={() => setIsCoverModalVisible(false)} title={t('common:back')} />
+                  <Button
+                    theme={SECONDARY}
+                    style={styles.footerButton}
+                    onPress={() => {
+                      // discard changes
+                      setSelectedCover(backupSelectedCoverRef.current);
+                      setShouldAddCover(backupShouldAddCoverRef.current);
+                      setIsCoverModalVisible(false);
+                    }}
+                    title={t('common:back')}
+                  />
                   <Button style={styles.footerButton} onPress={() => setIsCoverModalVisible(false)} title={t('common:save')} />
                 </View>
               </View>
