@@ -238,6 +238,7 @@ const AddCustomBookNavigator: FC = () => {
 
   return (
     <Stack.Navigator
+      initialRouteName={CUSTOM_BOOKS_ROUTE}
       screenOptions={{
         headerShown: true,
         headerStyle: {
@@ -274,27 +275,6 @@ const AddCustomBookNavigator: FC = () => {
         {() => (
           <InSuspense>
             <CategoryChooser />
-          </InSuspense>
-        )}
-      </Stack.Screen>
-      <Stack.Screen
-        name={EDIT_CUSTOM_BOOK_ROUTE}
-        options={{
-          headerShown: true,
-          headerStyle: {
-            backgroundColor: colors.primary_dark,
-            shadowColor: 'transparent',
-            borderBottomWidth: 1,
-            borderBottomColor: colors.neutral_medium,
-          },
-          headerTintColor: colors.neutral_light,
-          presentation: 'modal',
-          title: t('editCustomBookTitle'),
-        }}
-      >
-        {() => (
-          <InSuspense>
-            <EditCustomBook />
           </InSuspense>
         )}
       </Stack.Screen>
@@ -407,7 +387,7 @@ const TabNavigator: FC<MainNavigatorProps> = ({ isTheLatestAppVersion, googlePla
 };
 
 const MainNavigator: FC<MainNavigatorProps> = ({ isTheLatestAppVersion, googlePlayUrl, hasGoal, goalType }) => {
-  const { t } = useTranslation(['books']);
+  const { t } = useTranslation(['books', 'customBook']);
 
   return (
     <Stack.Navigator
@@ -435,6 +415,27 @@ const MainNavigator: FC<MainNavigatorProps> = ({ isTheLatestAppVersion, googlePl
         {() => (
           <InSuspense>
             <BookNote />
+          </InSuspense>
+        )}
+      </Stack.Screen>
+      <Stack.Screen
+        name={EDIT_CUSTOM_BOOK_ROUTE}
+        options={{
+          headerShown: true,
+          headerStyle: {
+            backgroundColor: colors.primary_dark,
+            shadowColor: 'transparent',
+            borderBottomWidth: 1,
+            borderBottomColor: colors.neutral_medium,
+          },
+          headerTintColor: colors.neutral_light,
+          presentation: 'modal',
+          title: t('customBook:editCustomBookTitle'),
+        }}
+      >
+        {() => (
+          <InSuspense>
+            <EditCustomBook />
           </InSuspense>
         )}
       </Stack.Screen>

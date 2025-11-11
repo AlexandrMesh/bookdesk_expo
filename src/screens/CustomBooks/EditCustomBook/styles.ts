@@ -164,6 +164,9 @@ export default StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  footerContainer: {
+    paddingTop: 10,
+  },
   footerButtonsWrapper: {
     display: 'flex',
     flexDirection: 'row',

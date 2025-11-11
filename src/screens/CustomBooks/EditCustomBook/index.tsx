@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ScrollView, View, ToastAndroid, Pressable, Text, ImageStyle, ViewStyle, Modal } from 'react-native';
 
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import axios from 'axios';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -54,6 +55,7 @@ const EditCustomBook = () => {
   const navigation = useNavigation();
   const dispatch = useAppDispatch();
   const imgUrl = useGetImgUrl();
+  const insets = useSafeAreaInsets();
 
   const [_title, setTitle] = useState<string | null>(params.title);
   const [titleError, setTitleError] = useState<string | null>(null);
@@ -590,7 +592,7 @@ const EditCustomBook = () => {
           </View>
         </ScrollView>
 
-        <View>
+        <View style={[styles.footerContainer, { paddingBottom: Math.max(insets.bottom, 10) }]}>
           <Text style={styles.tip}>{t('common:requiredFields')}</Text>
           <View style={styles.footerButtonsWrapper}>
             <Button disabled={isSaving} theme={SECONDARY} style={styles.footerButton} onPress={() => navigation.goBack()} title={t('common:back')} />

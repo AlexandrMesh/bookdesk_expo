@@ -12,7 +12,7 @@ import { useSelector } from 'react-redux';
 import { useAppDispatch } from '~hooks';
 
 import { COVER_VIEWER } from '~constants/modalTypes';
-import { ADD_CUSTOM_BOOK_NAVIGATOR_ROUTE, EDIT_CUSTOM_BOOK_ROUTE } from '~constants/routes';
+import { EDIT_CUSTOM_BOOK_ROUTE } from '~constants/routes';
 import { setCoverUrl, showModal } from '~redux/actions/booksActions';
 import { deriveUserBookRating } from '~redux/selectors/books';
 import BookNotePreview from '~screens/Home/BookNotePreview';
@@ -42,9 +42,14 @@ const BookItem: FC<Props> = memo(
     const bookRating = useSelector(deriveUserBookRating(bookId))?.rating;
 
     const navigateToEditCustomBook = useCallback(() => {
-      navigation.navigate(ADD_CUSTOM_BOOK_NAVIGATOR_ROUTE, {
-        screen: EDIT_CUSTOM_BOOK_ROUTE,
-        params: { bookId, title, pages, authorsList, annotation, bookStatus, coverPath },
+      navigation.navigate(EDIT_CUSTOM_BOOK_ROUTE, {
+        bookId,
+        title,
+        pages,
+        authorsList,
+        annotation,
+        bookStatus,
+        coverPath,
       });
     }, [navigation, bookId, title, pages, authorsList, annotation, bookStatus, coverPath]);
 
