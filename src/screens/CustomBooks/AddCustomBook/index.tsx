@@ -1,8 +1,8 @@
-import React, { lazy } from 'react';
+import React, { lazy, useEffect } from 'react';
 
 import { Text, View } from 'react-native';
 
-import { useNavigation } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 
 import { useAppDispatch, useAppSelector } from '~hooks';
@@ -11,7 +11,7 @@ import { COMPLETED, IN_PROGRESS, PLANNED } from '~constants/boardType';
 import { PENDING } from '~constants/loadingStatuses';
 import { COMPLETED_BOOKS_ROUTE, HOME_NAVIGATOR_ROUTE, IN_PROGRESS_BOOKS_ROUTE, PLANNED_BOOKS_ROUTE } from '~constants/routes';
 import { SECONDARY } from '~constants/themes';
-import { clearAddCustomBookState, setCurrentStep } from '~redux/actions/customBookActions';
+import { clearAddCustomBookState, setCurrentStep, setStatus } from '~redux/actions/customBookActions';
 import { getAddedCustomBook, getAvailableStep, getCurrentStep, getSavingCustomBookStatus, getStatus } from '~redux/selectors/customBook';
 import InSuspense from '~screens/Main/InSuspense';
 import { BookStatus } from '~types/books';
@@ -34,9 +34,16 @@ const getBoardRoute = (bookStatus: BookStatus | null) => {
   return PLANNED_BOOKS_ROUTE;
 };
 
+type ParamList = {
+  CustomBooks: {
+    initialStatus?: BookStatus;
+  };
+};
+
 const AddCustomBook = () => {
   const { t } = useTranslation('customBook');
   const dispatch = useAppDispatch();
+  const route = useRoute<RouteProp<ParamList, 'CustomBooks'>>();
   const availableStep = useAppSelector(getAvailableStep);
   const currentStep = useAppSelector(getCurrentStep);
   const addedCustomBook = useAppSelector(getAddedCustomBook);
@@ -45,6 +52,15 @@ const AddCustomBook = () => {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const navigation = useNavigation<any>();
+
+  // Устанавливаем статус из параметров навигации при монтировании (только один раз)
+  useEffect(() => {
+    const initialStatus = route.params?.initialStatus;
+    if (initialStatus) {
+      dispatch(setStatus(initialStatus));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const steps = [
     {

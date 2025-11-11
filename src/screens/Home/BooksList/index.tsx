@@ -9,6 +9,7 @@ import { IDLE, PENDING, SUCCEEDED } from '~constants/loadingStatuses';
 import useGetImgUrl from '~hooks/useGetImgUrl';
 import { IBook } from '~types/books';
 import { LoadingType } from '~types/loadingTypes';
+import Button from '~UI/Button';
 import { Spinner } from '~UI/Spinner';
 
 import BookItem from './BookItem';
@@ -21,21 +22,31 @@ export type Props = {
   loadMoreBooks?: () => void;
   loadingDataStatus: LoadingType;
   isEditable?: boolean;
+  onPressAdd?: () => void;
 };
 
-const BookList: FC<Props> = ({ data = [], loadMoreBooks = () => undefined, loadingDataStatus, horizontal, isEditable }) => {
-  const { t } = useTranslation('common');
+const BookList: FC<Props> = ({ data = [], loadMoreBooks = () => undefined, loadingDataStatus, horizontal, isEditable, onPressAdd }) => {
+  const { t: tCommon } = useTranslation('common');
+  const { t: tBooks } = useTranslation('books');
   const listRef = useRef<any>(null);
   const imgUrl = useGetImgUrl();
-  const getSpinner = useCallback(
-    () =>
-      loadingDataStatus === PENDING && data?.length > 0 ? (
+  const getFooter = useCallback(() => {
+    if (loadingDataStatus === PENDING && data?.length > 0) {
+      return (
         <View style={styles.listFooterComponent}>
           <Spinner />
         </View>
-      ) : null,
-    [data.length, loadingDataStatus],
-  );
+      );
+    }
+    if (loadingDataStatus === SUCCEEDED && data?.length > 0 && onPressAdd) {
+      return (
+        <View style={styles.footerAddWrapper}>
+          <Button style={styles.footerAddButton} title={tBooks('addBook')} onPress={onPressAdd} />
+        </View>
+      );
+    }
+    return null;
+  }, [data.length, loadingDataStatus, onPressAdd, tBooks]);
 
   const getListEmptyComponent = useCallback(
     () => (
@@ -67,12 +78,12 @@ const BookList: FC<Props> = ({ data = [], loadMoreBooks = () => undefined, loadi
             <Text style={styles.headerTitleText}>{title}</Text>
           </View>
           <View style={[styles.taskCount, styles.headerTitle]}>
-            <Text style={styles.headerTitleText}>{t('count', { count } as any)}</Text>
+            <Text style={styles.headerTitleText}>{String(tCommon('count', { count } as any))}</Text>
           </View>
         </View>
       );
     },
-    [t],
+    [tCommon],
   );
 
   const renderItem = useCallback(
@@ -103,7 +114,6 @@ const BookList: FC<Props> = ({ data = [], loadMoreBooks = () => undefined, loadi
       <FlashList
         ref={listRef}
         horizontal={horizontal}
-        estimatedItemSize={351}
         data={data}
         renderItem={renderItem}
         getItemType={getItemType}
@@ -111,7 +121,7 @@ const BookList: FC<Props> = ({ data = [], loadMoreBooks = () => undefined, loadi
         onEndReachedThreshold={0.5}
         ListEmptyComponent={getListEmptyComponent}
         onEndReached={onEndReached}
-        ListFooterComponent={getSpinner}
+        ListFooterComponent={getFooter}
       />
     </View>
   );

@@ -42,12 +42,16 @@ const CustomBookStatusDropdown = () => {
     [t],
   );
 
-  // Устанавливаем значение по умолчанию, если статус ещё не выбран или равен ALL
+  // Устанавливаем значение по умолчанию только если статус действительно null или ALL
+  // Не устанавливаем, если статус уже был установлен извне (например, через навигацию)
   useEffect(() => {
-    if (!bookStatus || bookStatus === ALL) {
+    // Проверяем, что статус действительно отсутствует (null) или равен ALL
+    // и что он не является одним из валидных статусов
+    if (bookStatus === null || bookStatus === ALL) {
       _setStatus(actionTypes[0].value);
     }
-  }, [bookStatus, _setStatus, actionTypes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleUpdateBookStatus = useCallback(
     async (newBookStatus: BookStatus) => {

@@ -12,6 +12,14 @@ export default StyleSheet.create({
   listFooterComponent: {
     height: 80,
   },
+  footerAddWrapper: {
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+  },
+  footerAddButton: {
+    maxWidth: 260,
+    alignSelf: 'center',
+  },
   stickyHeader: {
     marginHorizontal: 5,
     marginVertical: 10,

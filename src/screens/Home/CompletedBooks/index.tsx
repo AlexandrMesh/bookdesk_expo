@@ -2,13 +2,15 @@ import React, { useCallback, useEffect } from 'react';
 
 import { View } from 'react-native';
 
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 
 import { useAppDispatch, useAppSelector } from '~hooks';
 
 import { COMPLETED } from '~constants/boardType';
 import { IDLE, SUCCEEDED, PENDING } from '~constants/loadingStatuses';
+import { ADD_CUSTOM_BOOK_NAVIGATOR_ROUTE, CUSTOM_BOOKS_ROUTE } from '~constants/routes';
 import { loadBookList, loadCategories, loadMoreBooks, setBoardType } from '~redux/actions/booksActions';
+import { setStatus } from '~redux/actions/customBookActions';
 import {
   deriveLoadingBookListStatus,
   deriveShouldReloadBookList,
@@ -24,6 +26,7 @@ import styles from './styles';
 
 const CompletedBooks = () => {
   const isFocused = useIsFocused();
+  const navigation = useNavigation<any>();
 
   const dispatch = useAppDispatch();
   const _loadBookList = useCallback(
@@ -34,6 +37,13 @@ const CompletedBooks = () => {
   const _loadMoreBooks = useCallback(() => dispatch(loadMoreBooks(COMPLETED)), [dispatch]);
   const _loadCategories = useCallback(() => dispatch(loadCategories(false)), [dispatch]);
   const _setBoardType = useCallback(() => dispatch(setBoardType(COMPLETED)), [dispatch]);
+  const _goToAddBook = useCallback(() => {
+    dispatch(setStatus(COMPLETED));
+    navigation.navigate(ADD_CUSTOM_BOOK_NAVIGATOR_ROUTE, {
+      screen: CUSTOM_BOOKS_ROUTE,
+      params: { initialStatus: COMPLETED },
+    });
+  }, [dispatch, navigation]);
 
   const sectionedBookListData = useAppSelector(deriveSectionedBookListData(COMPLETED));
   const loadingDataStatus = useAppSelector(deriveLoadingBookListStatus(COMPLETED));
@@ -61,7 +71,7 @@ const CompletedBooks = () => {
   }, [_loadCategories, _loadBookList, loadingDataStatus, shouldReloadData, isFocused]);
 
   if (sectionedBookListData.length === 0 && loadingDataStatus === SUCCEEDED && !shouldReloadData) {
-    return <EmptyBoard />;
+    return <EmptyBoard onAddPress={_goToAddBook} />;
   }
 
   return (
@@ -69,7 +79,7 @@ const CompletedBooks = () => {
       {loadingDataStatus !== IDLE && loadingDataStatus !== PENDING ? (
         <ActionBar boardType={COMPLETED} shouldRenderFilterButton={false} totalItems={totalItems} />
       ) : null}
-      <BooksList data={sectionedBookListData} loadMoreBooks={_loadMoreBooks} loadingDataStatus={loadingDataStatus} />
+      <BooksList data={sectionedBookListData} loadMoreBooks={_loadMoreBooks} loadingDataStatus={loadingDataStatus} onPressAdd={_goToAddBook} />
     </View>
   );
 };

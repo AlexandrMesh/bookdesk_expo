@@ -12,9 +12,10 @@ import styles from './styles';
 
 export type Props = {
   shouldNotDisplayContent?: boolean;
+  onAddPress?: () => void;
 };
 
-const EmptyBoard: FC<Props> = ({ shouldNotDisplayContent = false }) => {
+const EmptyBoard: FC<Props> = ({ shouldNotDisplayContent = false, onAddPress }) => {
   const { t } = useTranslation(['books', 'common']);
   const navigation = useNavigation<any>();
   const route = useRoute();
@@ -30,14 +31,21 @@ const EmptyBoard: FC<Props> = ({ shouldNotDisplayContent = false }) => {
                 <Button
                   style={styles.addButton}
                   title={t('addBook')}
-                  onPress={() =>
-                    navigation.navigate(route.name === ADD_CUSTOM_BOOK_NAVIGATOR_ROUTE ? ADD_CUSTOM_BOOK_ROUTE : ADD_CUSTOM_BOOK_NAVIGATOR_ROUTE, {
-                      screen: CUSTOM_BOOKS_ROUTE,
-                      params: {
-                        screen: ADD_CUSTOM_BOOK_ROUTE,
-                      },
-                    })
-                  }
+                  onPress={() => {
+                    if (onAddPress) {
+                      onAddPress();
+                    } else {
+                      navigation.navigate(
+                        route.name === ADD_CUSTOM_BOOK_NAVIGATOR_ROUTE ? ADD_CUSTOM_BOOK_ROUTE : ADD_CUSTOM_BOOK_NAVIGATOR_ROUTE,
+                        {
+                          screen: CUSTOM_BOOKS_ROUTE,
+                          params: {
+                            screen: ADD_CUSTOM_BOOK_ROUTE,
+                          },
+                        },
+                      );
+                    }
+                  }}
                 />
               </View>
             </>

@@ -224,7 +224,10 @@ export default createReducer(defaultState, (builder) => {
       state.add.steps[2] = getDefaultStep2State();
     })
     .addCase(customBooksActions.clearStep3, (state) => {
+      // Сбрасываем поля шага 3, но сохраняем заранее установленный статус (если он есть)
+      const preservedStatus = state.add.steps[3].status;
       state.add.steps[3] = getDefaultStep3State();
+      state.add.steps[3].status = preservedStatus ?? state.add.steps[3].status;
     })
     .addCase(customBooksActions.setStatus, (state, action) => {
       state.add.steps[3].status = action.payload;
