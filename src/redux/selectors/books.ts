@@ -20,6 +20,7 @@ export const getBoardType = (state: StateWithBooks) => getBooks(state).boardType
 export const getBookVotes = (state: StateWithBooks) => getBooks(state).bookVotes;
 export const getBookNotes = (state: StateWithBooks) => getBooks(state).bookNotes;
 export const getActiveModal = (state: StateWithBooks) => getBooks(state).activeModal;
+export const getCoverUrl = (state: StateWithBooks) => getBooks(state).coverUrl;
 export const getSearchQuery = (state: StateWithBooks) => getSearch(state).query;
 export const getSearchResults = (state: StateWithBooks) => getSearch(state).data;
 export const getLoadingSearchResultsStatus = (state: StateWithBooks) => getSearch(state).loadingDataStatus;

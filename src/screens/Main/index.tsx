@@ -78,6 +78,7 @@ const Profile = lazy(() => import('~screens/Profile'));
 const BookDetails = lazy(() => import('~screens/Home/BookDetails'));
 const Modals = lazy(() => import('~screens/Modals'));
 const DateUpdater = lazy(() => import('~screens/Home/DateUpdater'));
+const CoverViewer = lazy(() => import('~screens/Home/CoverViewer'));
 const SignIn = lazy(() => import('~screens/Auth/SignIn'));
 const SignUp = lazy(() => import('~screens/Auth/SignUp'));
 
@@ -572,6 +573,7 @@ const Main = () => {
               <>
                 <Modals />
                 <DateUpdater />
+                <CoverViewer />
               </>
             </InSuspense>
           </>

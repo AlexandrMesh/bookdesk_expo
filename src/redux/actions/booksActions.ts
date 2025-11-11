@@ -85,6 +85,7 @@ export const setBookToUpdate = createAction<{ bookId: string; bookStatus: BookSt
 export const setBoardType = createAction<BookStatus>(`${PREFIX}/setBoardType`);
 export const showModal = createAction<string>(`${PREFIX}/showModal`);
 export const hideModal = createAction(`${PREFIX}/hideModal`);
+export const setCoverUrl = createAction<string>(`${PREFIX}/setCoverUrl`);
 export const searchCategory = createAction<{ boardType: BookStatus; query: string }>(`${PREFIX}/searchCategory`);
 export const clearSearchQueryForCategory = createAction<BookStatus>(`${PREFIX}/clearSearchQueryForCategory`);
 export const resetCategories = createAction<BookStatus>(`${PREFIX}/resetCategories`);

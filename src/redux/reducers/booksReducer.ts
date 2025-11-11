@@ -153,6 +153,7 @@ export interface IBooksState {
   boardType: BookStatus | null;
   activeModal: string | null;
   activeAlert: string | null;
+  coverUrl: string | null;
   updatedBookValues: IUpdatedBookValuesState;
   bookVotes: IVote[];
   bookNotes: IBookNote[];
@@ -173,6 +174,7 @@ const getDefaultState = (): IBooksState => ({
   boardType: ALL,
   activeModal: null,
   activeAlert: null,
+  coverUrl: null,
   updatedBookValues: getUpdatedBookValuesState(),
   bookVotes: [],
   bookNotes: [],
@@ -200,6 +202,10 @@ export default createReducer(defaultState, (builder) => {
     })
     .addCase(booksActions.hideModal, (state) => {
       state.activeModal = null;
+      state.coverUrl = null;
+    })
+    .addCase(booksActions.setCoverUrl, (state, action) => {
+      state.coverUrl = action.payload;
     })
     .addCase(booksActions.deleteUserComment.fulfilled, (state, action) => {
       state.bookNotes = state.bookNotes.filter((note) => note.bookId !== action.payload);

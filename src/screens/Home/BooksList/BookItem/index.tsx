@@ -1,15 +1,20 @@
 /* eslint-disable react/display-name */
 import React, { FC, memo, useCallback } from 'react';
 
-import { StyleProp, Text, View, ViewStyle } from 'react-native';
+import { Pressable, StyleProp, Text, View, ViewStyle } from 'react-native';
 
 import { useNavigation } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
 
+import { ZoomIn } from 'lucide-react-native';
+
 import { BOOK_DETAILS_ROUTE, EDIT_CUSTOM_BOOK_ROUTE } from '~constants/routes';
+import { COVER_VIEWER } from '~constants/modalTypes';
 import { SECONDARY } from '~constants/themes';
+import { useAppDispatch } from '~hooks';
+import { setCoverUrl, showModal } from '~redux/actions/booksActions';
 import { deriveUserBookRating } from '~redux/selectors/books';
 import BookNotePreview from '~screens/Home/BookNotePreview';
 import BookStatusDropdown from '~screens/Home/BookStatusDropdown';
@@ -17,6 +22,7 @@ import Like from '~screens/Home/Like';
 import Rating from '~screens/Home/Rating';
 import { BookStatus, IBook } from '~types/books';
 import Button from '~UI/Button';
+import colors from '~styles/colors';
 
 import styles from './styles';
 import ModifiedDate from '../../ModifiedDate';
@@ -33,6 +39,7 @@ const BookItem: FC<Props> = memo(
     const { bookId, title, coverPath, pages, categoryValue, authorsList, added, votesCount, bookStatus, annotation } = book.bookItem;
     const { t } = useTranslation(['books', 'categories', 'common']);
     const navigation = useNavigation<any>();
+    const dispatch = useAppDispatch();
     const bookRating = useSelector(deriveUserBookRating(bookId))?.rating;
 
     const navigateToBookDetails = useCallback(() => navigation.navigate(BOOK_DETAILS_ROUTE, { bookId }), [bookId, navigation]);
@@ -44,18 +51,31 @@ const BookItem: FC<Props> = memo(
 
     const getFullImgUrl = useCallback(() => `${book.imgUrl}/${coverPath}.webp`, [coverPath, book.imgUrl]);
 
+    const handleCoverPress = useCallback(() => {
+      if (book.imgUrl && coverPath) {
+        const fullUrl = getFullImgUrl();
+        dispatch(setCoverUrl(fullUrl));
+        dispatch(showModal(COVER_VIEWER));
+      }
+    }, [book.imgUrl, coverPath, getFullImgUrl, dispatch]);
+
     return (
       <View style={[styles.wrapper, book.itemStyle]}>
         <View style={styles.bookItem}>
           <View style={styles.leftSide}>
             <View style={styles.coverWrapper}>
               {book.imgUrl && (
-                <Image
-                  style={styles.cover}
-                  source={{
-                    uri: getFullImgUrl(),
-                  }}
-                />
+                <Pressable onPress={handleCoverPress} style={styles.coverPressable}>
+                  <Image
+                    style={styles.cover}
+                    source={{
+                      uri: getFullImgUrl(),
+                    }}
+                  />
+                  <View style={styles.zoomIconContainer}>
+                    <ZoomIn size={20} color={colors.neutral_white} />
+                  </View>
+                </Pressable>
               )}
             </View>
             <View>

@@ -47,10 +47,21 @@ export default StyleSheet.create({
     marginLeft: 5,
     position: 'relative',
   },
+  coverPressable: {
+    position: 'relative',
+  },
   cover: {
     width: 260,
     height: 395,
     resizeMode: 'contain',
+  },
+  zoomIconContainer: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 16,
+    padding: 6,
   },
   item: {
     fontSize: 18,

@@ -1,21 +1,24 @@
 import React, { useCallback, useEffect } from 'react';
 
-import { ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { RouteProp, useIsFocused, useRoute } from '@react-navigation/native';
 import { Image } from 'expo-image';
+import { ZoomIn } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppDispatch, useAppSelector } from '~hooks';
 
 import { IDLE, PENDING } from '~constants/loadingStatuses';
+import { COVER_VIEWER } from '~constants/modalTypes';
 import useGetImgUrl from '~hooks/useGetImgUrl';
-import { clearBookDetails, loadBookDetails } from '~redux/actions/booksActions';
+import { clearBookDetails, loadBookDetails, setCoverUrl, showModal } from '~redux/actions/booksActions';
 import { deriveBookDetails, deriveUserBookRating, getLoadingBookDetailsStatus } from '~redux/selectors/books';
 import BookStatusDropdown from '~screens/Home/BookStatusDropdown';
 import Like from '~screens/Home/Like';
 import Rating from '~screens/Home/Rating';
+import colors from '~styles/colors';
 import { BookStatus } from '~types/books';
 
 import BookNotePreview from '../BookNotePreview';
@@ -46,6 +49,14 @@ const BookDetails = () => {
   const _loadBookDetails = useCallback((bookId: string) => dispatch(loadBookDetails(bookId)), [dispatch]);
   const _clearBookDetails = useCallback(() => dispatch(clearBookDetails()), [dispatch]);
 
+  const handleCoverPress = useCallback(() => {
+    if (imgUrl && coverPath) {
+      const fullUrl = `${imgUrl}/${coverPath}.webp`;
+      dispatch(setCoverUrl(fullUrl));
+      dispatch(showModal(COVER_VIEWER));
+    }
+  }, [imgUrl, coverPath, dispatch]);
+
   useEffect(() => {
     _loadBookDetails(params?.bookId);
   }, [_loadBookDetails, params]);
@@ -63,12 +74,17 @@ const BookDetails = () => {
       <ScrollView keyboardShouldPersistTaps='handled'>
         <View style={styles.header}>
           {imgUrl && (
-            <Image
-              style={styles.cover}
-              source={{
-                uri: `${imgUrl}/${coverPath}.webp`,
-              }}
-            />
+            <Pressable onPress={handleCoverPress} style={styles.coverPressable}>
+              <Image
+                style={styles.cover}
+                source={{
+                  uri: `${imgUrl}/${coverPath}.webp`,
+                }}
+              />
+              <View style={styles.zoomIconContainer}>
+                <ZoomIn size={24} color={colors.neutral_white} />
+              </View>
+            </Pressable>
           )}
           <Text style={[styles.title, styles.lightColor]}>{title}</Text>
           {(authorsList as string[])?.length > 0 &&

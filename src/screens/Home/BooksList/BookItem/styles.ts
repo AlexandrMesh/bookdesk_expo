@@ -59,9 +59,20 @@ export default StyleSheet.create({
   coverWrapper: {
     marginBottom: 10,
   },
+  coverPressable: {
+    position: 'relative',
+  },
   cover: {
     width: 126,
     height: 180,
+  },
+  zoomIconContainer: {
+    position: 'absolute',
+    bottom: 5,
+    right: 5,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 12,
+    padding: 4,
   },
   info: {
     display: 'flex',
