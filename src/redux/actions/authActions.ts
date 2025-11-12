@@ -9,7 +9,7 @@ import { clearData as clearCustomBooksData } from '~redux/actions/customBookActi
 import { clearData as clearGoalsData, setGoal } from '~redux/actions/goalsActions';
 import { clearData as clearStatisticData } from '~redux/actions/statisticActions';
 import { getT } from '~translations/i18n';
-import { initDatabase, loadBookNotes, loadBookRatings, loadUserVotes } from '~utils/boardStorage';
+import { deleteGoal, initDatabase, loadBookNotes, loadBookRatings, loadGoal, loadUserVotes, saveGoal } from '~utils/boardStorage';
 import { removeToken, saveToken } from '~utils/secureStorage';
 
 // Динамический импорт GoogleSignin для совместимости с Expo Go
@@ -111,9 +111,31 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
     const { data } = await AuthService().checkAuth(token);
 
     if (data.profile) {
-      const { numberOfPagesForGoal, goalType } = data;
-      if (numberOfPagesForGoal) {
-        dispatch(setGoal({ pages: numberOfPagesForGoal, type: goalType }));
+      // Загружаем цель из локальной БД
+      try {
+        await initDatabase();
+        const localGoal = await loadGoal();
+        if (localGoal) {
+          // eslint-disable-next-line no-console
+          console.log('🎯 [checkAuth] Загружена цель из локальной БД');
+          dispatch(setGoal({ pages: localGoal.numberOfPages || 0, type: localGoal.goalType as any }));
+        } else {
+          // Если в локальной БД нет цели, используем с сервера (первый раз)
+          const { numberOfPagesForGoal, goalType } = data;
+          if (numberOfPagesForGoal) {
+            // eslint-disable-next-line no-console
+            console.log('🎯 [checkAuth] Цели в локальной БД нет, используем с сервера');
+            await saveGoal(numberOfPagesForGoal, goalType);
+            dispatch(setGoal({ pages: numberOfPagesForGoal, type: goalType }));
+          }
+        }
+      } catch (error) {
+        console.error('Error loading goal from local DB:', error);
+        // В случае ошибки используем данные с сервера
+        const { numberOfPagesForGoal, goalType } = data;
+        if (numberOfPagesForGoal) {
+          dispatch(setGoal({ pages: numberOfPagesForGoal, type: goalType }));
+        }
       }
       // Загружаем заметки из локальной БД вместо сервера
       try {
@@ -236,8 +258,29 @@ export const signIn = createAsyncThunk(
         });
 
         if (data) {
-          if (data.numberOfPagesForGoal) {
-            dispatch(setGoal({ pages: data.numberOfPagesForGoal, type: data.goalType }));
+          // Загружаем цель из локальной БД
+          try {
+            await initDatabase();
+            const localGoal = await loadGoal();
+            if (localGoal) {
+              // eslint-disable-next-line no-console
+              console.log('🎯 [signIn Google] Загружена цель из локальной БД');
+              dispatch(setGoal({ pages: localGoal.numberOfPages || 0, type: localGoal.goalType as any }));
+            } else {
+              // Если в локальной БД нет цели, используем с сервера (первый раз)
+              if (data.numberOfPagesForGoal) {
+                // eslint-disable-next-line no-console
+                console.log('🎯 [signIn Google] Цели в локальной БД нет, используем с сервера');
+                await saveGoal(data.numberOfPagesForGoal, data.goalType);
+                dispatch(setGoal({ pages: data.numberOfPagesForGoal, type: data.goalType }));
+              }
+            }
+          } catch (error) {
+            console.error('Error loading goal from local DB:', error);
+            // В случае ошибки используем данные с сервера
+            if (data.numberOfPagesForGoal) {
+              dispatch(setGoal({ pages: data.numberOfPagesForGoal, type: data.goalType }));
+            }
           }
           // Загружаем заметки из локальной БД вместо сервера
           try {
@@ -344,8 +387,29 @@ export const signIn = createAsyncThunk(
       try {
         const { data } = await AuthService().signIn({ email, password });
         if (data) {
-          if (data.numberOfPagesForGoal) {
-            dispatch(setGoal({ pages: data.numberOfPagesForGoal, type: data.goalType }));
+          // Загружаем цель из локальной БД
+          try {
+            await initDatabase();
+            const localGoal = await loadGoal();
+            if (localGoal) {
+              // eslint-disable-next-line no-console
+              console.log('🎯 [signIn] Загружена цель из локальной БД');
+              dispatch(setGoal({ pages: localGoal.numberOfPages || 0, type: localGoal.goalType as any }));
+            } else {
+              // Если в локальной БД нет цели, используем с сервера (первый раз)
+              if (data.numberOfPagesForGoal) {
+                // eslint-disable-next-line no-console
+                console.log('🎯 [signIn] Цели в локальной БД нет, используем с сервера');
+                await saveGoal(data.numberOfPagesForGoal, data.goalType);
+                dispatch(setGoal({ pages: data.numberOfPagesForGoal, type: data.goalType }));
+              }
+            }
+          } catch (error) {
+            console.error('Error loading goal from local DB:', error);
+            // В случае ошибки используем данные с сервера
+            if (data.numberOfPagesForGoal) {
+              dispatch(setGoal({ pages: data.numberOfPagesForGoal, type: data.goalType }));
+            }
           }
           // Загружаем заметки из локальной БД вместо сервера
           try {
@@ -476,6 +540,13 @@ export const signOut = createAsyncThunk(`${PREFIX}/signOut`, async (_, { dispatc
     dispatch(clearCustomBooksData());
     dispatch(clearStatisticData());
     dispatch(clearGoalsData());
+    // Удаляем цель из локальной БД при выходе
+    try {
+      await initDatabase();
+      await deleteGoal();
+    } catch (error) {
+      console.error('Error deleting goal on sign out:', error);
+    }
 
     // Пытаемся выйти из Google Sign-In (может быть недоступен)
     try {

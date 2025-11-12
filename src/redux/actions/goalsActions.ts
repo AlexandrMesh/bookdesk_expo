@@ -4,12 +4,57 @@ import GoalsService from '~http/services/goals';
 import { triggerReloadStat } from '~redux/actions/statisticActions';
 import { AppThunkAPI } from '~redux/store/configureStore';
 import { GoalType, IGoal } from '~types/goals';
-import { deleteGoalItem, initDatabase, loadGoalItems, saveGoalItem, saveGoalItems } from '~utils/boardStorage';
+import { deleteGoal, deleteGoalItem, initDatabase, loadGoal, loadGoalItems, saveGoal, saveGoalItem, saveGoalItems } from '~utils/boardStorage';
 
 const PREFIX = 'GOALS';
 
 export const setGoal = createAction<{ pages: number; type: GoalType }>(`${PREFIX}/setGoal`);
+
+// Обновленный setGoal, который также сохраняет в локальную БД
+export const setGoalWithSave = createAsyncThunk(`${PREFIX}/setGoalWithSave`, async ({ pages, type }: { pages: number; type: GoalType }) => {
+  try {
+    await initDatabase();
+    await saveGoal(pages, type);
+    return { pages, type };
+  } catch (error) {
+    console.error('Error saving goal:', error);
+    return { pages, type };
+  }
+});
+
+// Action для загрузки цели из локальной БД
+export const loadGoalFromLocalDB = createAsyncThunk(`${PREFIX}/loadGoalFromLocalDB`, async () => {
+  try {
+    await initDatabase();
+    const goal = await loadGoal();
+    if (goal) {
+      return {
+        numberOfPages: goal.numberOfPages,
+        type: goal.goalType as GoalType,
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error loading goal from local DB:', error);
+    return null;
+  }
+});
+
 export const clearData = createAction(`${PREFIX}/clearData`);
+
+// Action для удаления цели
+export const deleteGoalAction = createAsyncThunk(`${PREFIX}/deleteGoal`, async () => {
+  try {
+    await initDatabase();
+    await deleteGoal();
+    // eslint-disable-next-line no-console
+    console.log('🎯 [deleteGoal] Цель удалена из локальной БД');
+    return null;
+  } catch (error) {
+    console.error('Error deleting goal:', error);
+    throw error;
+  }
+});
 
 export const deleteUserGoalItem = createAsyncThunk(`${PREFIX}/deleteUserGoalItem`, async (id: string, { dispatch }: AppThunkAPI) => {
   try {
@@ -34,26 +79,42 @@ export const deleteUserGoalItem = createAsyncThunk(`${PREFIX}/deleteUserGoalItem
 
 export const addGoal = createAsyncThunk(`${PREFIX}/addGoal`, async (params: { numberOfPages: string; type: GoalType }) => {
   try {
-    await GoalsService().addGoal({ ...params });
+    const numberOfPages = Number(params.numberOfPages);
+
+    // Сохраняем в локальную БД
+    await initDatabase();
+    await saveGoal(numberOfPages, params.type);
+
+    // eslint-disable-next-line no-console
+    console.log('🎯 [addGoal] Цель добавлена в локальную БД:', numberOfPages, params.type);
+
     return {
-      numberOfPages: Number(params.numberOfPages),
+      numberOfPages,
       type: params.type,
     };
   } catch (error) {
-    console.error(error);
+    console.error('Error adding goal:', error);
     throw error;
   }
 });
 
 export const updateGoal = createAsyncThunk(`${PREFIX}/updateGoal`, async (params: { numberOfPages: string; type: GoalType }) => {
   try {
-    await GoalsService().updateGoal({ ...params });
+    const numberOfPages = Number(params.numberOfPages);
+
+    // Сохраняем в локальную БД
+    await initDatabase();
+    await saveGoal(numberOfPages, params.type);
+
+    // eslint-disable-next-line no-console
+    console.log('🎯 [updateGoal] Цель обновлена в локальной БД:', numberOfPages, params.type);
+
     return {
-      numberOfPages: Number(params.numberOfPages),
+      numberOfPages,
       type: params.type,
     };
   } catch (error) {
-    console.error(error);
+    console.error('Error updating goal:', error);
     throw error;
   }
 });

@@ -102,6 +102,13 @@ export const initDatabase = async (): Promise<void> => {
         );
         CREATE INDEX IF NOT EXISTS idx_goal_items_item_id ON goal_items(item_id);
         CREATE INDEX IF NOT EXISTS idx_goal_items_added_at ON goal_items(added_at);
+        CREATE TABLE IF NOT EXISTS user_goal (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          number_of_pages INTEGER,
+          goal_type TEXT NOT NULL,
+          timestamp INTEGER NOT NULL,
+          UNIQUE(id)
+        );
         CREATE TABLE IF NOT EXISTS categories (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           language TEXT NOT NULL,
@@ -1272,6 +1279,70 @@ export const deleteGoalItem = async (itemId: string): Promise<void> => {
     console.log(`🗑️ [SQLite Cache] Goal item удален: itemId=${itemId}`);
   } catch (error) {
     console.error('Error deleting goal item:', error);
+    throw error;
+  }
+};
+
+/**
+ * Сохранение цели пользователя в локальную БД
+ */
+export const saveGoal = async (numberOfPages: number | null, goalType: string): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    const timestamp = Date.now();
+
+    // Удаляем старую цель (если есть) и вставляем новую
+    await database.runAsync(`DELETE FROM user_goal`);
+    await database.runAsync(`INSERT INTO user_goal (number_of_pages, goal_type, timestamp) VALUES (?, ?, ?)`, [numberOfPages, goalType, timestamp]);
+
+    // eslint-disable-next-line no-console
+    console.log(`🎯 [SQLite Cache] Цель сохранена: numberOfPages=${numberOfPages}, type=${goalType}`);
+  } catch (error) {
+    console.error('Error saving goal:', error);
+    throw error;
+  }
+};
+
+/**
+ * Загрузка цели пользователя из локальной БД
+ */
+export const loadGoal = async (): Promise<{ numberOfPages: number | null; goalType: string } | null> => {
+  try {
+    const database = await getDatabase();
+    const result = await database.getFirstAsync<{
+      number_of_pages: number | null;
+      goal_type: string;
+      timestamp: number;
+    }>(`SELECT number_of_pages, goal_type, timestamp FROM user_goal LIMIT 1`);
+
+    if (!result) {
+      return null;
+    }
+
+    // eslint-disable-next-line no-console
+    console.log(`🎯 [SQLite Cache] Загружена цель из локальной БД: numberOfPages=${result.number_of_pages}, type=${result.goal_type}`);
+
+    return {
+      numberOfPages: result.number_of_pages,
+      goalType: result.goal_type,
+    };
+  } catch (error) {
+    console.error('Error loading goal:', error);
+    return null;
+  }
+};
+
+/**
+ * Удаление цели пользователя из локальной БД
+ */
+export const deleteGoal = async (): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    await database.runAsync(`DELETE FROM user_goal`);
+    // eslint-disable-next-line no-console
+    console.log(`🗑️ [SQLite Cache] Цель удалена из локальной БД`);
+  } catch (error) {
+    console.error('Error deleting goal:', error);
     throw error;
   }
 };

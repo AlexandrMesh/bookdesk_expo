@@ -49,5 +49,19 @@ export default createReducer(defaultState, (builder) => {
       state.goal.numberOfPages = pages;
       state.goal.type = type;
     })
+    .addCase(goalsActions.setGoalWithSave.fulfilled, (state, { payload: { pages, type } }) => {
+      state.goal.numberOfPages = pages;
+      state.goal.type = type;
+    })
+    .addCase(goalsActions.loadGoalFromLocalDB.fulfilled, (state, action) => {
+      if (action.payload) {
+        state.goal.numberOfPages = action.payload.numberOfPages;
+        state.goal.type = action.payload.type;
+      }
+    })
+    .addCase(goalsActions.deleteGoalAction.fulfilled, (state) => {
+      state.goal.numberOfPages = null;
+      state.goal.type = DAILY;
+    })
     .addCase(goalsActions.clearData, () => defaultState);
 });
