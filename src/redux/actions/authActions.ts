@@ -9,7 +9,18 @@ import { clearData as clearCustomBooksData } from '~redux/actions/customBookActi
 import { clearData as clearGoalsData, setGoal } from '~redux/actions/goalsActions';
 import { clearData as clearStatisticData } from '~redux/actions/statisticActions';
 import { getT } from '~translations/i18n';
-import { deleteGoal, initDatabase, loadBookNotes, loadBookRatings, loadGoal, loadUserVotes, saveGoal } from '~utils/boardStorage';
+import {
+  deleteGoal,
+  deleteProfile,
+  initDatabase,
+  loadBookNotes,
+  loadBookRatings,
+  loadGoal,
+  loadProfile,
+  loadUserVotes,
+  saveGoal,
+  saveProfile,
+} from '~utils/boardStorage';
 import { removeToken, saveToken } from '~utils/secureStorage';
 
 // Динамический импорт GoogleSignin для совместимости с Expo Go
@@ -107,10 +118,41 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
       // Игнорируем ошибку Google Sign-In при проверке статуса
     }
 
-    // Проверяем токен на сервере
-    const { data } = await AuthService().checkAuth(token);
+    // Загружаем профиль из локальной БД
+    await initDatabase();
+    let profile = await loadProfile();
 
-    if (data.profile) {
+    if (!profile) {
+      // Если в локальной БД нет профиля, загружаем с сервера (первый раз)
+      // eslint-disable-next-line no-console
+      console.log('👤 [checkAuth] Профиля в локальной БД нет, загружаем с сервера');
+      const { data } = await AuthService().checkAuth(token);
+      if (data.profile) {
+        profile = data.profile;
+        await saveProfile(profile);
+        // eslint-disable-next-line no-console
+        console.log('👤 [checkAuth] Профиль сохранен в локальную БД');
+      } else {
+        // Если профиль пустой, значит токен недействителен - удаляем его
+        await removeToken();
+        return rejectWithValue('Invalid token - no profile returned');
+      }
+    } else {
+      // eslint-disable-next-line no-console
+      console.log('👤 [checkAuth] Загружен профиль из локальной БД');
+      // Проверяем токен на сервере (для валидации, но не используем данные профиля)
+      try {
+        await AuthService().checkAuth(token);
+      } catch (error) {
+        // Если токен недействителен, удаляем профиль из локальной БД
+        console.error('Token validation failed, removing profile from local DB:', error);
+        await deleteProfile();
+        await removeToken();
+        return rejectWithValue('Invalid token');
+      }
+    }
+
+    if (profile) {
       // Загружаем цель из локальной БД
       try {
         await initDatabase();
@@ -198,7 +240,7 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
       }
 
       return {
-        profile: data.profile,
+        profile,
         isGoogleAccount: isGoogleSignedIn,
         isSignedIn: true,
       };
@@ -336,6 +378,18 @@ export const signIn = createAsyncThunk(
             dispatch(userBookRatingsLoaded(data.userBookRatings || []));
           }
 
+          // Сохраняем профиль в локальную БД
+          if (data.profile) {
+            try {
+              await initDatabase();
+              await saveProfile(data.profile);
+              // eslint-disable-next-line no-console
+              console.log('👤 [signIn Google] Профиль сохранен в локальную БД');
+            } catch (error) {
+              console.error('Error saving profile to local DB:', error);
+            }
+          }
+
           // Сохраняем токен в безопасное хранилище
           if (data.token) {
             try {
@@ -465,6 +519,18 @@ export const signIn = createAsyncThunk(
             dispatch(userBookRatingsLoaded(data.userBookRatings || []));
           }
 
+          // Сохраняем профиль в локальную БД
+          if (data.profile) {
+            try {
+              await initDatabase();
+              await saveProfile(data.profile);
+              // eslint-disable-next-line no-console
+              console.log('👤 [signIn] Профиль сохранен в локальную БД');
+            } catch (error) {
+              console.error('Error saving profile to local DB:', error);
+            }
+          }
+
           // Сохраняем токен в безопасное хранилище
           if (data.token) {
             try {
@@ -500,6 +566,17 @@ export const signUp = createAsyncThunk(`${PREFIX}/signUp`, async ({ email, passw
   try {
     const { data } = await AuthService().signUp({ email, password, language: NativeModules?.I18nManager?.localeIdentifier });
     if (data) {
+      // Сохраняем профиль в локальную БД
+      if (data.profile) {
+        try {
+          await initDatabase();
+          await saveProfile(data.profile);
+          // eslint-disable-next-line no-console
+          console.log('👤 [signUp] Профиль сохранен в локальную БД');
+        } catch (error) {
+          console.error('Error saving profile to local DB:', error);
+        }
+      }
       // Сохраняем токен в безопасное хранилище
       if (data.token) {
         try {
@@ -540,12 +617,13 @@ export const signOut = createAsyncThunk(`${PREFIX}/signOut`, async (_, { dispatc
     dispatch(clearCustomBooksData());
     dispatch(clearStatisticData());
     dispatch(clearGoalsData());
-    // Удаляем цель из локальной БД при выходе
+    // Удаляем цель и профиль из локальной БД при выходе
     try {
       await initDatabase();
       await deleteGoal();
+      await deleteProfile();
     } catch (error) {
-      console.error('Error deleting goal on sign out:', error);
+      console.error('Error deleting goal and profile on sign out:', error);
     }
 
     // Пытаемся выйти из Google Sign-In (может быть недоступен)
