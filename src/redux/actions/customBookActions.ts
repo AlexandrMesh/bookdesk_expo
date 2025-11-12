@@ -1,6 +1,7 @@
 import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
 
 import {
+  removeBookFromBoardAndSearch,
   updateBookVotesInCustomBook as sharedUpdateBookVotesInCustomBook,
   updateBookVotesInSuggestedBook as sharedUpdateBookVotesInSuggestedBook,
   updateCustomBook as sharedUpdateCustomBook,
@@ -140,6 +141,30 @@ export const updateUserCustomBook = createAsyncThunk(
         annotation: '',
         bookStatus: '' as unknown as BookStatus,
       };
+    }
+  },
+);
+
+export const deleteCustomBook = createAsyncThunk(
+  `${PREFIX}/deleteCustomBook`,
+  async (bookId: string, { dispatch }: AppThunkAPI) => {
+    try {
+      // Удаляем книгу из кэша board_data и связанных таблиц
+      try {
+        const { removeBookFromCache } = await import('~utils/boardStorage');
+        await removeBookFromCache(bookId);
+      } catch (e) {
+        console.error('Failed to remove custom book from board_data cache', e);
+      }
+
+      // Удаляем книгу из Redux state через action
+      dispatch(removeBookFromBoardAndSearch(bookId));
+      dispatch(triggerReloadCustomBookList());
+
+      return bookId;
+    } catch (error) {
+      console.error('Error deleting custom book:', error);
+      throw error;
     }
   },
 );

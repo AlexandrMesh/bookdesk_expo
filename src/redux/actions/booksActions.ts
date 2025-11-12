@@ -6,6 +6,7 @@ import { ALL } from '~constants/boardType';
 import { PAGE_SIZE } from '~constants/bookList';
 import DataService from '~http/services/books';
 import {
+  removeBookFromBoardAndSearch as sharedRemoveBookFromBoardAndSearch,
   triggerReloadBookList as sharedTriggerReloadBookList,
   updateBookOnBoardAndSearch as sharedUpdateBookOnBoardAndSearch,
   updateBookVotesInCustomBook,
@@ -798,3 +799,4 @@ export const updateBookVotes = createAsyncThunk(
 // Re-export shared actions for backward compatibility
 export const triggerReloadBookList = sharedTriggerReloadBookList;
 export const updateBookOnBoardAndSearch = sharedUpdateBookOnBoardAndSearch;
+export const removeBookFromBoardAndSearch = sharedRemoveBookFromBoardAndSearch;

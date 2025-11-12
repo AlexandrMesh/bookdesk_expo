@@ -170,13 +170,16 @@ export default StyleSheet.create({
   footerButtonsWrapper: {
     display: 'flex',
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 10,
   },
   footerButton: {
-    maxWidth: 160,
-    marginHorizontal: 10,
+    flex: 1,
+    marginHorizontal: 5,
+  },
+  deleteButton: {
+    borderColor: colors.error,
   },
   contentSpinnerWrapper: {
     width: '100%',

@@ -15,8 +15,9 @@ import CloseIcon from '~assets/close.svg';
 import { DEFAULT_COVER } from '~constants/customBooks';
 import { CLOSE_ICON } from '~constants/dimensions';
 import { SECONDARY } from '~constants/themes';
+import useDisplayAlert from '~hooks/useDisplayAlert';
 import useGetImgUrl from '~hooks/useGetImgUrl';
-import { updateUserCustomBook } from '~redux/actions/customBookActions';
+import { deleteCustomBook, updateUserCustomBook } from '~redux/actions/customBookActions';
 import colors from '~styles/colors';
 import { BookStatus } from '~types/books';
 import Button from '~UI/Button';
@@ -64,6 +65,7 @@ const EditCustomBook = () => {
   );
   const [pagesError, setPagesError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Cover state
   const initialCoverPath = params.coverPath || DEFAULT_COVER;
@@ -253,6 +255,22 @@ const EditCustomBook = () => {
       setIsSaving(false);
     }
   };
+
+  const handleDeleteBook = async () => {
+    try {
+      setIsDeleting(true);
+      await dispatch(deleteCustomBook(params.bookId));
+      navigation.goBack();
+      showToast(t('customBook:bookSuccessfullyDeleted', { defaultValue: 'Книга успешно удалена' }));
+    } catch (error) {
+      console.error('Error deleting book:', error);
+      showToast(t('customBook:bookDeletionError', { defaultValue: 'Ошибка при удалении книги' }));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const displayDeleteConfirmation = useDisplayAlert(handleDeleteBook);
 
   const getImageUri = (cover: string) => {
     console.log('getImageUri called with cover:', cover, 'imgUrl:', imgUrl);
@@ -570,11 +588,24 @@ const EditCustomBook = () => {
         <View style={[styles.footerContainer, { paddingBottom: Math.max(insets.bottom, 10) }]}>
           <Text style={styles.tip}>{t('common:requiredFields')}</Text>
           <View style={styles.footerButtonsWrapper}>
-            <Button disabled={isSaving} theme={SECONDARY} style={styles.footerButton} onPress={() => navigation.goBack()} title={t('common:back')} />
+            <Button
+              disabled={isSaving || isDeleting}
+              theme={SECONDARY}
+              style={styles.footerButton}
+              onPress={() => navigation.goBack()}
+              title={t('common:back')}
+            />
+            <Button
+              disabled={isSaving || isDeleting}
+              theme={SECONDARY}
+              style={[styles.footerButton, styles.deleteButton]}
+              onPress={displayDeleteConfirmation}
+              title={t('common:delete', { defaultValue: 'Удалить' })}
+            />
             <Button
               icon={isSaving ? <Spinner size='small' /> : undefined}
               style={styles.footerButton}
-              disabled={!isValidForm || isSaving}
+              disabled={!isValidForm || isSaving || isDeleting}
               onPress={handleEditBook}
               title={t('common:save')}
             />

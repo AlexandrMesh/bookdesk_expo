@@ -374,6 +374,24 @@ export default createReducer(defaultState, (builder) => {
         state.search.data = [updatedBook, ...state.search.data];
       }
     })
+    .addCase(booksActions.removeBookFromBoardAndSearch, (state, { payload: bookId }) => {
+      // Удаляем книгу со всех досок
+      Object.keys(state.board).forEach((boardType) => {
+        const board = state.board[boardType as BookStatus];
+        const bookIndex = board.data.findIndex((book) => book.bookId === bookId);
+        if (bookIndex >= 0) {
+          board.data = board.data.filter((book) => book.bookId !== bookId);
+          board.pagination.totalItems = Math.max(0, (board.pagination.totalItems || 0) - 1);
+        }
+      });
+      
+      // Удаляем книгу из поиска
+      state.search.data = state.search.data.filter((book) => book.bookId !== bookId);
+      
+      // Удаляем связанные данные
+      state.bookNotes = state.bookNotes.filter((note) => note.bookId !== bookId);
+      state.bookRatings = state.bookRatings.filter((rating) => rating.bookId !== bookId);
+    })
     .addCase(booksActions.triggerReloadBookList, (state, action) => {
       state.board[action.payload].data = [];
       state.board[action.payload].shouldReloadData = true;

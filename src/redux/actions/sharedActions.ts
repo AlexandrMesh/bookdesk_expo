@@ -20,4 +20,5 @@ export const updateBookOnBoardAndSearch = createAction<{
   added?: number;
   annotation?: string;
 }>(`${PREFIX}/updateBookOnBoardAndSearch`);
+export const removeBookFromBoardAndSearch = createAction<string>(`${PREFIX}/removeBookFromBoardAndSearch`);
 export const triggerReloadBookList = createAction<BookStatus>(`${PREFIX}/triggerReloadBookList`);

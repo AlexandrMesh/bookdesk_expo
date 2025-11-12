@@ -293,6 +293,12 @@ export default createReducer(defaultState, (builder) => {
         book.bookId === bookId ? { ...book, title, pages, authorsList } : book,
       );
     })
+    .addCase(customBooksActions.deleteCustomBook.fulfilled, (state, { payload: bookId }) => {
+      // Удаляем книгу из списка кастомных книг
+      state.booksData.data = state.booksData.data.filter((book) => book.bookId !== bookId);
+      // Удаляем из предложенных книг, если есть
+      state.add.steps[1].suggestedBooks.data = state.add.steps[1].suggestedBooks.data.filter((book) => book.bookId !== bookId);
+    })
     .addCase(customBooksActions.clearSuggestedBooks, (state) => {
       state.add.steps[1].suggestedBooks = getDefaultSuggestedBooksState();
     })

@@ -744,6 +744,73 @@ export const updateBookStatusInCache = async (bookId: string, bookStatus: BookSt
 };
 
 /**
+ * Удаление книги из всех записей кэша
+ */
+export const removeBookFromCache = async (bookId: string): Promise<void> => {
+  try {
+    const database = await getDatabase();
+
+    // Получаем все записи, содержащие эту книгу
+    const allRecords = await database.getAllAsync<{
+      id: number;
+      board_type: string;
+      page_index: number;
+      filter_params: string;
+      sort_type: string;
+      sort_direction: string;
+      language: string;
+      data: string;
+      total_items: number;
+      has_next_page: number;
+      books_count_by_year: string | null;
+      timestamp: number;
+    }>(`SELECT * FROM board_data`);
+
+    let removedCount = 0;
+
+    for (const record of allRecords) {
+      const books = JSON.parse(record.data) as IBook[];
+      const bookIndex = books.findIndex((book) => book.bookId === bookId);
+
+      if (bookIndex !== -1) {
+        // Удаляем книгу из массива
+        books.splice(bookIndex, 1);
+        const updatedData = JSON.stringify(books);
+
+        // Обновляем запись в БД
+        await database.runAsync(
+          `UPDATE board_data SET data = ?, total_items = ?, timestamp = ? WHERE id = ?`,
+          [updatedData, Math.max(0, (record.total_items || 0) - 1), Date.now(), record.id],
+        );
+
+        removedCount++;
+      }
+    }
+
+    // Удаляем связанные данные (дата, рейтинг, заметки)
+    try {
+      await database.runAsync(`DELETE FROM book_dates WHERE book_id = ?`, [bookId]);
+      await database.runAsync(`DELETE FROM book_ratings WHERE book_id = ?`, [bookId]);
+      await database.runAsync(`DELETE FROM book_notes WHERE book_id = ?`, [bookId]);
+    } catch (e) {
+      console.error('Error deleting related book data:', e);
+    }
+
+    if (removedCount > 0) {
+      // eslint-disable-next-line no-console
+      console.log(`🗑️ [SQLite Cache] Книга удалена из кэша:`);
+      // eslint-disable-next-line no-console
+      console.log(`   bookId: ${bookId}`);
+      // eslint-disable-next-line no-console
+      console.log(`   Удалено из записей: ${removedCount}`);
+    }
+  } catch (error) {
+    console.error('Error removing book from cache:', error);
+    throw error;
+  }
+};
+
+/**
  * Сохранение даты книги в локальную БД
  */
 export const saveBookDate = async (bookId: string, added: number, bookStatus?: BookStatus | null): Promise<void> => {
