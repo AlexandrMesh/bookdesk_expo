@@ -6,12 +6,11 @@ import { createMaterialTopTabNavigator } from '@react-navigation/material-top-ta
 import { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 
-import { BOOKS_STATISTIC_ROUTE, PAGES_STATISTIC_ROUTE, RATING_STATISTIC_ROUTE } from '~constants/routes';
+import { BOOKS_STATISTIC_ROUTE, PAGES_STATISTIC_ROUTE } from '~constants/routes';
 import colors from '~styles/colors';
 
 import Books from './Books';
 import Pages from './Pages';
-import Rating from './Rating';
 import styles from './styles';
 
 type Props = {
@@ -49,7 +48,6 @@ const HeaderTabs: FC<Props> = ({ t }) => (
   >
     <Tab.Screen name={BOOKS_STATISTIC_ROUTE} component={Books} options={{ tabBarLabel: ({ focused }) => renderLabel(t('books'), focused) }} />
     <Tab.Screen name={PAGES_STATISTIC_ROUTE} component={Pages} options={{ tabBarLabel: ({ focused }) => renderLabel(t('pages'), focused) }} />
-    <Tab.Screen name={RATING_STATISTIC_ROUTE} component={Rating} options={{ tabBarLabel: ({ focused }) => renderLabel(t('rating'), focused) }} />
   </Tab.Navigator>
 );
 

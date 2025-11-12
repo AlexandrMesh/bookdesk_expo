@@ -8,7 +8,7 @@ import colors from '~styles/colors';
 import i18n from '~translations/i18n';
 import { BookStatus } from '~types/books';
 import { IStat } from '~types/stat';
-import { getGoalItemsByYear, initDatabase } from '~utils/boardStorage';
+import { getBooksByYear, getGoalItemsByYear, initDatabase } from '~utils/boardStorage';
 import generateBarChartData from '~utils/generateBarChartData';
 
 const PREFIX = 'STATISTIC';
@@ -18,17 +18,19 @@ export const triggerReloadStat = createAction(`${PREFIX}/triggerReloadStat`);
 export const clearData = createAction(`${PREFIX}/clearData`);
 
 export const loadStat = createAsyncThunk(`${PREFIX}/loadStat`, async (boardType: BookStatus) => {
-  const { language } = i18n;
   try {
-    const { data } = (await DataService().getBooksCountByYearForStat({ boardType, language })) || {};
-    const chartData = generateBarChartData(data.items);
+    // Загружаем и группируем книги из локальной БД
+    await initDatabase();
+    const { items, booksReadPerMonth, booksReadPerYear } = await getBooksByYear();
+
+    const chartData = generateBarChartData(items);
     return {
       data: chartData,
-      booksReadPerMonth: data.booksReadPerMonth,
-      booksReadPerYear: data.booksReadPerYear,
+      booksReadPerMonth,
+      booksReadPerYear,
     };
   } catch (error) {
-    console.error(error);
+    console.error('Error loading books stat:', error);
     return {
       data: {
         data: [],
