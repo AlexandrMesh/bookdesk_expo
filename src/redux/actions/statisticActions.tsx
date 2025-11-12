@@ -3,12 +3,12 @@ import React from 'react';
 import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
 
 import DataService from '~http/services/books';
-import GoalsService from '~http/services/goals';
 import DataPointLabel from '~screens/Statistic/DataPointLabel';
 import colors from '~styles/colors';
 import i18n from '~translations/i18n';
 import { BookStatus } from '~types/books';
 import { IStat } from '~types/stat';
+import { getGoalItemsByYear, initDatabase } from '~utils/boardStorage';
 import generateBarChartData from '~utils/generateBarChartData';
 
 const PREFIX = 'STATISTIC';
@@ -43,17 +43,19 @@ export const loadStat = createAsyncThunk(`${PREFIX}/loadStat`, async (boardType:
 });
 
 export const loadPagesStat = createAsyncThunk(`${PREFIX}/loadPagesStat`, async () => {
-  const { language } = i18n;
   try {
-    const { data } = (await GoalsService().getUserGoalItemsByYear({ language })) || {};
-    const chartData = generateBarChartData(data.items, 20);
+    // Загружаем и группируем goal items из локальной БД
+    await initDatabase();
+    const { items, pagesReadPerMonth, pagesReadPerYear } = await getGoalItemsByYear();
+
+    const chartData = generateBarChartData(items, 20);
     return {
       data: chartData,
-      pagesReadPerMonth: data.pagesReadPerMonth,
-      pagesReadPerYear: data.pagesReadPerYear,
+      pagesReadPerMonth,
+      pagesReadPerYear,
     };
   } catch (error) {
-    console.error(error);
+    console.error('Error loading pages stat:', error);
     return {
       data: {
         data: [],

@@ -93,6 +93,15 @@ export const initDatabase = async (): Promise<void> => {
           timestamp INTEGER NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_book_notes_book_id ON book_notes(book_id);
+        CREATE TABLE IF NOT EXISTS goal_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          item_id TEXT NOT NULL UNIQUE,
+          pages INTEGER NOT NULL,
+          added_at INTEGER NOT NULL,
+          timestamp INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_goal_items_item_id ON goal_items(item_id);
+        CREATE INDEX IF NOT EXISTS idx_goal_items_added_at ON goal_items(added_at);
         CREATE TABLE IF NOT EXISTS categories (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           language TEXT NOT NULL,
@@ -1159,6 +1168,173 @@ export const deleteBookNote = async (bookId: string): Promise<void> => {
   } catch (error) {
     console.error('Error deleting book note:', error);
     throw error;
+  }
+};
+
+/**
+ * Сохранение goal item в локальную БД
+ */
+export const saveGoalItem = async (itemId: string, pages: number, addedAt: number): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    const timestamp = Date.now();
+
+    await database.runAsync(`INSERT OR REPLACE INTO goal_items (item_id, pages, added_at, timestamp) VALUES (?, ?, ?, ?)`, [
+      itemId,
+      pages,
+      addedAt,
+      timestamp,
+    ]);
+
+    // eslint-disable-next-line no-console
+    console.log(`📊 [SQLite Cache] Goal item сохранен: itemId=${itemId}, pages=${pages}, addedAt=${new Date(addedAt).toLocaleDateString()}`);
+  } catch (error) {
+    console.error('Error saving goal item:', error);
+    throw error;
+  }
+};
+
+/**
+ * Сохранение массива goal items в локальную БД (для первого запуска)
+ */
+export const saveGoalItems = async (items: Array<{ _id: string; pages: number; added_at: number }>): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    const timestamp = Date.now();
+
+    // Используем транзакцию для быстрой вставки
+    await database.withTransactionAsync(async () => {
+      for (const item of items) {
+        await database.runAsync(`INSERT OR REPLACE INTO goal_items (item_id, pages, added_at, timestamp) VALUES (?, ?, ?, ?)`, [
+          item._id,
+          item.pages,
+          item.added_at,
+          timestamp,
+        ]);
+      }
+    });
+
+    // eslint-disable-next-line no-console
+    console.log(`📊 [SQLite Cache] Сохранено goal items: ${items.length}`);
+  } catch (error) {
+    console.error('Error saving goal items:', error);
+    throw error;
+  }
+};
+
+/**
+ * Загрузка всех goal items из локальной БД
+ */
+export const loadGoalItems = async (): Promise<Array<{ _id: string; pages: number; added_at: number }>> => {
+  try {
+    const database = await getDatabase();
+    const results = await database.getAllAsync<{
+      item_id: string;
+      pages: number;
+      added_at: number;
+      timestamp: number;
+    }>(`SELECT item_id, pages, added_at, timestamp FROM goal_items ORDER BY added_at DESC`);
+
+    const items = results.map((result) => ({
+      _id: result.item_id,
+      pages: result.pages,
+      added_at: result.added_at,
+    }));
+
+    // eslint-disable-next-line no-console
+    console.log(`📊 [SQLite Cache] Загружено goal items из локальной БД: ${items.length}`);
+    if (items.length > 0) {
+      // eslint-disable-next-line no-console
+      console.log(
+        `   Первые 5 items:`,
+        items
+          .slice(0, 5)
+          .map((i) => `${i._id}:${i.pages} pages (${new Date(i.added_at).toLocaleDateString()})`)
+          .join(', '),
+      );
+    }
+
+    return items;
+  } catch (error) {
+    console.error('Error loading goal items:', error);
+    return [];
+  }
+};
+
+/**
+ * Удаление goal item из локальной БД
+ */
+export const deleteGoalItem = async (itemId: string): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    await database.runAsync(`DELETE FROM goal_items WHERE item_id = ?`, [itemId]);
+    // eslint-disable-next-line no-console
+    console.log(`🗑️ [SQLite Cache] Goal item удален: itemId=${itemId}`);
+  } catch (error) {
+    console.error('Error deleting goal item:', error);
+    throw error;
+  }
+};
+
+/**
+ * Группировка goal items по годам и месяцам для статистики
+ */
+export const getGoalItemsByYear = async (): Promise<{
+  items: Array<{ year: number; month: number; count: number }>;
+  pagesReadPerMonth: number;
+  pagesReadPerYear: number;
+}> => {
+  try {
+    const allItems = await loadGoalItems();
+
+    // Группируем по годам и месяцам
+    const groupedByYearMonth: Record<string, number> = {};
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1;
+
+    allItems.forEach((item) => {
+      const date = new Date(item.added_at);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const key = `${year}-${month}`;
+
+      if (!groupedByYearMonth[key]) {
+        groupedByYearMonth[key] = 0;
+      }
+      groupedByYearMonth[key] += item.pages;
+    });
+
+    // Преобразуем в формат для generateBarChartData
+    const items = Object.entries(groupedByYearMonth).map(([key, count]) => {
+      const [year, month] = key.split('-').map(Number);
+      return { year, month, count };
+    });
+
+    // Вычисляем pagesReadPerMonth (текущий месяц)
+    const currentMonthKey = `${currentYear}-${currentMonth}`;
+    const pagesReadPerMonth = groupedByYearMonth[currentMonthKey] || 0;
+
+    // Вычисляем pagesReadPerYear (текущий год)
+    const pagesReadPerYear = Object.entries(groupedByYearMonth)
+      .filter(([key]) => key.startsWith(`${currentYear}-`))
+      .reduce((sum, [, count]) => sum + count, 0);
+
+    // eslint-disable-next-line no-console
+    console.log(`📊 [getGoalItemsByYear] Сгруппировано по годам/месяцам: ${items.length} записей`);
+
+    return {
+      items,
+      pagesReadPerMonth,
+      pagesReadPerYear,
+    };
+  } catch (error) {
+    console.error('Error grouping goal items by year:', error);
+    return {
+      items: [],
+      pagesReadPerMonth: 0,
+      pagesReadPerYear: 0,
+    };
   }
 };
 
