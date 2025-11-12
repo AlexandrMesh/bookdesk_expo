@@ -1,6 +1,6 @@
 import React, { FC } from 'react';
 
-import { Linking, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +9,7 @@ import { useAppDispatch, useAppSelector } from '~hooks';
 
 import { ABOUT_ROUTE } from '~constants/routes';
 import { SECONDARY } from '~constants/themes';
+import { useAppUpdates } from '~hooks/useAppUpdates';
 import { signOut } from '~redux/actions/authActions';
 import { getRegistered, getUserEmail } from '~redux/selectors/auth';
 import Button from '~UI/Button';
@@ -17,11 +18,11 @@ import LanguageSettings from './LanguageSettings';
 import styles from './styles';
 
 type Props = {
-  isTheLatestAppVersion?: boolean;
+  isUpdateAvailable?: boolean;
   googlePlayUrl: string;
 };
 
-const Profile: FC<Props> = ({ isTheLatestAppVersion, googlePlayUrl }) => {
+const Profile: FC<Props> = ({ isUpdateAvailable, googlePlayUrl }) => {
   const { t, i18n } = useTranslation(['profile', 'common', 'app']);
   const navigation = useNavigation<any>();
 
@@ -32,6 +33,7 @@ const Profile: FC<Props> = ({ isTheLatestAppVersion, googlePlayUrl }) => {
 
   const email = useAppSelector(getUserEmail);
   const registered = useAppSelector(getRegistered);
+  const { downloadAndInstallUpdate, isDownloading } = useAppUpdates();
 
   return (
     <View style={styles.container}>
@@ -50,10 +52,14 @@ const Profile: FC<Props> = ({ isTheLatestAppVersion, googlePlayUrl }) => {
       <View style={styles.buttonsWrapper}>
         <View style={styles.buttons}>
           <ScrollView>
-            {!isTheLatestAppVersion && (
+            {isUpdateAvailable && (
               <View style={styles.marginBottom}>
                 <Text style={[styles.updateLabel]}>{t('newVersionAvailable')}</Text>
-                <Button onPress={() => Linking.openURL(googlePlayUrl)} title={t('common:update')} />
+                <Button
+                  disabled={isDownloading}
+                  onPress={downloadAndInstallUpdate}
+                  title={isDownloading ? t('common:downloading', { defaultValue: 'Загрузка...' }) : t('common:update')}
+                />
               </View>
             )}
             <Button theme={SECONDARY} style={styles.marginBottom} onPress={() => navigation.navigate(ABOUT_ROUTE)} title={t('aboutApp')} />

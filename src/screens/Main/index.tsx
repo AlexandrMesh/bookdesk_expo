@@ -4,10 +4,8 @@ import { useNetInfo } from '@react-native-community/netinfo';
 import { BottomTabBar, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import Constants from 'expo-constants';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { lt } from 'semver';
 
 import { useAppDispatch, useAppSelector } from '~hooks';
 
@@ -82,7 +80,6 @@ const SignIn = lazy(() => import('~screens/Auth/SignIn'));
 const SignUp = lazy(() => import('~screens/Auth/SignUp'));
 
 const UnderConstruction = lazy(() => import('./UnderConstruction'));
-const UpdateApp = lazy(() => import('./UpdateApp'));
 const NoConnection = lazy(() => import('./NoConnection'));
 
 const Tab = createBottomTabNavigator();
@@ -283,11 +280,11 @@ const AddCustomBookNavigator: FC = () => {
 };
 
 type ProfileNavigatorProps = {
-  isTheLatestAppVersion: boolean;
+  isUpdateAvailable: boolean;
   googlePlayUrl: string;
 };
 
-const ProfileNavigator: FC<ProfileNavigatorProps> = ({ isTheLatestAppVersion, googlePlayUrl }) => {
+const ProfileNavigator: FC<ProfileNavigatorProps> = ({ isUpdateAvailable, googlePlayUrl }) => {
   const { t } = useTranslation('profile');
 
   return (
@@ -305,7 +302,7 @@ const ProfileNavigator: FC<ProfileNavigatorProps> = ({ isTheLatestAppVersion, go
       <Stack.Screen name={PROFILE_ROUTE} options={{ title: t('profile') }}>
         {() => (
           <InSuspense>
-            <Profile isTheLatestAppVersion={isTheLatestAppVersion} googlePlayUrl={googlePlayUrl} />
+            <Profile isUpdateAvailable={isUpdateAvailable} googlePlayUrl={googlePlayUrl} />
           </InSuspense>
         )}
       </Stack.Screen>
@@ -321,7 +318,14 @@ const ProfileNavigator: FC<ProfileNavigatorProps> = ({ isTheLatestAppVersion, go
 };
 
 type MainNavigatorProps = {
-  isTheLatestAppVersion: boolean;
+  isUpdateAvailable: boolean;
+  googlePlayUrl: string;
+  hasGoal: boolean;
+  goalType: GoalType | null;
+};
+
+type TabNavigatorProps = {
+  isUpdateAvailable: boolean;
   googlePlayUrl: string;
   hasGoal: boolean;
   goalType: GoalType | null;
@@ -354,7 +358,7 @@ const getIcon = (focused: boolean, route: any) => {
   return (icon as any)[route.name];
 };
 
-const TabNavigator: FC<MainNavigatorProps> = ({ isTheLatestAppVersion, googlePlayUrl, hasGoal, goalType }) => {
+const TabNavigator: FC<TabNavigatorProps> = ({ isUpdateAvailable, googlePlayUrl, hasGoal, goalType }) => {
   const { t } = useTranslation(['common']);
 
   return (
@@ -376,17 +380,17 @@ const TabNavigator: FC<MainNavigatorProps> = ({ isTheLatestAppVersion, googlePla
       <Tab.Screen
         name={PROFILE_NAVIGATOR_ROUTE}
         options={{
-          tabBarBadge: !isTheLatestAppVersion ? t('common:alert') : undefined,
+          tabBarBadge: isUpdateAvailable ? t('common:alert') : undefined,
           tabBarBadgeStyle: { backgroundColor: colors.success, color: colors.primary_dark },
         }}
       >
-        {() => <ProfileNavigator isTheLatestAppVersion={isTheLatestAppVersion} googlePlayUrl={googlePlayUrl} />}
+        {() => <ProfileNavigator isUpdateAvailable={isUpdateAvailable} googlePlayUrl={googlePlayUrl} />}
       </Tab.Screen>
     </Tab.Navigator>
   );
 };
 
-const MainNavigator: FC<MainNavigatorProps> = ({ isTheLatestAppVersion, googlePlayUrl, hasGoal, goalType }) => {
+const MainNavigator: FC<MainNavigatorProps> = ({ isUpdateAvailable, googlePlayUrl, hasGoal, goalType }) => {
   const { t } = useTranslation(['books', 'customBook']);
 
   return (
@@ -403,7 +407,7 @@ const MainNavigator: FC<MainNavigatorProps> = ({ isTheLatestAppVersion, googlePl
       }}
     >
       <Stack.Screen name='MainTabs' options={{ headerShown: false }}>
-        {() => <TabNavigator isTheLatestAppVersion={isTheLatestAppVersion} googlePlayUrl={googlePlayUrl} goalType={goalType} hasGoal={hasGoal} />}
+        {() => <TabNavigator isUpdateAvailable={isUpdateAvailable} googlePlayUrl={googlePlayUrl} goalType={goalType} hasGoal={hasGoal} />}
       </Stack.Screen>
       <Stack.Screen
         name={BOOK_NOTE_ROUTE}
@@ -444,9 +448,7 @@ const MainNavigator: FC<MainNavigatorProps> = ({ isTheLatestAppVersion, googlePl
 };
 
 const Main = () => {
-  const [shouldDisplayUpdateView, setShouldDisplayUpdateView] = useState(false);
   const [shouldDisplayUnderConstructionView, setShouldDisplayUnderConstructionView] = useState(false);
-  const [isTheLatestAppVersion, setIsTheLatestAppVersion] = useState(true);
   const [googlePlayUrl, setGooglePlayUrl] = useState('');
   const { isConnected } = useNetInfo();
 
@@ -455,7 +457,7 @@ const Main = () => {
   const _getConfig = useCallback((url: string) => dispatch(getConfig(url)), [dispatch]);
 
   // Хук для проверки EAS Updates
-  const { checkAndInstallUpdate } = useAppUpdates();
+  const { checkAndInstallUpdate, isUpdateAvailable } = useAppUpdates();
 
   const checkingStatus = useAppSelector(getCheckingStatus);
   const hasGoal = !!useAppSelector(getGoalNumberOfPages);
@@ -476,13 +478,9 @@ const Main = () => {
   const getConfiguration = useCallback(
     async (url: string) => {
       try {
-        const { minimumSupportedAppVersion, underConstruction, appVersion, googlePlayUrl } = await _getConfig(url).unwrap();
-        const currentVersion = Constants.expoConfig?.version || '1.0.0';
-        setIsTheLatestAppVersion(appVersion === currentVersion);
+        const { underConstruction, googlePlayUrl } = await _getConfig(url).unwrap();
         setGooglePlayUrl(googlePlayUrl);
-        if (minimumSupportedAppVersion && lt(currentVersion, minimumSupportedAppVersion)) {
-          setShouldDisplayUpdateView(true);
-        } else if (underConstruction) {
+        if (underConstruction) {
           setShouldDisplayUnderConstructionView(true);
         } else {
           checkAuthentication();
@@ -515,32 +513,27 @@ const Main = () => {
     }
   }, [isConnected, checkingStatus, getConfiguration]);
 
+  // Проверка EAS Updates при запуске приложения
+  useEffect(() => {
+    checkAndInstallUpdate().catch(() => {
+      // Игнорируем ошибки проверки обновлений
+    });
+  }, [checkAndInstallUpdate]);
+
   // Проверка EAS Updates после успешной авторизации
   useEffect(() => {
     if (isSignedIn && checkingStatus === SUCCEEDED) {
-      checkAndInstallUpdate().catch(() => {
-        // Игнорируем ошибки проверки обновлений
-      });
-
       // Мягкий запрос оценки приложения при выполнении локальных критериев
       maybeAskForReview().catch(() => {
         // Игнорируем ошибки StoreReview
       });
     }
-  }, [isSignedIn, checkingStatus, checkAndInstallUpdate]);
+  }, [isSignedIn, checkingStatus]);
 
   if (shouldDisplayUnderConstructionView) {
     return (
       <InSuspense>
         <UnderConstruction />
-      </InSuspense>
-    );
-  }
-
-  if (shouldDisplayUpdateView) {
-    return (
-      <InSuspense>
-        <UpdateApp />
       </InSuspense>
     );
   }
@@ -562,7 +555,7 @@ const Main = () => {
       <NavigationContainer>
         {isSignedIn ? (
           <>
-            <MainNavigator isTheLatestAppVersion={isTheLatestAppVersion} googlePlayUrl={googlePlayUrl} goalType={goalType} hasGoal={hasGoal} />
+            <MainNavigator isUpdateAvailable={isUpdateAvailable} googlePlayUrl={googlePlayUrl} goalType={goalType} hasGoal={hasGoal} />
             <InSuspense>
               <>
                 <Modals />

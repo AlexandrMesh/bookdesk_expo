@@ -12,8 +12,8 @@ import { clearData as clearCustomBooksData } from '~redux/actions/customBookActi
 import { clearData as clearGoalsData, setGoal } from '~redux/actions/goalsActions';
 import { clearData as clearStatisticData } from '~redux/actions/statisticActions';
 import i18n, { getT } from '~translations/i18n';
-import { removeToken, saveToken } from '~utils/secureStorage';
 import { initDatabase, loadBookNotes, loadBookRatings, loadUserVotes } from '~utils/boardStorage';
+import { removeToken, saveToken } from '~utils/secureStorage';
 
 // Динамический импорт GoogleSignin для совместимости с Expo Go
 let GoogleSigninModule: any = null;
@@ -96,7 +96,6 @@ export const getConfig = createAsyncThunk(`${PREFIX}/getConfig`, async (url: str
       apiUrl,
       imgUrl,
       googlePlayUrl,
-      appVersion,
       underConstruction,
       underConstructionMessage,
       underConstructionMessageEn,
@@ -111,7 +110,6 @@ export const getConfig = createAsyncThunk(`${PREFIX}/getConfig`, async (url: str
     await AsyncStorage.setItem('apiUrl', apiUrl);
     await AsyncStorage.setItem('imgUrl', imgUrl);
     await AsyncStorage.setItem('googlePlayUrl', googlePlayUrl);
-    await AsyncStorage.setItem('appVersion', appVersion);
     await AsyncStorage.setItem('enabledSupportAppModal', enabledSupportAppModal);
     await AsyncStorage.setItem('daysRegisteredUserFromNowToDisplaySupportAppModal', daysRegisteredUserFromNowToDisplaySupportAppModal);
     await AsyncStorage.setItem('daysViewedSupportModalFromNowToDisplaySupportAppModal', daysViewedSupportModalFromNowToDisplaySupportAppModal);
@@ -124,10 +122,8 @@ export const getConfig = createAsyncThunk(`${PREFIX}/getConfig`, async (url: str
     return {
       apiUrl: data?.apiUrl,
       imgUrl: data?.imgUrl,
-      minimumSupportedAppVersion: data?.minimumSupportedAppVersion,
       googlePlayUrl: data?.googlePlayUrl,
       underConstruction: data?.underConstruction,
-      appVersion: data?.appVersion,
     };
   } catch (error) {
     console.error(error);

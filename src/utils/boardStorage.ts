@@ -708,10 +708,12 @@ export const addBookToCache = async (boardType: BookStatus, newBook: IBook): Pro
       if (!exists) {
         const updatedBooks = [newBook, ...books];
         const updatedData = JSON.stringify(updatedBooks);
-        await database.runAsync(
-          `UPDATE board_data SET data = ?, total_items = ?, timestamp = ? WHERE id = ?`,
-          [updatedData, (record.total_items || 0) + 1, now, record.id],
-        );
+        await database.runAsync(`UPDATE board_data SET data = ?, total_items = ?, timestamp = ? WHERE id = ?`, [
+          updatedData,
+          (record.total_items || 0) + 1,
+          now,
+          record.id,
+        ]);
       }
     }
 
@@ -778,10 +780,12 @@ export const removeBookFromCache = async (bookId: string): Promise<void> => {
         const updatedData = JSON.stringify(books);
 
         // Обновляем запись в БД
-        await database.runAsync(
-          `UPDATE board_data SET data = ?, total_items = ?, timestamp = ? WHERE id = ?`,
-          [updatedData, Math.max(0, (record.total_items || 0) - 1), Date.now(), record.id],
-        );
+        await database.runAsync(`UPDATE board_data SET data = ?, total_items = ?, timestamp = ? WHERE id = ?`, [
+          updatedData,
+          Math.max(0, (record.total_items || 0) - 1),
+          Date.now(),
+          record.id,
+        ]);
 
         removedCount++;
       }
