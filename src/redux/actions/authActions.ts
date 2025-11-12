@@ -1,17 +1,14 @@
 import { NativeModules } from 'react-native';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
 import Constants from 'expo-constants';
 
-import { RU } from '~constants/languages';
 import AuthService from '~http/services/auth';
 import { clearBooksData, setBookNotes, setBookVotes, userBookRatingsLoaded } from '~redux/actions/booksActions';
 import { clearData as clearCustomBooksData } from '~redux/actions/customBookActions';
 import { clearData as clearGoalsData, setGoal } from '~redux/actions/goalsActions';
 import { clearData as clearStatisticData } from '~redux/actions/statisticActions';
-import i18n, { getT } from '~translations/i18n';
+import { getT } from '~translations/i18n';
 import { initDatabase, loadBookNotes, loadBookRatings, loadUserVotes } from '~utils/boardStorage';
 import { removeToken, saveToken } from '~utils/secureStorage';
 
@@ -79,57 +76,6 @@ const PREFIX = 'AUTH';
 export const authCheckingFailed = createAction(`${PREFIX}/authCheckingFailed`);
 export const setSignInError = createAction<{ fieldName: string; error: string | null }>(`${PREFIX}/setSignInError`);
 export const setSignUpError = createAction<{ fieldName: string; error: string | null }>(`${PREFIX}/setSignUpError`);
-
-export const getConfig = createAsyncThunk(`${PREFIX}/getConfig`, async (url: string) => {
-  try {
-    const { data } = await axios({
-      method: 'get',
-      url,
-      headers: {
-        'Cache-Control': 'no-cache',
-        Pragma: 'no-cache',
-        Expires: '0',
-      },
-      timeout: 5000,
-    });
-    const {
-      apiUrl,
-      imgUrl,
-      googlePlayUrl,
-      underConstruction,
-      underConstructionMessage,
-      underConstructionMessageEn,
-      enabledSupportAppModal,
-      daysRegisteredUserFromNowToDisplaySupportAppModal,
-      daysViewedSupportModalFromNowToDisplaySupportAppModal,
-      appName,
-      email,
-      description,
-      descriptionEn,
-    } = data || {};
-    await AsyncStorage.setItem('apiUrl', apiUrl);
-    await AsyncStorage.setItem('imgUrl', imgUrl);
-    await AsyncStorage.setItem('googlePlayUrl', googlePlayUrl);
-    await AsyncStorage.setItem('enabledSupportAppModal', enabledSupportAppModal);
-    await AsyncStorage.setItem('daysRegisteredUserFromNowToDisplaySupportAppModal', daysRegisteredUserFromNowToDisplaySupportAppModal);
-    await AsyncStorage.setItem('daysViewedSupportModalFromNowToDisplaySupportAppModal', daysViewedSupportModalFromNowToDisplaySupportAppModal);
-    await AsyncStorage.setItem('underConstruction', underConstruction);
-    await AsyncStorage.setItem('underConstructionMessage', i18n.language === RU ? underConstructionMessage : underConstructionMessageEn);
-    await AsyncStorage.setItem('appName', appName);
-    await AsyncStorage.setItem('email', email);
-    await AsyncStorage.setItem('description', i18n.language === RU ? description : descriptionEn);
-
-    return {
-      apiUrl: data?.apiUrl,
-      imgUrl: data?.imgUrl,
-      googlePlayUrl: data?.googlePlayUrl,
-      underConstruction: data?.underConstruction,
-    };
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
-});
 
 export const signInFailed = createAsyncThunk(`${PREFIX}/signInFailed`, async (error: { response: { data: { fieldName: string; key: string } } }) => {
   const responseData = error?.response?.data;

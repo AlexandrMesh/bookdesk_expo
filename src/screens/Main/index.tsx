@@ -42,7 +42,7 @@ import {
   STAT_ROUTE,
 } from '~constants/routes';
 import { useAppUpdates } from '~hooks/useAppUpdates';
-import { checkAuth, getConfig } from '~redux/actions/authActions';
+import { checkAuth } from '~redux/actions/authActions';
 import { getCheckingStatus, getIsSignedIn } from '~redux/selectors/auth';
 import { getGoalNumberOfPages, getGoalType } from '~redux/selectors/goals';
 import Home from '~screens/Home';
@@ -58,7 +58,7 @@ import ClearFilters from './ClearFilters';
 import CloseComponent from './CloseComponent';
 import EditComponent from './EditComponent';
 import InSuspense from './InSuspense';
-import { MAIN_CONFIG_URL, RESERVE_CONFIG_URL } from '../../config/api';
+import { APP_CONFIG, initializeAppConfig } from '../../config/appConfig';
 
 const Search = lazy(() => import('~screens/Search'));
 const BookNote = lazy(() => import('~screens/Home/BookNote'));
@@ -454,7 +454,6 @@ const Main = () => {
 
   const dispatch = useAppDispatch();
   const _checkAuth = useCallback((token: string) => dispatch(checkAuth(token)), [dispatch]);
-  const _getConfig = useCallback((url: string) => dispatch(getConfig(url)), [dispatch]);
 
   // Хук для проверки EAS Updates
   const { checkAndInstallUpdate, isUpdateAvailable } = useAppUpdates();
@@ -475,32 +474,21 @@ const Main = () => {
     }
   }, [_checkAuth]);
 
-  const getConfiguration = useCallback(
-    async (url: string) => {
-      try {
-        const { underConstruction, googlePlayUrl } = await _getConfig(url).unwrap();
-        setGooglePlayUrl(googlePlayUrl);
-        if (underConstruction) {
-          setShouldDisplayUnderConstructionView(true);
-        } else {
-          checkAuthentication();
-        }
-      } catch {
-        // If we have troubles with connection to MAIN_CONFIG_URL we will try to connect to RESERVE_CONFIG_URL
-        if (url === MAIN_CONFIG_URL) {
-          getConfiguration(RESERVE_CONFIG_URL);
-        } else {
-          // Если оба конфига не работают, все равно пробуем проверить авторизацию
-          checkAuthentication();
-        }
-      }
-    },
-    [_getConfig, checkAuthentication],
-  );
-
+  // Инициализация конфигурации приложения
   useEffect(() => {
-    recordAppOpen();
-    getConfiguration(MAIN_CONFIG_URL);
+    const initConfig = async () => {
+      await initializeAppConfig();
+      setGooglePlayUrl(APP_CONFIG.googlePlayUrl);
+
+      if (APP_CONFIG.underConstruction) {
+        setShouldDisplayUnderConstructionView(true);
+      } else {
+        recordAppOpen();
+        checkAuthentication();
+      }
+    };
+
+    initConfig();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -509,9 +497,9 @@ const Main = () => {
     // Если подключение восстановилось, а мы еще не проверяли авторизацию,
     // пробуем проверить еще раз
     if (isConnected === true && checkingStatus === IDLE) {
-      getConfiguration(MAIN_CONFIG_URL);
+      checkAuthentication();
     }
-  }, [isConnected, checkingStatus, getConfiguration]);
+  }, [isConnected, checkingStatus, checkAuthentication]);
 
   // Проверка EAS Updates при запуске приложения
   useEffect(() => {
