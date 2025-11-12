@@ -80,4 +80,3 @@ export const deleteBookNote = async (bookId: string): Promise<void> => {
     throw error;
   }
 };
-
