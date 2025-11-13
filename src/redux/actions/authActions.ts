@@ -20,9 +20,12 @@ import {
   loadProfile,
   loadUserVotes,
   resetAllDatabaseData,
+  saveBookNote,
+  saveBookRating,
   saveGoal,
   saveGuestProfile,
   saveProfile,
+  saveUserVotes,
 } from '~utils/boardStorage';
 import { removeToken, saveToken } from '~utils/secureStorage';
 
@@ -204,34 +207,36 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
     await initDatabase();
     let profile = await loadProfile();
 
+    let serverData: any = null;
+
     if (!profile) {
       // Если в локальной БД нет профиля, загружаем с сервера (первый раз)
       // eslint-disable-next-line no-console
-      console.log('👤 [checkAuth] Профиля в локальной БД нет, загружаем с сервера');
-      const { data } = await AuthService().checkAuth(token);
-      if (data.profile) {
-        profile = data.profile;
-        await saveProfile(profile);
-        // eslint-disable-next-line no-console
-        console.log('👤 [checkAuth] Профиль сохранен в локальную БД');
-      } else {
-        // Если профиль пустой, значит токен недействителен - удаляем его
-        await removeToken();
-        return rejectWithValue('Invalid token - no profile returned');
+      console.log('👤 [checkAuth] Профиля в локальной БД нет, загружаем с сервера (первый раз)');
+      try {
+        const { data } = await AuthService().checkAuth(token);
+        serverData = data;
+        if (data.profile) {
+          profile = data.profile;
+          await saveProfile(profile);
+          // eslint-disable-next-line no-console
+          console.log('👤 [checkAuth] Профиль сохранен в локальную БД');
+        } else {
+          // Если профиль пустой, значит токен недействителен - удаляем его
+          await removeToken();
+          return rejectWithValue('Invalid token - no profile returned');
+        }
+      } catch (error) {
+        console.error('Error loading profile from server:', error);
+        // При ошибке создаем гостевого пользователя
+        await saveGuestProfile();
+        profile = await loadProfile();
+        serverData = null;
       }
     } else {
       // eslint-disable-next-line no-console
-      console.log('👤 [checkAuth] Загружен профиль из локальной БД');
-      // Проверяем токен на сервере (для валидации, но не используем данные профиля)
-      try {
-        await AuthService().checkAuth(token);
-      } catch (error) {
-        // Если токен недействителен, удаляем профиль из локальной БД
-        console.error('Token validation failed, removing profile from local DB:', error);
-        await deleteProfile();
-        await removeToken();
-        return rejectWithValue('Invalid token');
-      }
+      console.log('👤 [checkAuth] Загружен профиль из локальной БД - работаем только с локальной БД, без запросов к серверу');
+      // Профиль уже есть - не делаем запросов к серверу, работаем только с локальной БД
     }
 
     if (profile) {
@@ -243,25 +248,21 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
           // eslint-disable-next-line no-console
           console.log('🎯 [checkAuth] Загружена цель из локальной БД');
           dispatch(setGoal({ pages: localGoal.numberOfPages || 0, type: localGoal.goalType as any }));
-        } else {
-          // Если в локальной БД нет цели, используем с сервера (первый раз)
-          const { numberOfPagesForGoal, goalType } = data;
+        } else if (serverData) {
+          // Если в локальной БД нет цели, но есть данные с сервера (первый раз) - сохраняем
+          const { numberOfPagesForGoal, goalType } = serverData;
           if (numberOfPagesForGoal) {
             // eslint-disable-next-line no-console
-            console.log('🎯 [checkAuth] Цели в локальной БД нет, используем с сервера');
+            console.log('🎯 [checkAuth] Цели в локальной БД нет, сохраняем с сервера (первый раз)');
             await saveGoal(numberOfPagesForGoal, goalType);
             dispatch(setGoal({ pages: numberOfPagesForGoal, type: goalType }));
           }
         }
       } catch (error) {
         console.error('Error loading goal from local DB:', error);
-        // В случае ошибки используем данные с сервера
-        const { numberOfPagesForGoal, goalType } = data;
-        if (numberOfPagesForGoal) {
-          dispatch(setGoal({ pages: numberOfPagesForGoal, type: goalType }));
-        }
       }
-      // Загружаем заметки из локальной БД вместо сервера
+
+      // Загружаем заметки из локальной БД
       try {
         await initDatabase();
         const localBookNotes = await loadBookNotes();
@@ -269,19 +270,28 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
           // eslint-disable-next-line no-console
           console.log('📝 [checkAuth] Загружены заметки из локальной БД');
           dispatch(setBookNotes(localBookNotes));
-        } else {
-          // Если в локальной БД нет заметок, используем с сервера (первый раз)
+        } else if (serverData) {
+          // Если в локальной БД нет заметок, но есть данные с сервера (первый раз) - сохраняем
           // eslint-disable-next-line no-console
-          console.log('📝 [checkAuth] Заметок в локальной БД нет, используем с сервера');
-          dispatch(setBookNotes(data.userComments || []));
+          console.log('📝 [checkAuth] Заметок в локальной БД нет, сохраняем с сервера (первый раз)');
+          const notes = serverData.userComments || [];
+          dispatch(setBookNotes(notes));
+          // Сохраняем заметки в локальную БД
+          if (notes.length > 0) {
+            for (const note of notes) {
+              try {
+                await saveBookNote(note.bookId, note.comment, note.added);
+              } catch (error) {
+                console.error(`Error saving note for book ${note.bookId}:`, error);
+              }
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading book notes from local DB:', error);
-        // В случае ошибки используем данные с сервера
-        dispatch(setBookNotes(data.userComments || []));
       }
 
-      // Загружаем лайки из локальной БД вместо сервера
+      // Загружаем лайки из локальной БД
       try {
         await initDatabase();
         const localUserVotes = await loadUserVotes();
@@ -289,19 +299,22 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
           // eslint-disable-next-line no-console
           console.log('👍 [checkAuth] Загружены лайки из локальной БД');
           dispatch(setBookVotes(localUserVotes));
-        } else {
-          // Если в локальной БД нет лайков, используем с сервера (первый раз)
+        } else if (serverData) {
+          // Если в локальной БД нет лайков, но есть данные с сервера (первый раз) - сохраняем
           // eslint-disable-next-line no-console
-          console.log('👍 [checkAuth] Лайков в локальной БД нет, используем с сервера');
-          dispatch(setBookVotes(data.userVotes || []));
+          console.log('👍 [checkAuth] Лайков в локальной БД нет, сохраняем с сервера (первый раз)');
+          const votes = serverData.userVotes || [];
+          dispatch(setBookVotes(votes));
+          // Сохраняем лайки в локальную БД
+          if (votes.length > 0) {
+            await saveUserVotes(votes);
+          }
         }
       } catch (error) {
         console.error('Error loading user votes from local DB:', error);
-        // В случае ошибки используем данные с сервера
-        dispatch(setBookVotes(data.userVotes || []));
       }
 
-      // Загружаем рейтинги из локальной БД вместо сервера
+      // Загружаем рейтинги из локальной БД
       try {
         await initDatabase();
         const localRatings = await loadBookRatings();
@@ -309,16 +322,25 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
           // eslint-disable-next-line no-console
           console.log('📖 [checkAuth] Загружены рейтинги из локальной БД');
           dispatch(userBookRatingsLoaded(localRatings));
-        } else {
-          // Если в локальной БД нет рейтингов, используем с сервера (первый раз)
+        } else if (serverData) {
+          // Если в локальной БД нет рейтингов, но есть данные с сервера (первый раз) - сохраняем
           // eslint-disable-next-line no-console
-          console.log('📖 [checkAuth] Рейтингов в локальной БД нет, используем с сервера');
-          dispatch(userBookRatingsLoaded(data.userBookRatings || []));
+          console.log('📖 [checkAuth] Рейтингов в локальной БД нет, сохраняем с сервера (первый раз)');
+          const ratings = serverData.userBookRatings || [];
+          dispatch(userBookRatingsLoaded(ratings));
+          // Сохраняем рейтинги в локальную БД
+          if (ratings.length > 0) {
+            for (const rating of ratings) {
+              try {
+                await saveBookRating(rating.bookId, rating.rating);
+              } catch (error) {
+                console.error(`Error saving rating for book ${rating.bookId}:`, error);
+              }
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading ratings from local DB:', error);
-        // В случае ошибки используем данные с сервера
-        dispatch(userBookRatingsLoaded(data.userBookRatings || []));
       }
 
       return {
@@ -452,8 +474,19 @@ export const signIn = createAsyncThunk(
               dispatch(userBookRatingsLoaded(localRatings));
             } else {
               // eslint-disable-next-line no-console
-              console.log('📖 [signIn Google] Рейтингов в локальной БД нет, используем с сервера');
-              dispatch(userBookRatingsLoaded(data.userBookRatings || []));
+              console.log('📖 [signIn Google] Рейтингов в локальной БД нет, сохраняем с сервера (первый раз)');
+              const ratings = data.userBookRatings || [];
+              dispatch(userBookRatingsLoaded(ratings));
+              // Сохраняем рейтинги в локальную БД
+              if (ratings.length > 0) {
+                for (const rating of ratings) {
+                  try {
+                    await saveBookRating(rating.bookId, rating.rating);
+                  } catch (error) {
+                    console.error(`Error saving rating for book ${rating.bookId}:`, error);
+                  }
+                }
+              }
             }
           } catch (error) {
             console.error('Error loading ratings from local DB:', error);
@@ -575,12 +608,26 @@ export const signIn = createAsyncThunk(
               dispatch(setBookVotes(localUserVotes));
             } else {
               // eslint-disable-next-line no-console
-              console.log('👍 [signIn Google] Лайков в локальной БД нет, используем с сервера');
-              dispatch(setBookVotes(data.userVotes || []));
+              console.log('👍 [signIn] Лайков в локальной БД нет, сохраняем с сервера (первый раз)');
+              const votes = data.userVotes || [];
+              dispatch(setBookVotes(votes));
+              // Сохраняем лайки в локальную БД
+              if (votes.length > 0) {
+                await saveUserVotes(votes);
+              }
             }
           } catch (error) {
             console.error('Error loading user votes from local DB:', error);
-            dispatch(setBookVotes(data.userVotes || []));
+            const votes = data.userVotes || [];
+            dispatch(setBookVotes(votes));
+            // Сохраняем лайки в локальную БД
+            if (votes.length > 0) {
+              try {
+                await saveUserVotes(votes);
+              } catch (saveError) {
+                console.error('Error saving user votes:', saveError);
+              }
+            }
           }
 
           // Загружаем рейтинги из локальной БД вместо сервера
@@ -593,8 +640,19 @@ export const signIn = createAsyncThunk(
               dispatch(userBookRatingsLoaded(localRatings));
             } else {
               // eslint-disable-next-line no-console
-              console.log('📖 [signIn] Рейтингов в локальной БД нет, используем с сервера');
-              dispatch(userBookRatingsLoaded(data.userBookRatings || []));
+              console.log('📖 [signIn] Рейтингов в локальной БД нет, сохраняем с сервера (первый раз)');
+              const ratings = data.userBookRatings || [];
+              dispatch(userBookRatingsLoaded(ratings));
+              // Сохраняем рейтинги в локальную БД
+              if (ratings.length > 0) {
+                for (const rating of ratings) {
+                  try {
+                    await saveBookRating(rating.bookId, rating.rating);
+                  } catch (error) {
+                    console.error(`Error saving rating for book ${rating.bookId}:`, error);
+                  }
+                }
+              }
             }
           } catch (error) {
             console.error('Error loading ratings from local DB:', error);
