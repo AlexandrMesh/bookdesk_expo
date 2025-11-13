@@ -3,16 +3,17 @@ import { NativeModules } from 'react-native';
 import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
 import Constants from 'expo-constants';
 
+import { ALL, COMPLETED, IN_PROGRESS, PLANNED } from '~constants/boardType';
 import AuthService from '~http/services/auth';
-import { clearBooksData, setBookNotes, setBookVotes, userBookRatingsLoaded } from '~redux/actions/booksActions';
+import { clearBooksData, loadBookList, setBookNotes, setBookVotes, userBookRatingsLoaded } from '~redux/actions/booksActions';
 import { clearData as clearCustomBooksData } from '~redux/actions/customBookActions';
 import { clearData as clearGoalsData, setGoal } from '~redux/actions/goalsActions';
 import { clearData as clearStatisticData } from '~redux/actions/statisticActions';
 import { getT } from '~translations/i18n';
+import { IProfile } from '~types/auth';
 import {
   deleteGoal,
   deleteProfile,
-  hasUserProfile,
   initDatabase,
   loadBookNotes,
   loadBookRatings,
@@ -23,14 +24,27 @@ import {
   saveBookNote,
   saveBookRating,
   saveGoal,
+  saveGoalItems,
   saveGuestProfile,
   saveProfile,
   saveUserVotes,
+  setSyncWithLocalDatabaseCompleted,
 } from '~utils/boardStorage';
-import { removeToken, saveToken } from '~utils/secureStorage';
+import { getToken, removeToken, saveToken } from '~utils/secureStorage';
 
 // Динамический импорт GoogleSignin для совместимости с Expo Go
 let GoogleSigninModule: any = null;
+
+const getDefaultProfileState = (): IProfile => ({
+  _id: '',
+  email: '',
+  registered: null,
+  updated: null,
+  supportApp: {
+    confirmed: false,
+    viewedAt: null,
+  },
+});
 
 const getGoogleSignin = async () => {
   const isExpoGo = Constants.appOwnership === 'expo';
@@ -112,13 +126,71 @@ export const signInFailed = createAsyncThunk(`${PREFIX}/signInFailed`, async (er
 export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: string, { dispatch, rejectWithValue }) => {
   await initDatabase();
 
+  // Сначала проверяем, есть ли профиль и установлен ли syncWithLocalDatabaseCompleted
+  let profile: IProfile | null = await loadProfile();
+
+  // Если syncWithLocalDatabaseCompleted = true, работаем только с локальной БД, не проверяем токен
+  if (profile?.syncWithLocalDatabaseCompleted) {
+    // eslint-disable-next-line no-console
+    console.log('✅ [checkAuth] syncWithLocalDatabaseCompleted=true, работаем только с локальной БД');
+
+    // Загружаем все данные из локальной БД
+    try {
+      const localGoal = await loadGoal();
+      if (localGoal) {
+        dispatch(setGoal({ pages: localGoal.numberOfPages || 0, type: localGoal.goalType as any }));
+      }
+    } catch (error) {
+      console.error('Error loading goal from local DB:', error);
+    }
+
+    try {
+      const localBookNotes = await loadBookNotes();
+      if (localBookNotes.length > 0) {
+        dispatch(setBookNotes(localBookNotes));
+      }
+    } catch (error) {
+      console.error('Error loading book notes from local DB:', error);
+    }
+
+    try {
+      const localUserVotes = await loadUserVotes();
+      if (localUserVotes.length > 0) {
+        dispatch(setBookVotes(localUserVotes));
+      }
+    } catch (error) {
+      console.error('Error loading user votes from local DB:', error);
+    }
+
+    try {
+      const localRatings = await loadBookRatings();
+      if (localRatings.length > 0) {
+        dispatch(userBookRatingsLoaded(localRatings));
+      }
+    } catch (error) {
+      console.error('Error loading ratings from local DB:', error);
+    }
+
+    const isUserSignedIn = profile.email && profile.email.trim() !== '';
+    const profileForReturn: IProfile = {
+      ...profile,
+      syncWithLocalDatabaseCompleted: profile.syncWithLocalDatabaseCompleted ?? false,
+      isNewUser: profile.isNewUser ?? false,
+    };
+    return {
+      profile: profileForReturn,
+      isGoogleAccount: false,
+      isSignedIn: isUserSignedIn,
+    };
+  }
+
   // Если нет токена - проверяем наличие профиля, если нет - создаем гостевого пользователя
   if (!token) {
     // eslint-disable-next-line no-console
     console.log('🔓 [checkAuth] Токен не предоставлен, проверяем наличие профиля');
     try {
       // Проверяем, есть ли уже профиль в локальной БД
-      let profile = await loadProfile();
+      profile = await loadProfile();
       if (!profile) {
         // Профиля нет - создаем гостевого пользователя
         // eslint-disable-next-line no-console
@@ -178,10 +250,20 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
           console.error('Error loading ratings from local DB:', error);
         }
       }
+
+      // Определяем, залогинен ли пользователь: если у профиля есть email, значит пользователь залогинен
+      const isUserSignedIn = profile && profile.email && profile.email.trim() !== '';
+      // Проверяем наличие токена в хранилище для дополнительной проверки
+      const storedToken = await getToken();
+      const hasValidToken = !!storedToken;
+
+      // eslint-disable-next-line no-console
+      console.log(`👤 [checkAuth] Профиль загружен: email=${profile?.email || 'нет'}, isSignedIn=${isUserSignedIn}, hasToken=${hasValidToken}`);
+
       return {
         profile: profile || getDefaultProfileState(),
         isGoogleAccount: false,
-        isSignedIn: false,
+        isSignedIn: isUserSignedIn && hasValidToken,
       };
     } catch (error) {
       console.error('Error handling guest profile:', error);
@@ -203,24 +285,23 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
       // Игнорируем ошибку Google Sign-In при проверке статуса
     }
 
-    // Загружаем профиль из локальной БД
-    await initDatabase();
-    let profile = await loadProfile();
-
+    // Если есть токен и syncWithLocalDatabaseCompleted = false - загружаем все данные с сервера
+    // Если токена нет - работаем только с локальной БД
     let serverData: any = null;
 
-    if (!profile) {
-      // Если в локальной БД нет профиля, загружаем с сервера (первый раз)
+    if (token) {
+      // Есть токен и syncWithLocalDatabaseCompleted = false - загружаем все данные с сервера
       // eslint-disable-next-line no-console
-      console.log('👤 [checkAuth] Профиля в локальной БД нет, загружаем с сервера (первый раз)');
+      console.log('👤 [checkAuth] Есть токен и syncWithLocalDatabaseCompleted=false, загружаем все данные с сервера');
       try {
         const { data } = await AuthService().checkAuth(token);
         serverData = data;
         if (data.profile) {
-          profile = data.profile;
-          await saveProfile(profile);
+          const serverProfile = data.profile;
+          profile = serverProfile;
+          await saveProfile({ ...serverProfile, syncWithLocalDatabaseCompleted: false }); // Пока не установим true
           // eslint-disable-next-line no-console
-          console.log('👤 [checkAuth] Профиль сохранен в локальную БД');
+          console.log('👤 [checkAuth] Профиль загружен с сервера и сохранен в локальную БД');
         } else {
           // Если профиль пустой, значит токен недействителен - удаляем его
           await removeToken();
@@ -228,55 +309,63 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
         }
       } catch (error) {
         console.error('Error loading profile from server:', error);
-        // При ошибке создаем гостевого пользователя
-        await saveGuestProfile();
-        profile = await loadProfile();
+        // При ошибке загрузки с сервера - работаем с локальной БД
+        // Если локального профиля нет - создаем гостевого пользователя
+        if (!profile) {
+          await saveGuestProfile();
+          const loadedProfile = await loadProfile();
+          if (loadedProfile) {
+            profile = loadedProfile as IProfile;
+          } else {
+            profile = getDefaultProfileState();
+          }
+        }
         serverData = null;
+        // Удаляем недействительный токен
+        await removeToken();
       }
     } else {
+      // Токена нет - работаем только с локальной БД
       // eslint-disable-next-line no-console
-      console.log('👤 [checkAuth] Загружен профиль из локальной БД - работаем только с локальной БД, без запросов к серверу');
-      // Профиль уже есть - не делаем запросов к серверу, работаем только с локальной БД
+      console.log('👤 [checkAuth] Токена нет, работаем только с локальной БД');
+      if (!profile) {
+        // Если профиля нет - создаем гостевого пользователя
+        await saveGuestProfile();
+        const loadedProfile = await loadProfile();
+        if (loadedProfile) {
+          profile = loadedProfile as IProfile;
+        } else {
+          profile = getDefaultProfileState();
+        }
+      }
     }
 
     if (profile) {
-      // Загружаем цель из локальной БД
-      try {
-        await initDatabase();
-        const localGoal = await loadGoal();
-        if (localGoal) {
-          // eslint-disable-next-line no-console
-          console.log('🎯 [checkAuth] Загружена цель из локальной БД');
-          dispatch(setGoal({ pages: localGoal.numberOfPages || 0, type: localGoal.goalType as any }));
-        } else if (serverData) {
-          // Если в локальной БД нет цели, но есть данные с сервера (первый раз) - сохраняем
+      // Если есть данные с сервера - используем их и обновляем локальную БД
+      // Если данных с сервера нет - загружаем из локальной БД
+      if (serverData) {
+        // eslint-disable-next-line no-console
+        console.log('📥 [checkAuth] Используем данные с сервера и обновляем локальную БД');
+
+        // Загружаем и сохраняем цель с сервера
+        try {
           const { numberOfPagesForGoal, goalType } = serverData;
           if (numberOfPagesForGoal) {
             // eslint-disable-next-line no-console
-            console.log('🎯 [checkAuth] Цели в локальной БД нет, сохраняем с сервера (первый раз)');
+            console.log('🎯 [checkAuth] Сохраняем цель с сервера в локальную БД');
             await saveGoal(numberOfPagesForGoal, goalType);
             dispatch(setGoal({ pages: numberOfPagesForGoal, type: goalType }));
           }
+        } catch (error) {
+          console.error('Error saving goal from server:', error);
         }
-      } catch (error) {
-        console.error('Error loading goal from local DB:', error);
-      }
 
-      // Загружаем заметки из локальной БД
-      try {
-        await initDatabase();
-        const localBookNotes = await loadBookNotes();
-        if (localBookNotes.length > 0) {
-          // eslint-disable-next-line no-console
-          console.log('📝 [checkAuth] Загружены заметки из локальной БД');
-          dispatch(setBookNotes(localBookNotes));
-        } else if (serverData) {
-          // Если в локальной БД нет заметок, но есть данные с сервера (первый раз) - сохраняем
-          // eslint-disable-next-line no-console
-          console.log('📝 [checkAuth] Заметок в локальной БД нет, сохраняем с сервера (первый раз)');
+        // Загружаем и сохраняем заметки с сервера
+        try {
           const notes = serverData.userComments || [];
+          // eslint-disable-next-line no-console
+          console.log(`📝 [checkAuth] Сохраняем ${notes.length} заметок с сервера в локальную БД`);
           dispatch(setBookNotes(notes));
-          // Сохраняем заметки в локальную БД
           if (notes.length > 0) {
             for (const note of notes) {
               try {
@@ -286,49 +375,29 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
               }
             }
           }
+        } catch (error) {
+          console.error('Error saving book notes from server:', error);
         }
-      } catch (error) {
-        console.error('Error loading book notes from local DB:', error);
-      }
 
-      // Загружаем лайки из локальной БД
-      try {
-        await initDatabase();
-        const localUserVotes = await loadUserVotes();
-        if (localUserVotes.length > 0) {
-          // eslint-disable-next-line no-console
-          console.log('👍 [checkAuth] Загружены лайки из локальной БД');
-          dispatch(setBookVotes(localUserVotes));
-        } else if (serverData) {
-          // Если в локальной БД нет лайков, но есть данные с сервера (первый раз) - сохраняем
-          // eslint-disable-next-line no-console
-          console.log('👍 [checkAuth] Лайков в локальной БД нет, сохраняем с сервера (первый раз)');
+        // Загружаем и сохраняем лайки с сервера
+        try {
           const votes = serverData.userVotes || [];
+          // eslint-disable-next-line no-console
+          console.log(`👍 [checkAuth] Сохраняем ${votes.length} лайков с сервера в локальную БД`);
           dispatch(setBookVotes(votes));
-          // Сохраняем лайки в локальную БД
           if (votes.length > 0) {
             await saveUserVotes(votes);
           }
+        } catch (error) {
+          console.error('Error saving user votes from server:', error);
         }
-      } catch (error) {
-        console.error('Error loading user votes from local DB:', error);
-      }
 
-      // Загружаем рейтинги из локальной БД
-      try {
-        await initDatabase();
-        const localRatings = await loadBookRatings();
-        if (localRatings.length > 0) {
-          // eslint-disable-next-line no-console
-          console.log('📖 [checkAuth] Загружены рейтинги из локальной БД');
-          dispatch(userBookRatingsLoaded(localRatings));
-        } else if (serverData) {
-          // Если в локальной БД нет рейтингов, но есть данные с сервера (первый раз) - сохраняем
-          // eslint-disable-next-line no-console
-          console.log('📖 [checkAuth] Рейтингов в локальной БД нет, сохраняем с сервера (первый раз)');
+        // Загружаем и сохраняем рейтинги с сервера
+        try {
           const ratings = serverData.userBookRatings || [];
+          // eslint-disable-next-line no-console
+          console.log(`📖 [checkAuth] Сохраняем ${ratings.length} рейтингов с сервера в локальную БД`);
           dispatch(userBookRatingsLoaded(ratings));
-          // Сохраняем рейтинги в локальную БД
           if (ratings.length > 0) {
             for (const rating of ratings) {
               try {
@@ -338,15 +407,121 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
               }
             }
           }
+        } catch (error) {
+          console.error('Error saving ratings from server:', error);
         }
-      } catch (error) {
-        console.error('Error loading ratings from local DB:', error);
+
+        // Загружаем и сохраняем журнал страниц (goal items) с сервера
+        try {
+          const goalItems = serverData.goalItems || [];
+          // eslint-disable-next-line no-console
+          console.log(`📊 [checkAuth] Сохраняем ${goalItems.length} записей журнала страниц с сервера в локальную БД`);
+          if (goalItems.length > 0) {
+            await saveGoalItems(goalItems);
+          }
+        } catch (error) {
+          console.error('Error saving goal items from server:', error);
+        }
+
+        // Загружаем книги с сервера для всех досок
+        // eslint-disable-next-line no-console
+        console.log('📚 [checkAuth] Загружаем книги с сервера для всех досок');
+        try {
+          const boardTypes = [ALL, PLANNED, IN_PROGRESS, COMPLETED] as const;
+          for (const boardType of boardTypes) {
+            try {
+              // eslint-disable-next-line no-console
+              console.log(`📚 [checkAuth] Загружаем книги для доски: ${boardType}`);
+              await dispatch(loadBookList({ boardType, shouldLoadMoreResults: false, forceRefresh: true })).unwrap();
+            } catch (error) {
+              console.error(`Error loading books for board ${boardType}:`, error);
+              // Продолжаем загрузку других досок даже при ошибке
+            }
+          }
+          // eslint-disable-next-line no-console
+          console.log('✅ [checkAuth] Все книги загружены с сервера');
+        } catch (error) {
+          console.error('Error loading books from server:', error);
+          // Продолжаем работу даже при ошибке загрузки книг
+        }
+
+        // После успешной загрузки всех данных с сервера - устанавливаем syncWithLocalDatabaseCompleted = true
+        // НЕ удаляем токен!
+        // eslint-disable-next-line no-console
+        console.log('✅ [checkAuth] Все данные загружены с сервера, устанавливаем syncWithLocalDatabaseCompleted=true');
+        await setSyncWithLocalDatabaseCompleted(true);
+        // Обновляем профиль с установленным флагом
+        if (profile) {
+          await saveProfile({ ...profile, syncWithLocalDatabaseCompleted: true });
+        }
+      } else {
+        // Данных с сервера нет - загружаем из локальной БД
+        // eslint-disable-next-line no-console
+        console.log('📥 [checkAuth] Загружаем данные из локальной БД');
+
+        // Загружаем цель из локальной БД
+        try {
+          await initDatabase();
+          const localGoal = await loadGoal();
+          if (localGoal) {
+            // eslint-disable-next-line no-console
+            console.log('🎯 [checkAuth] Загружена цель из локальной БД');
+            dispatch(setGoal({ pages: localGoal.numberOfPages || 0, type: localGoal.goalType as any }));
+          }
+        } catch (error) {
+          console.error('Error loading goal from local DB:', error);
+        }
+
+        // Загружаем заметки из локальной БД
+        try {
+          await initDatabase();
+          const localBookNotes = await loadBookNotes();
+          if (localBookNotes.length > 0) {
+            // eslint-disable-next-line no-console
+            console.log('📝 [checkAuth] Загружены заметки из локальной БД');
+            dispatch(setBookNotes(localBookNotes));
+          }
+        } catch (error) {
+          console.error('Error loading book notes from local DB:', error);
+        }
+
+        // Загружаем лайки из локальной БД
+        try {
+          await initDatabase();
+          const localUserVotes = await loadUserVotes();
+          if (localUserVotes.length > 0) {
+            // eslint-disable-next-line no-console
+            console.log('👍 [checkAuth] Загружены лайки из локальной БД');
+            dispatch(setBookVotes(localUserVotes));
+          }
+        } catch (error) {
+          console.error('Error loading user votes from local DB:', error);
+        }
+
+        // Загружаем рейтинги из локальной БД
+        try {
+          await initDatabase();
+          const localRatings = await loadBookRatings();
+          if (localRatings.length > 0) {
+            // eslint-disable-next-line no-console
+            console.log('📖 [checkAuth] Загружены рейтинги из локальной БД');
+            dispatch(userBookRatingsLoaded(localRatings));
+          }
+        } catch (error) {
+          console.error('Error loading ratings from local DB:', error);
+        }
       }
+
+      // Определяем, залогинен ли пользователь: если у профиля есть email, значит пользователь залогинен
+      const isUserSignedIn = profile.email && profile.email.trim() !== '';
+
+      // eslint-disable-next-line no-console
+      console.log(`👤 [checkAuth] Профиль загружен (с токеном): email=${profile.email || 'нет'}, isSignedIn=${isUserSignedIn}`);
 
       return {
         profile,
         isGoogleAccount: isGoogleSignedIn,
-        isSignedIn: true,
+        isSignedIn: isUserSignedIn,
       };
     }
 
@@ -791,6 +966,11 @@ export const signOut = createAsyncThunk(`${PREFIX}/signOut`, async (_, { dispatc
 export const resetData = createAsyncThunk(`${PREFIX}/resetData`, async (_, { dispatch }) => {
   try {
     await initDatabase();
+
+    // Сохраняем syncWithLocalDatabaseCompleted перед сбросом
+    const existingProfile = await loadProfile();
+    const wasSyncCompleted = existingProfile?.syncWithLocalDatabaseCompleted ?? false;
+
     await resetAllDatabaseData();
 
     // Очищаем Redux state
@@ -805,6 +985,16 @@ export const resetData = createAsyncThunk(`${PREFIX}/resetData`, async (_, { dis
     // Создаем нового гостевого пользователя с текущей датой регистрации
     // forceCreate=true чтобы принудительно создать нового пользователя даже если профиль был удален
     await saveGuestProfile(true);
+
+    // Если syncWithLocalDatabaseCompleted был true, сохраняем его
+    if (wasSyncCompleted) {
+      await setSyncWithLocalDatabaseCompleted(true);
+      const newProfile = await loadProfile();
+      if (newProfile) {
+        await saveProfile({ ...newProfile, syncWithLocalDatabaseCompleted: true });
+      }
+    }
+
     const newProfile = await loadProfile();
     if (newProfile) {
       // Обновляем Redux state с новым профилем через checkAuth
@@ -814,7 +1004,9 @@ export const resetData = createAsyncThunk(`${PREFIX}/resetData`, async (_, { dis
     }
 
     // eslint-disable-next-line no-console
-    console.log('✅ [resetData] Все данные приложения сброшены, создан новый гостевой пользователь');
+    console.log(
+      `✅ [resetData] Все данные приложения сброшены, создан новый гостевой пользователь, syncWithLocalDatabaseCompleted=${wasSyncCompleted}`,
+    );
   } catch (error) {
     console.error('Error resetting data:', error);
     throw error;

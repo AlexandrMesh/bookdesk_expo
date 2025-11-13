@@ -112,6 +112,35 @@ export const initDatabase = async (): Promise<void> => {
         );
         CREATE INDEX IF NOT EXISTS idx_categories_language ON categories(language);
       `);
+      
+      // Миграция: добавляем новые поля если их еще нет
+      // SQLite не поддерживает IF NOT EXISTS для ALTER TABLE, поэтому используем try-catch
+      try {
+        await db.execAsync(`
+          ALTER TABLE user_profile ADD COLUMN sync_with_local_database_completed INTEGER NOT NULL DEFAULT 0;
+        `);
+        // eslint-disable-next-line no-console
+        console.log('✅ [Migration] Added sync_with_local_database_completed column');
+      } catch (error: any) {
+        // Игнорируем ошибку если колонка уже существует
+        if (!error?.message?.includes('duplicate column') && !error?.message?.includes('already exists')) {
+          console.warn('Migration warning (sync_with_local_database_completed):', error);
+        }
+      }
+      
+      try {
+        await db.execAsync(`
+          ALTER TABLE user_profile ADD COLUMN is_new_user INTEGER NOT NULL DEFAULT 0;
+        `);
+        // eslint-disable-next-line no-console
+        console.log('✅ [Migration] Added is_new_user column');
+      } catch (error: any) {
+        // Игнорируем ошибку если колонка уже существует
+        if (!error?.message?.includes('duplicate column') && !error?.message?.includes('already exists')) {
+          console.warn('Migration warning (is_new_user):', error);
+        }
+      }
+      
       initPromise = null; // Сбрасываем промис после успешной инициализации
     } catch (error) {
       initPromise = null; // Сбрасываем промис при ошибке

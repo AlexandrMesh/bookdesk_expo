@@ -45,6 +45,8 @@ const getDefaultProfileState = (): IProfile => ({
     confirmed: false,
     viewedAt: null,
   },
+  syncWithLocalDatabaseCompleted: false,
+  isNewUser: false,
 });
 
 export interface IAuthState {

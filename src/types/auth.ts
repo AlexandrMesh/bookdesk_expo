@@ -6,6 +6,8 @@ export interface IProfile {
   registered: number | null;
   updated: number | null;
   supportApp: ISupportApp;
+  syncWithLocalDatabaseCompleted?: boolean;
+  isNewUser?: boolean;
 }
 
 export interface IError {
