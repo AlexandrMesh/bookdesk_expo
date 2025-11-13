@@ -70,7 +70,7 @@ const PlannedBooks = () => {
     }
   }, [_loadCategories, _loadBookList, loadingDataStatus, shouldReloadData, isFocused]);
 
-  if (sectionedBookListData.length === 0 && loadingDataStatus === SUCCEEDED && !shouldReloadData) {
+  if ((!sectionedBookListData || sectionedBookListData.length === 0) && loadingDataStatus === SUCCEEDED && !shouldReloadData) {
     return <EmptyBoard onAddPress={_goToAddBook} />;
   }
 
@@ -79,7 +79,7 @@ const PlannedBooks = () => {
       {loadingDataStatus !== IDLE && loadingDataStatus !== PENDING ? (
         <ActionBar boardType={PLANNED} shouldRenderFilterButton={false} totalItems={totalItems} />
       ) : null}
-      <BooksList data={sectionedBookListData} loadMoreBooks={_loadMoreBooks} loadingDataStatus={loadingDataStatus} onPressAdd={_goToAddBook} />
+      <BooksList data={sectionedBookListData || []} loadMoreBooks={_loadMoreBooks} loadingDataStatus={loadingDataStatus} onPressAdd={_goToAddBook} />
     </View>
   );
 };

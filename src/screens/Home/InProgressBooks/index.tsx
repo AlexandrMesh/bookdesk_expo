@@ -71,7 +71,7 @@ const InProgressBooks = () => {
     }
   }, [_loadCategories, _loadBookList, loadingDataStatus, shouldReloadData, isFocused]);
 
-  if (sectionedBookListData.length === 0 && loadingDataStatus === SUCCEEDED && !shouldReloadData) {
+  if ((!sectionedBookListData || sectionedBookListData.length === 0) && loadingDataStatus === SUCCEEDED && !shouldReloadData) {
     return <EmptyBoard onAddPress={_goToAddBook} />;
   }
 
@@ -80,7 +80,7 @@ const InProgressBooks = () => {
       {loadingDataStatus !== IDLE && loadingDataStatus !== PENDING ? (
         <ActionBar boardType={IN_PROGRESS} shouldRenderFilterButton={false} totalItems={totalItems} />
       ) : null}
-      <BooksList data={sectionedBookListData} loadMoreBooks={_loadMoreBooks} loadingDataStatus={loadingDataStatus} onPressAdd={_goToAddBook} />
+      <BooksList data={sectionedBookListData || []} loadMoreBooks={_loadMoreBooks} loadingDataStatus={loadingDataStatus} onPressAdd={_goToAddBook} />
     </View>
   );
 };

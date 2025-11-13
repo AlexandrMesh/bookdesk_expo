@@ -49,6 +49,7 @@ import colors from '~styles/colors';
 import i18n from '~translations/i18n';
 import { GoalType } from '~types/goals';
 import BannerAd from '~UI/BannerAd';
+import { Spinner } from '~UI/Spinner';
 import { hasUserProfile, initDatabase } from '~utils/boardStorage';
 import { maybeAskForReview, recordAppOpen } from '~utils/reviewPrompt';
 import { getToken } from '~utils/secureStorage';
@@ -532,7 +533,6 @@ const Main = () => {
   }
 
   // Показываем Splash только при первой инициализации (IDLE)
-  // Если проверка в процессе (PENDING) - показываем интерфейс, проверка идет в фоне
   if (checkingStatus === IDLE) {
     return <Splash />;
   }
@@ -548,6 +548,8 @@ const Main = () => {
             <CoverViewer />
           </>
         </InSuspense>
+        {/* Показываем спиннер во время синхронизации данных с сервера */}
+        {checkingStatus === PENDING && <Spinner label='Синхронизация данных...' />}
       </NavigationContainer>
     </SafeAreaProvider>
   );

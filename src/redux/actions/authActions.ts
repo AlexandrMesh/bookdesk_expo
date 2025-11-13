@@ -3,11 +3,11 @@ import { NativeModules } from 'react-native';
 import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
 import Constants from 'expo-constants';
 
-import { ALL, COMPLETED, IN_PROGRESS, PLANNED } from '~constants/boardType';
+import { COMPLETED, IN_PROGRESS, PLANNED } from '~constants/boardType';
 import AuthService from '~http/services/auth';
 import { clearBooksData, loadBookList, setBookNotes, setBookVotes, userBookRatingsLoaded } from '~redux/actions/booksActions';
 import { clearData as clearCustomBooksData } from '~redux/actions/customBookActions';
-import { clearData as clearGoalsData, setGoal } from '~redux/actions/goalsActions';
+import { clearData as clearGoalsData, getGoalItems, setGoal } from '~redux/actions/goalsActions';
 import { clearData as clearStatisticData } from '~redux/actions/statisticActions';
 import { getT } from '~translations/i18n';
 import { IProfile } from '~types/auth';
@@ -169,6 +169,15 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
       }
     } catch (error) {
       console.error('Error loading ratings from local DB:', error);
+    }
+
+    // Загружаем goal items из локальной БД
+    try {
+      await dispatch(getGoalItems()).unwrap();
+      // eslint-disable-next-line no-console
+      console.log('📊 [checkAuth] Goal items загружены из локальной БД в Redux state');
+    } catch (error) {
+      console.error('Error loading goal items from local DB:', error);
     }
 
     const isUserSignedIn = profile.email && profile.email.trim() !== '';
@@ -418,6 +427,10 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
           console.log(`📊 [checkAuth] Сохраняем ${goalItems.length} записей журнала страниц с сервера в локальную БД`);
           if (goalItems.length > 0) {
             await saveGoalItems(goalItems);
+            // Загружаем goal items в Redux state
+            await dispatch(getGoalItems()).unwrap();
+            // eslint-disable-next-line no-console
+            console.log('📊 [checkAuth] Goal items загружены в Redux state');
           }
         } catch (error) {
           console.error('Error saving goal items from server:', error);
@@ -453,6 +466,11 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
         // Обновляем профиль с установленным флагом
         if (profile) {
           await saveProfile({ ...profile, syncWithLocalDatabaseCompleted: true });
+          // Перезагружаем профиль из БД чтобы убедиться что все данные актуальны
+          const updatedProfile = await loadProfile();
+          if (updatedProfile) {
+            profile = updatedProfile as IProfile;
+          }
         }
       } else {
         // Данных с сервера нет - загружаем из локальной БД
@@ -509,6 +527,15 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
           }
         } catch (error) {
           console.error('Error loading ratings from local DB:', error);
+        }
+
+        // Загружаем goal items из локальной БД
+        try {
+          await dispatch(getGoalItems()).unwrap();
+          // eslint-disable-next-line no-console
+          console.log('📊 [checkAuth] Goal items загружены из локальной БД в Redux state');
+        } catch (error) {
+          console.error('Error loading goal items from local DB:', error);
         }
       }
 

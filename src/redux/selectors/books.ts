@@ -93,12 +93,15 @@ export const deriveCategoriesSearchResult = (status: BookStatus) =>
       : [];
   });
 
-export const deriveBoardData = (status: BookStatus) => createSelector([deriveBoard(status)], (board) => board.data);
+export const deriveBoardData = (status: BookStatus) => createSelector([deriveBoard(status)], (board) => (Array.isArray(board?.data) ? board.data : []));
 
 export const deriveBookListData = (status: BookStatus) =>
-  createSelector([deriveBoardData(status), getCategoriesData], (board, categories) =>
-    board.map((book) => ({ ...book, categoryValue: categories.find((category) => category.path === book.categoryPath)?.value })),
-  );
+  createSelector([deriveBoardData(status), getCategoriesData], (board, categories) => {
+    // Убеждаемся что board это массив
+    const boardArray = Array.isArray(board) ? board : [];
+    const categoriesArray = Array.isArray(categories) ? categories : [];
+    return boardArray.map((book) => ({ ...book, categoryValue: categoriesArray.find((category) => category.path === book.categoryPath)?.value }));
+  });
 
 export const deriveSectionedBookListData = (status: BookStatus) =>
   createSelector(

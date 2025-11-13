@@ -40,7 +40,7 @@ const BookList: FC<Props> = ({ data = [], loadMoreBooks = () => undefined, loadi
         </View>
       );
     }
-    if (loadingDataStatus === SUCCEEDED && data?.length > 0 && onPressAdd) {
+    if (loadingDataStatus === SUCCEEDED && safeData?.length > 0 && onPressAdd) {
       return (
         <View style={styles.footerAddWrapper}>
           <Button style={styles.footerAddButton} title={tBooks('addBook')} onPress={onPressAdd} />
@@ -48,7 +48,7 @@ const BookList: FC<Props> = ({ data = [], loadMoreBooks = () => undefined, loadi
       );
     }
     return null;
-  }, [data.length, loadingDataStatus, onPressAdd, tBooks]);
+  }, [safeData?.length, loadingDataStatus, onPressAdd, tBooks]);
 
   const getListEmptyComponent = useCallback(
     () => (
@@ -62,10 +62,10 @@ const BookList: FC<Props> = ({ data = [], loadMoreBooks = () => undefined, loadi
   );
 
   const onEndReached = useCallback(() => {
-    if (data?.length > 0 && loadingDataStatus !== PENDING && loadingDataStatus !== IDLE) {
+    if (safeData?.length > 0 && loadingDataStatus !== PENDING && loadingDataStatus !== IDLE) {
       loadMoreBooks();
     }
-  }, [data.length, loadMoreBooks, loadingDataStatus]);
+  }, [safeData?.length, loadMoreBooks, loadingDataStatus]);
 
   const getKeyExtractor = useCallback((item: IBook) => (typeof item === 'string' ? item : item.bookId), []);
 
