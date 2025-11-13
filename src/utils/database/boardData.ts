@@ -26,6 +26,9 @@ export const saveBoardData = async (
     const booksCountByYearStr = booksCountByYear ? JSON.stringify(booksCountByYear) : null;
     const timestamp = Date.now();
 
+    // Используем фиксированное значение 'all' для языка, чтобы данные были одинаковыми для всех языков
+    const universalLanguage = 'all';
+
     await database.runAsync(
       `INSERT OR REPLACE INTO board_data 
        (board_type, page_index, filter_params, sort_type, sort_direction, language, data, total_items, has_next_page, books_count_by_year, timestamp)
@@ -36,7 +39,7 @@ export const saveBoardData = async (
         filterParamsStr,
         sortType,
         sortDirection,
-        language,
+        universalLanguage,
         dataStr,
         totalItems,
         hasNextPage ? 1 : 0,
@@ -60,7 +63,7 @@ export const saveBoardData = async (
     // eslint-disable-next-line no-console
     console.log(`   Сортировка: ${sortType} (${sortDirection})`);
     // eslint-disable-next-line no-console
-    console.log(`   Язык: ${language}`);
+    console.log(`   Язык: ${universalLanguage} (универсальный для всех языков)`);
     // eslint-disable-next-line no-console
     console.log(`   Есть следующая страница: ${hasNextPage ? 'да' : 'нет'}`);
   } catch (error) {
@@ -108,18 +111,24 @@ export const loadBoardData = async (
       }>(
         `SELECT * FROM board_data 
          WHERE filter_params = ? 
-         AND sort_type = ? AND sort_direction = ? AND language = ?
-         ORDER BY page_index ASC`,
-        [filterParamsStr, sortType, sortDirection, language],
+         AND sort_type = ? AND sort_direction = ?
+         ORDER BY page_index ASC, timestamp DESC`,
+        [filterParamsStr, sortType, sortDirection],
       );
 
       if (allRecords.length > 0) {
         // Собираем все книги из всех записей
+        // Предпочитаем данные с языком 'all' (универсальные), если они есть
         const allBooks: IBook[] = [];
         let latestTimestamp = 0;
         let booksCountByYear: any = undefined;
 
-        for (const record of allRecords) {
+        // Сначала собираем данные с языком 'all', затем остальные
+        const recordsWithAll = allRecords.filter((r) => r.language === 'all');
+        const recordsOther = allRecords.filter((r) => r.language !== 'all');
+        const sortedRecords = [...recordsWithAll, ...recordsOther];
+
+        for (const record of sortedRecords) {
           const books = JSON.parse(record.data) as IBook[];
           allBooks.push(...books);
           if (record.timestamp > latestTimestamp) {
@@ -172,6 +181,7 @@ export const loadBoardData = async (
 
     // Для доски ALL или если не нашли книги, загружаем стандартным способом
     // Загружаем все страницы, так как мы больше не используем пагинацию
+    // Не фильтруем по языку - данные одинаковые для всех языков
     const allResults = await database.getAllAsync<{
       board_type: string;
       page_index: number;
@@ -187,9 +197,9 @@ export const loadBoardData = async (
     }>(
       `SELECT * FROM board_data 
        WHERE board_type = ? AND filter_params = ? 
-       AND sort_type = ? AND sort_direction = ? AND language = ?
-       ORDER BY page_index ASC`,
-      [boardType, filterParamsStr, sortType, sortDirection, language],
+       AND sort_type = ? AND sort_direction = ?
+       ORDER BY page_index ASC, timestamp DESC`,
+      [boardType, filterParamsStr, sortType, sortDirection],
     );
 
     if (!allResults || allResults.length === 0) {
@@ -197,12 +207,18 @@ export const loadBoardData = async (
     }
 
     // Собираем все книги из всех страниц
+    // Предпочитаем данные с языком 'all' (универсальные), если они есть
     const allBooks: IBook[] = [];
     let latestTimestamp = 0;
     let booksCountByYear: any = undefined;
     const filterParamsParsed = JSON.parse(allResults[0].filter_params) as string[];
 
-    for (const result of allResults) {
+    // Сначала собираем данные с языком 'all', затем остальные
+    const resultsWithAll = allResults.filter((r) => r.language === 'all');
+    const resultsOther = allResults.filter((r) => r.language !== 'all');
+    const sortedResults = [...resultsWithAll, ...resultsOther];
+
+    for (const result of sortedResults) {
       const parsedData = JSON.parse(result.data) as IBook[];
       allBooks.push(...parsedData);
       if (result.timestamp > latestTimestamp) {
@@ -242,7 +258,7 @@ export const loadBoardData = async (
     // eslint-disable-next-line no-console
     console.log(`   Сортировка: ${allResults[0].sort_type} (${allResults[0].sort_direction})`);
     // eslint-disable-next-line no-console
-    console.log(`   Язык: ${allResults[0].language}`);
+    console.log(`   Язык: ${allResults[0].language} (данные универсальные для всех языков)`);
     // eslint-disable-next-line no-console
     console.log(`   Возраст кэша: ${cacheAgeStr}`);
     if (allBooks.length > 0) {
@@ -256,6 +272,15 @@ export const loadBoardData = async (
 
     // Применяем сохраненные статусы и даты
     let booksWithDates = applyBookDatesToData(allBooks, datesMap);
+
+    // Удаляем дубликаты по bookId (предпочитаем первые записи, которые с языком 'all')
+    const uniqueBooksMap = new Map<string, IBook>();
+    for (const book of booksWithDates) {
+      if (!uniqueBooksMap.has(book.bookId)) {
+        uniqueBooksMap.set(book.bookId, book);
+      }
+    }
+    booksWithDates = Array.from(uniqueBooksMap.values());
 
     // Для доски ALL не фильтруем, для остальных фильтруем по статусу
     if (boardType !== ALL) {
@@ -291,11 +316,12 @@ export const loadAllBoardData = async (
   filterParams: string[],
   sortType: string,
   sortDirection: string,
-  language: string,
+  _language: string,
 ): Promise<BoardData[]> => {
   try {
     const database = await getDatabase();
     const filterParamsStr = JSON.stringify(filterParams);
+    // Не фильтруем по языку - данные одинаковые для всех языков
     const results = await database.getAllAsync<{
       board_type: string;
       page_index: number;
@@ -311,9 +337,9 @@ export const loadAllBoardData = async (
     }>(
       `SELECT * FROM board_data 
        WHERE board_type = ? AND filter_params = ? 
-       AND sort_type = ? AND sort_direction = ? AND language = ?
-       ORDER BY page_index ASC`,
-      [boardType, filterParamsStr, sortType, sortDirection, language],
+       AND sort_type = ? AND sort_direction = ?
+       ORDER BY page_index ASC, timestamp DESC`,
+      [boardType, filterParamsStr, sortType, sortDirection],
     );
 
     return results.map((result) => ({
@@ -343,20 +369,20 @@ export const searchBooksInCache = async (
   boardType: BookStatus,
   sortType: string,
   sortDirection: string,
-  language: string,
+  _language: string,
 ): Promise<IBook[]> => {
   try {
     const database = await getDatabase();
     const { loadBookDates, applyBookDatesToData } = await import('./bookDates');
     const datesMap = await loadBookDates();
 
-    // Загружаем все книги из всех досок
+    // Загружаем все книги из всех досок (независимо от языка)
     // Нужно загружать все книги, потому что статусы могут быть изменены и хранятся в book_dates
     const allBooks: IBook[] = [];
     const allResults = await database.getAllAsync<{
       board_type: string;
       data: string;
-    }>(`SELECT DISTINCT board_type, data FROM board_data WHERE language = ?`, [language]);
+    }>(`SELECT DISTINCT board_type, data FROM board_data ORDER BY timestamp DESC`);
 
     for (const result of allResults) {
       const books = JSON.parse(result.data) as IBook[];
@@ -694,4 +720,3 @@ export const removeBookFromCache = async (bookId: string): Promise<void> => {
     throw error;
   }
 };
-

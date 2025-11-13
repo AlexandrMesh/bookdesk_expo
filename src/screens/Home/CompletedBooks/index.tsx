@@ -63,7 +63,7 @@ const CompletedBooks = () => {
         _loadBookList({
           boardType: COMPLETED,
           shouldLoadMoreResults: false,
-          forceRefresh: shouldReloadData,
+          forceRefresh: false, // Загружаем из кэша (данные универсальные для всех языков)
         });
       };
       loadData();

@@ -64,7 +64,7 @@ const PlannedBooks = () => {
         _loadBookList({
           boardType: PLANNED,
           shouldLoadMoreResults: false,
-          forceRefresh: shouldReloadData,
+          forceRefresh: false, // Загружаем из кэша (данные универсальные для всех языков)
         });
       };
       loadData();

@@ -23,7 +23,9 @@ const LanguageSettings = () => {
     dispatch(clearDataForChangeLanguage());
     dispatch(clearAllFilters(ALL));
     dispatch(clearAddCustomBookState());
+    // Загружаем категории с принудительным обновлением (они зависят от языка)
     await dispatch(loadCategories(true));
+    // Загружаем книги из кэша (не принудительно, так как данные универсальные для всех языков)
     dispatch(triggerReloadBookList(ALL));
     dispatch(triggerReloadBookList(PLANNED));
     dispatch(triggerReloadBookList(IN_PROGRESS));

@@ -64,7 +64,7 @@ const InProgressBooks = () => {
         _loadBookList({
           boardType: IN_PROGRESS,
           shouldLoadMoreResults: false,
-          forceRefresh: shouldReloadData,
+          forceRefresh: false, // Загружаем из кэша (данные универсальные для всех языков)
         });
       };
       loadData();

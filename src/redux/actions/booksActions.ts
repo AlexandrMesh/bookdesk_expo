@@ -278,6 +278,22 @@ export const loadBookList = createAsyncThunk(
     }
 
     // Загружаем с сервера - загружаем ВСЕ книги сразу (без пагинации)
+    // Только если forceRefresh = true (принудительное обновление)
+    // Иначе возвращаем пустой массив, так как данные должны быть в кэше
+    if (!forceRefresh) {
+      // eslint-disable-next-line no-console
+      console.log('⚠️ [loadBookList] Данных нет в кэше, но forceRefresh=false, возвращаем пустой массив');
+      return {
+        boardType,
+        data: [],
+        totalItems: 0,
+        hasNextPage: false,
+        shouldLoadMoreResults: false,
+        booksCountByYear: null,
+        fromCache: false,
+      };
+    }
+
     const params = {
       pageIndex: 0,
       limit: 10000, // Большой лимит, чтобы загрузить все книги сразу
@@ -289,7 +305,15 @@ export const loadBookList = createAsyncThunk(
     };
 
     try {
-      const result = await DataService().getBookList({ ...params });
+      // Устанавливаем таймаут для запроса, чтобы не висеть вечно
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout')), 30000); // 30 секунд
+      });
+
+      const result = await Promise.race([
+        DataService().getBookList({ ...params }),
+        timeoutPromise,
+      ]) as any;
       const { items } = result?.data || {};
 
       // Подсчитываем booksCountByYear локально из всех загруженных книг
@@ -357,8 +381,19 @@ export const loadBookList = createAsyncThunk(
 
       return responseData;
     } catch (error) {
-      console.error(error);
-      throw boardType;
+      console.error('Error loading book list from server:', error);
+      // При ошибке возвращаем пустой массив, чтобы не висеть
+      // eslint-disable-next-line no-console
+      console.log('⚠️ [loadBookList] Ошибка загрузки с сервера, возвращаем пустой массив');
+      return {
+        boardType,
+        data: [],
+        totalItems: 0,
+        hasNextPage: false,
+        shouldLoadMoreResults: false,
+        booksCountByYear: null,
+        fromCache: false,
+      };
     }
   },
 );

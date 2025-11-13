@@ -66,12 +66,17 @@ const AllBooks = () => {
   // Отдельный useEffect для обработки shouldReloadData
   useEffect(() => {
     if (shouldReloadData && isFocused) {
-      _loadBookList({
-        boardType: ALL,
-        shouldLoadMoreResults: false,
-      });
+      const loadData = async () => {
+        await _loadCategories();
+        _loadBookList({
+          boardType: ALL,
+          shouldLoadMoreResults: false,
+          forceRefresh: false, // Не принудительно, загружаем из кэша
+        });
+      };
+      loadData();
     }
-  }, [shouldReloadData, isFocused, _loadBookList]);
+  }, [shouldReloadData, isFocused, _loadBookList, _loadCategories]);
 
   if (isFocused && bookList.length === 0 && loadingDataStatus === SUCCEEDED && !shouldReloadData) {
     return <EmptyResults />;
