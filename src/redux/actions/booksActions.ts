@@ -729,6 +729,7 @@ export const updateUserBookRating = createAsyncThunk(
       }
 
       // Сохраняем рейтинг в локальную БД
+      await initDatabase();
       await saveBookRating(bookId, rating);
 
       // eslint-disable-next-line no-console
@@ -761,6 +762,7 @@ export const updateBookVotes = createAsyncThunk(
       const newVotesCount = shouldAdd ? currentVotesCount + 1 : Math.max(0, currentVotesCount - 1);
 
       // Обновляем в локальной БД
+      await initDatabase();
       await updateBookVotesInCache(bookId, newVotesCount);
       await saveBookVotesCount(bookId, newVotesCount);
 
@@ -793,6 +795,7 @@ export const updateBookVotes = createAsyncThunk(
       }
 
       // Сохраняем userVotes в локальную БД
+      await initDatabase();
       await saveUserVotes(updatedUserVotes);
 
       // Обновляем в Redux state

@@ -125,6 +125,55 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
       } else {
         // eslint-disable-next-line no-console
         console.log('👤 [checkAuth] Профиль уже существует, используем его');
+        
+        // Загружаем данные из локальной БД (рейтинги, лайки, заметки, цель)
+        // Загружаем цель из локальной БД
+        try {
+          const localGoal = await loadGoal();
+          if (localGoal) {
+            // eslint-disable-next-line no-console
+            console.log('🎯 [checkAuth] Загружена цель из локальной БД');
+            dispatch(setGoal({ pages: localGoal.numberOfPages || 0, type: localGoal.goalType as any }));
+          }
+        } catch (error) {
+          console.error('Error loading goal from local DB:', error);
+        }
+
+        // Загружаем заметки из локальной БД
+        try {
+          const localBookNotes = await loadBookNotes();
+          if (localBookNotes.length > 0) {
+            // eslint-disable-next-line no-console
+            console.log('📝 [checkAuth] Загружены заметки из локальной БД');
+            dispatch(setBookNotes(localBookNotes));
+          }
+        } catch (error) {
+          console.error('Error loading book notes from local DB:', error);
+        }
+
+        // Загружаем лайки из локальной БД
+        try {
+          const localUserVotes = await loadUserVotes();
+          if (localUserVotes.length > 0) {
+            // eslint-disable-next-line no-console
+            console.log('👍 [checkAuth] Загружены лайки из локальной БД');
+            dispatch(setBookVotes(localUserVotes));
+          }
+        } catch (error) {
+          console.error('Error loading user votes from local DB:', error);
+        }
+
+        // Загружаем рейтинги из локальной БД
+        try {
+          const localRatings = await loadBookRatings();
+          if (localRatings.length > 0) {
+            // eslint-disable-next-line no-console
+            console.log('📖 [checkAuth] Загружены рейтинги из локальной БД');
+            dispatch(userBookRatingsLoaded(localRatings));
+          }
+        } catch (error) {
+          console.error('Error loading ratings from local DB:', error);
+        }
       }
       return {
         profile: profile || getDefaultProfileState(),
