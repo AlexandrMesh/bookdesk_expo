@@ -422,7 +422,7 @@ export default createReducer(defaultState, (builder) => {
         state.board[boardType].pagination.totalItems = totalItems;
         state.board[boardType].pagination.hasNextPage = false;
         // Убеждаемся что booksCountByYear всегда массив
-        state.board[boardType].booksCountByYear = Array.isArray(booksCountByYear) ? booksCountByYear : (state.board[boardType].booksCountByYear || []);
+        state.board[boardType].booksCountByYear = Array.isArray(booksCountByYear) ? booksCountByYear : state.board[boardType].booksCountByYear || [];
       },
     )
     .addCase(booksActions.loadBookList.rejected, (state, action) => {
@@ -441,7 +441,7 @@ export default createReducer(defaultState, (builder) => {
         state.board[boardType].pagination.totalItems = totalItems;
         state.board[boardType].pagination.hasNextPage = false;
         // Убеждаемся что booksCountByYear всегда массив
-        state.board[boardType].booksCountByYear = Array.isArray(booksCountByYear) ? booksCountByYear : (state.board[boardType].booksCountByYear || []);
+        state.board[boardType].booksCountByYear = Array.isArray(booksCountByYear) ? booksCountByYear : state.board[boardType].booksCountByYear || [];
       },
     )
     .addCase(booksActions.loadBookListFromLocalDB.rejected, (state, action) => {
