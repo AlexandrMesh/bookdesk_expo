@@ -12,6 +12,7 @@ import { getT } from '~translations/i18n';
 import {
   deleteGoal,
   deleteProfile,
+  hasUserProfile,
   initDatabase,
   loadBookNotes,
   loadBookRatings,
@@ -20,6 +21,7 @@ import {
   loadUserVotes,
   resetAllDatabaseData,
   saveGoal,
+  saveGuestProfile,
   saveProfile,
 } from '~utils/boardStorage';
 import { removeToken, saveToken } from '~utils/secureStorage';
@@ -105,8 +107,38 @@ export const signInFailed = createAsyncThunk(`${PREFIX}/signInFailed`, async (er
 });
 
 export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: string, { dispatch, rejectWithValue }) => {
+  await initDatabase();
+
+  // Если нет токена - проверяем наличие профиля, если нет - создаем гостевого пользователя
   if (!token) {
-    return rejectWithValue('No token provided');
+    // eslint-disable-next-line no-console
+    console.log('🔓 [checkAuth] Токен не предоставлен, проверяем наличие профиля');
+    try {
+      // Проверяем, есть ли уже профиль в локальной БД
+      let profile = await loadProfile();
+      if (!profile) {
+        // Профиля нет - создаем гостевого пользователя
+        // eslint-disable-next-line no-console
+        console.log('👤 [checkAuth] Профиля нет, создаем гостевого пользователя');
+        await saveGuestProfile();
+        profile = await loadProfile();
+      } else {
+        // eslint-disable-next-line no-console
+        console.log('👤 [checkAuth] Профиль уже существует, используем его');
+      }
+      return {
+        profile: profile || getDefaultProfileState(),
+        isGoogleAccount: false,
+        isSignedIn: false,
+      };
+    } catch (error) {
+      console.error('Error handling guest profile:', error);
+      return {
+        profile: getDefaultProfileState(),
+        isGoogleAccount: false,
+        isSignedIn: false,
+      };
+    }
   }
 
   try {
@@ -660,8 +692,18 @@ export const resetData = createAsyncThunk(`${PREFIX}/resetData`, async (_, { dis
     dispatch(clearStatisticData());
     dispatch(clearGoalsData());
     
+    // Создаем нового гостевого пользователя с текущей датой регистрации
+    // forceCreate=true чтобы принудительно создать нового пользователя даже если профиль был удален
+    await saveGuestProfile(true);
+    const newProfile = await loadProfile();
+    if (newProfile) {
+      // Обновляем Redux state с новым профилем через checkAuth
+      // Вызываем checkAuth с пустым токеном, чтобы обновить состояние
+      dispatch(checkAuth(''));
+    }
+    
     // eslint-disable-next-line no-console
-    console.log('✅ [resetData] Все данные приложения сброшены');
+    console.log('✅ [resetData] Все данные приложения сброшены, создан новый гостевой пользователь');
   } catch (error) {
     console.error('Error resetting data:', error);
     throw error;

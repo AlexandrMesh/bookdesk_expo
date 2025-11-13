@@ -1,5 +1,6 @@
 {
   "profile": "Profile",
+  "userId": "User ID: ",
   "email": "Email: ",
   "registered": "Registered: ",
   "aboutApp": "About app",

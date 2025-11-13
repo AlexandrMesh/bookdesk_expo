@@ -106,13 +106,17 @@ export default createReducer(defaultState, (builder) => {
       state.profile = profile;
     })
     .addCase(authActions.checkAuth.rejected, (state) => {
-      state.checkingStatus = FAILED;
+      // При ошибке проверки токена - просто продолжаем работу с локальной БД
+      // Не блокируем доступ к приложению
+      state.checkingStatus = SUCCEEDED;
       state.signIn.isSignedIn = false;
       state.signIn.isGoogleAccount = false;
       state.profile = getDefaultProfileState();
     })
     .addCase(authActions.authCheckingFailed, (state) => {
-      state.checkingStatus = FAILED;
+      // При ошибке проверки - просто продолжаем работу с локальной БД
+      // Не блокируем доступ к приложению
+      state.checkingStatus = SUCCEEDED;
       state.signIn.isSignedIn = false;
       state.signIn.isGoogleAccount = false;
       state.profile = getDefaultProfileState();

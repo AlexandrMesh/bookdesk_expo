@@ -11,7 +11,7 @@ import { ABOUT_ROUTE } from '~constants/routes';
 import { SECONDARY } from '~constants/themes';
 import { useAppUpdates } from '~hooks/useAppUpdates';
 import { resetData } from '~redux/actions/authActions';
-import { getRegistered, getUserEmail } from '~redux/selectors/auth';
+import { getRegistered, getUserId, getUserEmail } from '~redux/selectors/auth';
 import Button from '~UI/Button';
 
 import LanguageSettings from './LanguageSettings';
@@ -58,17 +58,28 @@ const Profile: FC<Props> = ({ isUpdateAvailable, googlePlayUrl }) => {
 
   const email = useAppSelector(getUserEmail);
   const registered = useAppSelector(getRegistered);
+  const userId = useAppSelector(getUserId);
   const { downloadAndInstallUpdate, isDownloading } = useAppUpdates();
+
+  // Проверяем, является ли пользователь гостевым (нет email)
+  const isGuestUser = !email || email.trim() === '';
 
   return (
     <View style={styles.container}>
       <View style={styles.profile}>
         <Text style={styles.label}>
-          {t('email')} <Text style={styles.value}>{email}</Text>
+          {t('userId')} <Text style={styles.value}>{userId}</Text>
         </Text>
-        <Text style={styles.label}>
-          {t('registered')} <Text style={styles.value}>{new Date(Number(registered)).toLocaleDateString(language)}</Text>
-        </Text>
+        {!isGuestUser && (
+          <Text style={styles.label}>
+            {t('email')} <Text style={styles.value}>{email}</Text>
+          </Text>
+        )}
+        {registered && (
+          <Text style={styles.label}>
+            {t('registered')} <Text style={styles.value}>{new Date(Number(registered)).toLocaleDateString(language)}</Text>
+          </Text>
+        )}
         <View>
           <Text style={[styles.label, styles.mTop]}>{t('app:appLanguage')}</Text>
           <LanguageSettings />

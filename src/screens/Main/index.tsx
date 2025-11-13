@@ -35,14 +35,12 @@ import {
   PROFILE_NAVIGATOR_ROUTE,
   PROFILE_ROUTE,
   SEARCH_ROUTE,
-  SIGN_IN_ROUTE,
-  SIGN_UP_ROUTE,
   STAT_NAVIGATOR_ROUTE,
   STAT_ROUTE,
 } from '~constants/routes';
 import { useAppUpdates } from '~hooks/useAppUpdates';
 import { checkAuth } from '~redux/actions/authActions';
-import { getCheckingStatus, getIsSignedIn } from '~redux/selectors/auth';
+import { getCheckingStatus } from '~redux/selectors/auth';
 import { getGoalNumberOfPages, getGoalType } from '~redux/selectors/goals';
 import Home from '~screens/Home';
 import Splash from '~screens/Splash';
@@ -50,6 +48,7 @@ import colors from '~styles/colors';
 import i18n from '~translations/i18n';
 import { GoalType } from '~types/goals';
 import BannerAd from '~UI/BannerAd';
+import { hasUserProfile, initDatabase } from '~utils/boardStorage';
 import { maybeAskForReview, recordAppOpen } from '~utils/reviewPrompt';
 import { getToken } from '~utils/secureStorage';
 
@@ -75,8 +74,6 @@ const Profile = lazy(() => import('~screens/Profile'));
 const Modals = lazy(() => import('~screens/Modals'));
 const DateUpdater = lazy(() => import('~screens/Home/DateUpdater'));
 const CoverViewer = lazy(() => import('~screens/Home/CoverViewer'));
-const SignIn = lazy(() => import('~screens/Auth/SignIn'));
-const SignUp = lazy(() => import('~screens/Auth/SignUp'));
 
 const UnderConstruction = lazy(() => import('./UnderConstruction'));
 
@@ -458,15 +455,35 @@ const Main = () => {
   const checkingStatus = useAppSelector(getCheckingStatus);
   const hasGoal = !!useAppSelector(getGoalNumberOfPages);
   const goalType = useAppSelector(getGoalType);
-  const isSignedIn = useAppSelector(getIsSignedIn);
 
   const checkAuthentication = useCallback(async () => {
     try {
+      // Инициализируем базу данных
+      await initDatabase();
+
+      // Проверяем, есть ли уже пользователь в локальной БД
+      const hasUser = await hasUserProfile();
+      if (hasUser) {
+        // Пользователь уже есть в локальной БД - пропускаем checkAuth
+        // eslint-disable-next-line no-console
+        console.log('✅ [Main] Пользователь уже есть в локальной БД, пропускаем checkAuth');
+        // Просто помечаем проверку как завершенную, вызывая checkAuth с пустым токеном
+        // Это нужно для обновления Redux state
+        _checkAuth('');
+        return;
+      }
+
+      // Пользователя нет в локальной БД - выполняем первую проверку
       const token = await getToken();
+      // Если есть токен - проверяем его и загружаем данные в фоне
+      // Если нет токена - создаем гостевого пользователя
       // Просто dispatch, НЕ await - reducer сам обработает fulfilled/rejected
+      // Работает в фоне, не блокирует доступ к приложению
       _checkAuth(token || '');
-    } catch {
-      // Ошибка при чтении токена из storage - вызываем с пустым токеном
+    } catch (error) {
+      // Ошибка при проверке - продолжаем работу
+      console.error('Error in checkAuthentication:', error);
+      // Вызываем checkAuth с пустым токеном, чтобы пометить проверку как завершенную
       _checkAuth('');
     }
   }, [_checkAuth]);
@@ -496,15 +513,15 @@ const Main = () => {
     });
   }, [checkAndInstallUpdate]);
 
-  // Проверка EAS Updates после успешной авторизации
+  // Проверка EAS Updates после завершения проверки (если была)
   useEffect(() => {
-    if (isSignedIn && checkingStatus === SUCCEEDED) {
+    if (checkingStatus === SUCCEEDED) {
       // Мягкий запрос оценки приложения при выполнении локальных критериев
       maybeAskForReview().catch(() => {
         // Игнорируем ошибки StoreReview
       });
     }
-  }, [isSignedIn, checkingStatus]);
+  }, [checkingStatus]);
 
   if (shouldDisplayUnderConstructionView) {
     return (
@@ -514,42 +531,23 @@ const Main = () => {
     );
   }
 
-  if (checkingStatus === IDLE || checkingStatus === PENDING) {
+  // Показываем Splash только при первой инициализации (IDLE)
+  // Если проверка в процессе (PENDING) - показываем интерфейс, проверка идет в фоне
+  if (checkingStatus === IDLE) {
     return <Splash />;
   }
 
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        {isSignedIn ? (
+        <MainNavigator isUpdateAvailable={isUpdateAvailable} googlePlayUrl={googlePlayUrl} goalType={goalType} hasGoal={hasGoal} />
+        <InSuspense>
           <>
-            <MainNavigator isUpdateAvailable={isUpdateAvailable} googlePlayUrl={googlePlayUrl} goalType={goalType} hasGoal={hasGoal} />
-            <InSuspense>
-              <>
-                <Modals />
-                <DateUpdater />
-                <CoverViewer />
-              </>
-            </InSuspense>
+            <Modals />
+            <DateUpdater />
+            <CoverViewer />
           </>
-        ) : (
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name={SIGN_IN_ROUTE}>
-              {() => (
-                <InSuspense>
-                  <SignIn />
-                </InSuspense>
-              )}
-            </Stack.Screen>
-            <Stack.Screen name={SIGN_UP_ROUTE}>
-              {() => (
-                <InSuspense>
-                  <SignUp />
-                </InSuspense>
-              )}
-            </Stack.Screen>
-          </Stack.Navigator>
-        )}
+        </InSuspense>
       </NavigationContainer>
     </SafeAreaProvider>
   );

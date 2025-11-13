@@ -87,3 +87,50 @@ export const deleteProfile = async (): Promise<void> => {
   }
 };
 
+/**
+ * Проверка наличия пользователя в локальной БД
+ */
+export const hasUserProfile = async (): Promise<boolean> => {
+  try {
+    const profile = await loadProfile();
+    return profile !== null;
+  } catch (error) {
+    console.error('Error checking user profile:', error);
+    return false;
+  }
+};
+
+/**
+ * Сохранение гостевого пользователя (без токена) в локальную БД
+ * @param forceCreate - если true, создает нового пользователя даже если профиль уже существует
+ */
+export const saveGuestProfile = async (forceCreate: boolean = false): Promise<void> => {
+  try {
+    // Проверяем, есть ли уже профиль
+    if (!forceCreate) {
+      const existingProfile = await loadProfile();
+      if (existingProfile) {
+        // eslint-disable-next-line no-console
+        console.log('👤 [saveGuestProfile] Профиль уже существует, пропускаем сохранение');
+        return;
+      }
+    }
+
+    // Генерируем уникальный ID для гостевого пользователя
+    const guestId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const timestamp = Date.now();
+
+    const database = await getDatabase();
+    await database.runAsync(
+      `INSERT OR REPLACE INTO user_profile (user_id, email, registered, updated, support_app_confirmed, support_app_viewed_at, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [guestId, '', timestamp, null, 0, null, timestamp],
+    );
+
+    // eslint-disable-next-line no-console
+    console.log(`👤 [SQLite Cache] Гостевой профиль сохранен: userId=${guestId}, registered=${new Date(timestamp).toISOString()}`);
+  } catch (error) {
+    console.error('Error saving guest profile:', error);
+    throw error;
+  }
+};
+
