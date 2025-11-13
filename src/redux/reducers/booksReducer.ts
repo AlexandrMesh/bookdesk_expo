@@ -429,6 +429,25 @@ export default createReducer(defaultState, (builder) => {
       state.board[action.meta.arg.boardType].loadingDataStatus = FAILED;
       state.board[action.meta.arg.boardType].shouldReloadData = false;
     })
+    .addCase(
+      booksActions.loadBookListFromLocalDB.fulfilled,
+      (state, { payload: { boardType, data = [], totalItems = 0, hasNextPage = false, shouldLoadMoreResults, booksCountByYear } }) => {
+        state.board[boardType].loadingDataStatus = SUCCEEDED;
+        state.board[boardType].shouldReloadData = false;
+        // Больше не используем пагинацию, всегда заменяем данные полностью
+        // Убеждаемся что data всегда массив
+        state.board[boardType].data = Array.isArray(data) ? data : [];
+        state.board[boardType].pagination.pageIndex = 0;
+        state.board[boardType].pagination.totalItems = totalItems;
+        state.board[boardType].pagination.hasNextPage = false;
+        // Убеждаемся что booksCountByYear всегда массив
+        state.board[boardType].booksCountByYear = Array.isArray(booksCountByYear) ? booksCountByYear : (state.board[boardType].booksCountByYear || []);
+      },
+    )
+    .addCase(booksActions.loadBookListFromLocalDB.rejected, (state, action) => {
+      state.board[action.meta.arg.boardType].loadingDataStatus = FAILED;
+      state.board[action.meta.arg.boardType].shouldReloadData = false;
+    })
     .addCase(booksActions.loadCategories.pending, (state) => {
       state.categories.loadingDataStatus = PENDING;
     })

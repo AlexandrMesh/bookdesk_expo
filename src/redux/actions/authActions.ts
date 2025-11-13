@@ -5,7 +5,14 @@ import Constants from 'expo-constants';
 
 import { COMPLETED, IN_PROGRESS, PLANNED } from '~constants/boardType';
 import AuthService from '~http/services/auth';
-import { clearBooksData, loadBookList, setBookNotes, setBookVotes, userBookRatingsLoaded } from '~redux/actions/booksActions';
+import {
+  clearBooksData,
+  loadBookList,
+  loadBookListFromLocalDB,
+  setBookNotes,
+  setBookVotes,
+  userBookRatingsLoaded,
+} from '~redux/actions/booksActions';
 import { clearData as clearCustomBooksData } from '~redux/actions/customBookActions';
 import { clearData as clearGoalsData, getGoalItems, setGoal } from '~redux/actions/goalsActions';
 import { clearData as clearStatisticData } from '~redux/actions/statisticActions';
@@ -178,6 +185,28 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
       console.log('📊 [checkAuth] Goal items загружены из локальной БД в Redux state');
     } catch (error) {
       console.error('Error loading goal items from local DB:', error);
+    }
+
+    // Загружаем книги из локальной БД для досок (кроме ALL - она не сохраняется)
+    // eslint-disable-next-line no-console
+    console.log('📚 [checkAuth] Загружаем книги из локальной БД для досок (PLANNED, IN_PROGRESS, COMPLETED)');
+    try {
+      const boardTypes = [PLANNED, IN_PROGRESS, COMPLETED] as const;
+      for (const boardType of boardTypes) {
+        try {
+          // eslint-disable-next-line no-console
+          console.log(`📚 [checkAuth] Загружаем книги для доски: ${boardType} из локальной БД`);
+          await dispatch(loadBookListFromLocalDB({ boardType, shouldLoadMoreResults: false })).unwrap();
+        } catch (error) {
+          console.error(`Error loading books for board ${boardType} from local DB:`, error);
+          // Продолжаем загрузку других досок даже при ошибке
+        }
+      }
+      // eslint-disable-next-line no-console
+      console.log('✅ [checkAuth] Все книги загружены из локальной БД');
+    } catch (error) {
+      console.error('Error loading books from local DB:', error);
+      // Продолжаем работу даже при ошибке загрузки книг
     }
 
     const isUserSignedIn = profile.email && profile.email.trim() !== '';
@@ -437,6 +466,7 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
         }
 
         // Загружаем книги с сервера для досок (кроме ALL - она не сохраняется)
+        // Это происходит только один раз, когда syncWithLocalDatabaseCompleted = false
         // eslint-disable-next-line no-console
         console.log('📚 [checkAuth] Загружаем книги с сервера для досок (PLANNED, IN_PROGRESS, COMPLETED)');
         try {
@@ -444,21 +474,22 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
           for (const boardType of boardTypes) {
             try {
               // eslint-disable-next-line no-console
-              console.log(`📚 [checkAuth] Загружаем книги для доски: ${boardType}`);
-              await dispatch(loadBookList({ boardType, shouldLoadMoreResults: false, forceRefresh: true })).unwrap();
+              console.log(`📚 [checkAuth] Загружаем книги для доски: ${boardType} с сервера`);
+              await dispatch(loadBookList({ boardType, shouldLoadMoreResults: false })).unwrap();
             } catch (error) {
-              console.error(`Error loading books for board ${boardType}:`, error);
+              console.error(`Error loading books for board ${boardType} from server:`, error);
               // Продолжаем загрузку других досок даже при ошибке
             }
           }
           // eslint-disable-next-line no-console
-          console.log('✅ [checkAuth] Все книги загружены с сервера');
+          console.log('✅ [checkAuth] Все книги загружены с сервера и сохранены в локальную БД');
         } catch (error) {
           console.error('Error loading books from server:', error);
           // Продолжаем работу даже при ошибке загрузки книг
         }
 
         // После успешной загрузки всех данных с сервера - устанавливаем syncWithLocalDatabaseCompleted = true
+        // Это гарантирует, что в следующий раз checkAuth будет работать только с локальной БД
         // НЕ удаляем токен!
         // eslint-disable-next-line no-console
         console.log('✅ [checkAuth] Все данные загружены с сервера, устанавливаем syncWithLocalDatabaseCompleted=true');
@@ -471,6 +502,28 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
           if (updatedProfile) {
             profile = updatedProfile as IProfile;
           }
+        }
+
+        // После установки флага загружаем книги из локальной БД (они уже сохранены после загрузки с сервера)
+        // eslint-disable-next-line no-console
+        console.log('📚 [checkAuth] Загружаем книги из локальной БД для досок (PLANNED, IN_PROGRESS, COMPLETED)');
+        try {
+          const boardTypes = [PLANNED, IN_PROGRESS, COMPLETED] as const;
+          for (const boardType of boardTypes) {
+            try {
+              // eslint-disable-next-line no-console
+              console.log(`📚 [checkAuth] Загружаем книги для доски: ${boardType} из локальной БД`);
+              await dispatch(loadBookListFromLocalDB({ boardType, shouldLoadMoreResults: false })).unwrap();
+            } catch (error) {
+              console.error(`Error loading books for board ${boardType} from local DB:`, error);
+              // Продолжаем загрузку других досок даже при ошибке
+            }
+          }
+          // eslint-disable-next-line no-console
+          console.log('✅ [checkAuth] Все книги загружены из локальной БД');
+        } catch (error) {
+          console.error('Error loading books from local DB:', error);
+          // Продолжаем работу даже при ошибке загрузки книг
         }
       } else {
         // Данных с сервера нет - загружаем из локальной БД

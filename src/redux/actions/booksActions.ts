@@ -48,7 +48,6 @@ import {
   saveBookRating,
   saveBookStatus,
   saveBookVotesCount,
-  saveCategories,
   searchBooksInCache,
   saveUserVotes,
   updateBookDateInCache,
@@ -213,10 +212,7 @@ export const loadSearchResults = createAsyncThunk(
 
 export const loadBookList = createAsyncThunk(
   `${PREFIX}/loadBookList`,
-  async (
-    { boardType, shouldLoadMoreResults, forceRefresh }: { boardType: BookStatus; shouldLoadMoreResults: boolean; forceRefresh?: boolean },
-    { getState }: AppThunkAPI,
-  ) => {
+  async ({ boardType, shouldLoadMoreResults }: { boardType: BookStatus; shouldLoadMoreResults: boolean }, { getState }: AppThunkAPI) => {
     const state = getState();
     const pageIndex = deriveBookListPageIndex(boardType)(state);
     const filterParams = deriveFilterBookCategoryPaths(boardType)(state);
@@ -232,68 +228,8 @@ export const loadBookList = createAsyncThunk(
       console.error('Error initializing database:', error);
     }
 
-    // Пытаемся загрузить из кэша, если не принудительное обновление
-    // Больше не используем пагинацию, поэтому всегда загружаем все книги
-    if (!forceRefresh) {
-      try {
-        const sortType = (sortParams.type ?? '') as string;
-        const sortDirection = (sortParams.direction ?? '') as string;
-        const cachedData = await loadBoardData(boardType, targetPageIndex, filterParams, sortType, sortDirection, language);
-        if (cachedData) {
-          // eslint-disable-next-line no-console
-          console.log('✅ [loadBookList] Используются данные из локального кэша');
-
-          // Подсчитываем booksCountByYear локально из всех книг в кэше
-          let booksCountByYear: any = null;
-          if (boardType !== ALL && cachedData.data && cachedData.data.length > 0) {
-            booksCountByYear = calculateBooksCountByYear(cachedData.data, language);
-            // eslint-disable-next-line no-console
-            console.log(`   Подсчитано booksCountByYear из кэша: ${booksCountByYear?.length || 0} месяцев`);
-          }
-
-          return {
-            boardType,
-            data: cachedData.data,
-            totalItems: cachedData.data.length, // Используем реальное количество книг
-            hasNextPage: false, // Больше не используем пагинацию
-            shouldLoadMoreResults: false,
-            booksCountByYear,
-            fromCache: true,
-          };
-        } else {
-          // eslint-disable-next-line no-console
-          console.log('❌ [loadBookList] Данные не найдены в локальном кэше, загрузка с сервера...');
-        }
-      } catch (error) {
-        console.error('Error loading from cache:', error);
-        // Продолжаем загрузку с сервера в случае ошибки
-      }
-    } else {
-      if (forceRefresh) {
-        // eslint-disable-next-line no-console
-        console.log('🔄 [loadBookList] Принудительное обновление - загрузка всех книг с сервера');
-      } else {
-        // eslint-disable-next-line no-console
-        console.log('📄 [loadBookList] Загрузка всех книг с сервера');
-      }
-    }
-
-    // Загружаем с сервера - загружаем ВСЕ книги сразу (без пагинации)
-    // Только если forceRefresh = true (принудительное обновление)
-    // Иначе возвращаем пустой массив, так как данные должны быть в кэше
-    if (!forceRefresh) {
-      // eslint-disable-next-line no-console
-      console.log('⚠️ [loadBookList] Данных нет в кэше, но forceRefresh=false, возвращаем пустой массив');
-      return {
-        boardType,
-        data: [],
-        totalItems: 0,
-        hasNextPage: false,
-        shouldLoadMoreResults: false,
-        booksCountByYear: null,
-        fromCache: false,
-      };
-    }
+    // eslint-disable-next-line no-console
+    console.log('📡 [loadBookList] Загрузка данных с сервера API');
 
     const params = {
       pageIndex: 0,
@@ -377,6 +313,8 @@ export const loadBookList = createAsyncThunk(
         // Не прерываем выполнение, если не удалось сохранить в кэш
       }
 
+      // eslint-disable-next-line no-console
+      console.log(`✅ [loadBookList] Загружено ${items?.length || 0} книг с сервера`);
       return responseData;
     } catch (error) {
       console.error('Error loading book list from server:', error);
@@ -391,6 +329,84 @@ export const loadBookList = createAsyncThunk(
         shouldLoadMoreResults: false,
         booksCountByYear: null,
         fromCache: false,
+      };
+    }
+  },
+);
+
+export const loadBookListFromLocalDB = createAsyncThunk(
+  `${PREFIX}/loadBookListFromLocalDB`,
+  async ({ boardType, shouldLoadMoreResults }: { boardType: BookStatus; shouldLoadMoreResults: boolean }, { getState }: AppThunkAPI) => {
+    const state = getState();
+    const pageIndex = deriveBookListPageIndex(boardType)(state);
+    const filterParams = deriveFilterBookCategoryPaths(boardType)(state);
+    const sortParams = deriveBookListSortParams(boardType)(state);
+    const { language } = i18n;
+
+    const targetPageIndex = shouldLoadMoreResults ? pageIndex + 1 : 0;
+
+    // Инициализируем базу данных
+    try {
+      await initDatabase();
+    } catch (error) {
+      console.error('Error initializing database:', error);
+    }
+
+    // eslint-disable-next-line no-console
+    console.log('💾 [loadBookListFromLocalDB] Загрузка данных из локальной БД');
+
+    try {
+      const sortType = (sortParams.type ?? '') as string;
+      const sortDirection = (sortParams.direction ?? '') as string;
+      const cachedData = await loadBoardData(boardType, targetPageIndex, filterParams, sortType, sortDirection, language);
+
+      if (cachedData) {
+        // eslint-disable-next-line no-console
+        console.log(`✅ [loadBookListFromLocalDB] Загружено ${cachedData.data.length} книг из локальной БД`);
+
+        // Подсчитываем booksCountByYear локально из всех книг в кэше
+        let booksCountByYear: any = null;
+        if (boardType !== ALL && cachedData.data && cachedData.data.length > 0) {
+          booksCountByYear = calculateBooksCountByYear(cachedData.data, language);
+          // eslint-disable-next-line no-console
+          console.log(`   Подсчитано booksCountByYear из локальной БД: ${booksCountByYear?.length || 0} месяцев`);
+        }
+
+        return {
+          boardType,
+          data: cachedData.data,
+          totalItems: cachedData.data.length, // Используем реальное количество книг
+          hasNextPage: false, // Больше не используем пагинацию
+          shouldLoadMoreResults: false,
+          booksCountByYear,
+          fromCache: true,
+        };
+      } else {
+        // eslint-disable-next-line no-console
+        console.log('⚠️ [loadBookListFromLocalDB] Данные не найдены в локальной БД, возвращаем пустой массив');
+        return {
+          boardType,
+          data: [],
+          totalItems: 0,
+          hasNextPage: false,
+          shouldLoadMoreResults: false,
+          booksCountByYear: null,
+          fromCache: true,
+        };
+      }
+    } catch (error) {
+      console.error('Error loading from local DB:', error);
+      // При ошибке возвращаем пустой массив
+      // eslint-disable-next-line no-console
+      console.log('⚠️ [loadBookListFromLocalDB] Ошибка загрузки из локальной БД, возвращаем пустой массив');
+      return {
+        boardType,
+        data: [],
+        totalItems: 0,
+        hasNextPage: false,
+        shouldLoadMoreResults: false,
+        booksCountByYear: null,
+        fromCache: true,
       };
     }
   },
