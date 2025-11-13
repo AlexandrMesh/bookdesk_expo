@@ -311,10 +311,7 @@ export const loadBookList = createAsyncThunk(
         setTimeout(() => reject(new Error('Request timeout')), 30000); // 30 секунд
       });
 
-      const result = await Promise.race([
-        DataService().getBookList({ ...params }),
-        timeoutPromise,
-      ]) as any;
+      const result = (await Promise.race([DataService().getBookList({ ...params }), timeoutPromise])) as any;
       const { items } = result?.data || {};
 
       // Подсчитываем booksCountByYear локально из всех загруженных книг
@@ -440,7 +437,7 @@ export const loadCategories = createAsyncThunk(`${PREFIX}/loadCategories`, async
       console.log('✅ [loadCategories] Используются категории из локального кэша');
       return cachedCategories;
     }
-    
+
     // Если категорий нет в БД, загружаем из TS файла и сохраняем в БД
     // eslint-disable-next-line no-console
     console.log('📂 [loadCategories] Категории не найдены в локальном кэше, загружаем из TS файла...');
@@ -450,7 +447,7 @@ export const loadCategories = createAsyncThunk(`${PREFIX}/loadCategories`, async
       console.log('✅ [loadCategories] Категории загружены из TS файла и сохранены в БД');
       return categoriesFromTs;
     }
-    
+
     // Если и из TS файла не удалось загрузить, возвращаем пустой массив
     // eslint-disable-next-line no-console
     console.log('❌ [loadCategories] Не удалось загрузить категории ни из БД, ни из TS файла');
@@ -609,6 +606,12 @@ export const updateUserBook = createAsyncThunk(
       // Обновляем в локальной БД
       // updateBookStatusInCache обновляет статус книги во всех записях кэша
       await updateBookStatusInCache(bookId, newBookStatus, added);
+
+      // Убеждаемся, что книга есть в board_data для новой доски
+      // Это важно для новых пользователей, у которых может не быть записей в board_data
+      const updatedBook = { ...book, bookStatus: newBookStatus, added };
+      const { addBookToCache } = await import('~utils/boardStorage');
+      await addBookToCache(newBookStatus, updatedBook);
 
       // НЕ очищаем кэш - updateBookStatusInCache уже обновил статус во всех записях кэша
       // При следующей загрузке из кэша будут использованы обновленные данные

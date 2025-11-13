@@ -85,17 +85,16 @@ export const loadBoardData = async (
 ): Promise<BoardData | null> => {
   try {
     const database = await getDatabase();
-    const filterParamsStr = JSON.stringify(filterParams);
 
     // Загружаем сохраненные даты и статусы заранее (динамический импорт для избежания циклической зависимости)
     const { loadBookDates, applyBookDatesToData } = await import('./bookDates');
     const datesMap = await loadBookDates();
 
-    // Если это не доска ALL, собираем книги с нужным статусом из всех кэшей
-    // Это нужно, чтобы книги, перемещенные на другую доску, появлялись на правильной доске
-    // Теперь загружаем все страницы (page_index), так как мы больше не используем пагинацию
+    // Загружаем ВСЕ записи для доски независимо от фильтров и сортировки
+    // Это важно для новых пользователей, у которых книги могут быть сохранены с разными параметрами
+    // Затем применяем фильтры и сортировку к результату
     if (boardType !== ALL) {
-      // Получаем все записи с такими же параметрами фильтрации и сортировки, но для всех досок и всех страниц
+      // Получаем все записи для этой доски (независимо от фильтров и сортировки)
       const allRecords = await database.getAllAsync<{
         board_type: string;
         page_index: number;
@@ -110,10 +109,9 @@ export const loadBoardData = async (
         timestamp: number;
       }>(
         `SELECT * FROM board_data 
-         WHERE filter_params = ? 
-         AND sort_type = ? AND sort_direction = ?
+         WHERE board_type = ?
          ORDER BY page_index ASC, timestamp DESC`,
-        [filterParamsStr, sortType, sortDirection],
+        [boardType],
       );
 
       if (allRecords.length > 0) {
@@ -152,21 +150,66 @@ export const loadBoardData = async (
             uniqueBooks.set(book.bookId, book);
           }
         }
-        const finalBooks = Array.from(uniqueBooks.values());
+        let finalBooks = Array.from(uniqueBooks.values());
+
+        // Применяем фильтры по категориям (если указаны)
+        if (filterParams && filterParams.length > 0) {
+          finalBooks = finalBooks.filter((book) => {
+            const bookCategoryPath = book.categoryPath || '';
+            return filterParams.some((filterPath) => bookCategoryPath.startsWith(filterPath));
+          });
+        }
+
+        // Применяем сортировку (если указана)
+        if (sortType && sortDirection) {
+          finalBooks.sort((a, b) => {
+            let aValue: any;
+            let bValue: any;
+
+            switch (sortType) {
+              case 'title':
+                aValue = (a.title || '').toLowerCase();
+                bValue = (b.title || '').toLowerCase();
+                break;
+              case 'added':
+                aValue = a.added || 0;
+                bValue = b.added || 0;
+                break;
+              case 'pages':
+                aValue = a.pages || 0;
+                bValue = b.pages || 0;
+                break;
+              default:
+                return 0;
+            }
+
+            if (sortDirection === 'asc') {
+              return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+            } else {
+              return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+            }
+          });
+        }
 
         // eslint-disable-next-line no-console
-        console.log(`📖 [SQLite Cache] Загружены данные из локальной БД (собрано из всех досок):`);
+        console.log(`📖 [SQLite Cache] Загружены данные из локальной БД (собрано из всех записей доски):`);
         // eslint-disable-next-line no-console
         console.log(`   Доска: ${boardType}`);
         // eslint-disable-next-line no-console
-        console.log(`   Количество книг после фильтрации: ${finalBooks.length}`);
+        console.log(`   Всего записей в board_data: ${allRecords.length}`);
+        // eslint-disable-next-line no-console
+        console.log(`   Книг до фильтрации: ${booksWithDates.length}`);
+        // eslint-disable-next-line no-console
+        console.log(`   Книг после фильтрации по статусу: ${Array.from(uniqueBooks.values()).length}`);
+        // eslint-disable-next-line no-console
+        console.log(`   Книг после применения фильтров и сортировки: ${finalBooks.length}`);
 
         if (finalBooks.length > 0) {
           return {
             boardType,
             data: finalBooks,
             totalItems: finalBooks.length,
-            hasNextPage: false, // Не знаем точно, но для первой страницы это нормально
+            hasNextPage: false,
             pageIndex,
             filterParams,
             sortType,
@@ -180,7 +223,7 @@ export const loadBoardData = async (
     }
 
     // Для доски ALL или если не нашли книги, загружаем стандартным способом
-    // Загружаем все страницы, так как мы больше не используем пагинацию
+    // Загружаем все записи для доски независимо от фильтров и сортировки
     // Не фильтруем по языку - данные одинаковые для всех языков
     const allResults = await database.getAllAsync<{
       board_type: string;
@@ -196,10 +239,9 @@ export const loadBoardData = async (
       timestamp: number;
     }>(
       `SELECT * FROM board_data 
-       WHERE board_type = ? AND filter_params = ? 
-       AND sort_type = ? AND sort_direction = ?
+       WHERE board_type = ?
        ORDER BY page_index ASC, timestamp DESC`,
-      [boardType, filterParamsStr, sortType, sortDirection],
+      [boardType],
     );
 
     if (!allResults || allResults.length === 0) {
@@ -271,7 +313,7 @@ export const loadBoardData = async (
     }
 
     // Применяем сохраненные статусы и даты
-    let booksWithDates = applyBookDatesToData(allBooks, datesMap);
+    const booksWithDates = applyBookDatesToData(allBooks, datesMap);
 
     // Удаляем дубликаты по bookId (предпочитаем первые записи, которые с языком 'all')
     const uniqueBooksMap = new Map<string, IBook>();
@@ -280,19 +322,58 @@ export const loadBoardData = async (
         uniqueBooksMap.set(book.bookId, book);
       }
     }
-    booksWithDates = Array.from(uniqueBooksMap.values());
+    let finalBooks = Array.from(uniqueBooksMap.values());
 
     // Для доски ALL не фильтруем, для остальных фильтруем по статусу
     if (boardType !== ALL) {
-      booksWithDates = booksWithDates.filter((book) => book.bookStatus === boardType);
+      finalBooks = finalBooks.filter((book) => book.bookStatus === boardType);
       // eslint-disable-next-line no-console
-      console.log(`   После фильтрации по статусу ${boardType}: ${booksWithDates.length} книг`);
+      console.log(`   После фильтрации по статусу ${boardType}: ${finalBooks.length} книг`);
+    }
+
+    // Применяем фильтры по категориям (если указаны)
+    if (filterParams && filterParams.length > 0) {
+      finalBooks = finalBooks.filter((book) => {
+        const bookCategoryPath = book.categoryPath || '';
+        return filterParams.some((filterPath) => bookCategoryPath.startsWith(filterPath));
+      });
+    }
+
+    // Применяем сортировку (если указана)
+    if (sortType && sortDirection) {
+      finalBooks.sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+
+        switch (sortType) {
+          case 'title':
+            aValue = (a.title || '').toLowerCase();
+            bValue = (b.title || '').toLowerCase();
+            break;
+          case 'added':
+            aValue = a.added || 0;
+            bValue = b.added || 0;
+            break;
+          case 'pages':
+            aValue = a.pages || 0;
+            bValue = b.pages || 0;
+            break;
+          default:
+            return 0;
+        }
+
+        if (sortDirection === 'asc') {
+          return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+        } else {
+          return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+        }
+      });
     }
 
     return {
       boardType: allResults[0].board_type as BookStatus,
-      data: booksWithDates,
-      totalItems: booksWithDates.length,
+      data: finalBooks,
+      totalItems: finalBooks.length,
       hasNextPage: false, // Больше не используем пагинацию
       pageIndex: 0,
       filterParams: filterParamsParsed,
@@ -580,6 +661,7 @@ export const updateBookInCache = async (bookId: string, updates: Partial<IBook>)
 
 /**
  * Добавление новой книги в кэш доски (во все записи board_data для указанной доски)
+ * Если записей нет, создает новую запись с этой книгой
  */
 export const addBookToCache = async (boardType: BookStatus, newBook: IBook): Promise<void> => {
   try {
@@ -600,14 +682,31 @@ export const addBookToCache = async (boardType: BookStatus, newBook: IBook): Pro
       timestamp: number;
     }>(`SELECT * FROM board_data WHERE board_type = ?`, [boardType]);
 
-    // Если записей нет, просто выходим — список будет пересохранён при следующей загрузке
+    const now = Date.now();
+
+    // Если записей нет, создаем новую запись с этой книгой
     if (!records || records.length === 0) {
+      // Создаем новую запись с пустыми фильтрами и сортировкой по умолчанию
+      const emptyFilters = JSON.stringify([]);
+      const defaultSortType = '';
+      const defaultSortDirection = '';
+      const universalLanguage = 'all';
+      const booksData = JSON.stringify([newBook]);
+      const timestamp = Date.now();
+
+      await database.runAsync(
+        `INSERT INTO board_data 
+         (board_type, page_index, filter_params, sort_type, sort_direction, language, data, total_items, has_next_page, books_count_by_year, timestamp)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [boardType, 0, emptyFilters, defaultSortType, defaultSortDirection, universalLanguage, booksData, 1, 0, null, timestamp],
+      );
+
       // eslint-disable-next-line no-console
-      console.log(`ℹ️ [SQLite Cache] Нет существующих записей board_data для доски ${boardType}; пропускаю addBookToCache`);
+      console.log(`➕ [SQLite Cache] Создана новая запись board_data для доски ${boardType} с книгой: ${newBook.bookId}`);
       return;
     }
 
-    const now = Date.now();
+    // Если записи есть, добавляем книгу во все записи, где её еще нет
     for (const record of records) {
       const books = JSON.parse(record.data) as IBook[];
       const exists = books.some((b) => b.bookId === newBook.bookId);
