@@ -18,30 +18,31 @@ export const saveProfile = async (profile: {
 
     // Загружаем существующий профиль чтобы сохранить значения syncWithLocalDatabaseCompleted и isNewUser
     const existingProfile = await loadProfile();
-    const syncCompleted = profile.syncWithLocalDatabaseCompleted !== undefined 
-      ? profile.syncWithLocalDatabaseCompleted 
-      : (existingProfile?.syncWithLocalDatabaseCompleted ?? false);
-    const isNewUser = profile.isNewUser !== undefined 
-      ? profile.isNewUser 
-      : (existingProfile?.isNewUser ?? false);
+    const syncCompleted =
+      profile.syncWithLocalDatabaseCompleted !== undefined
+        ? profile.syncWithLocalDatabaseCompleted
+        : (existingProfile?.syncWithLocalDatabaseCompleted ?? false);
+    const isNewUser = profile.isNewUser !== undefined ? profile.isNewUser : (existingProfile?.isNewUser ?? false);
 
     await database.runAsync(
       `INSERT OR REPLACE INTO user_profile (user_id, email, registered, updated, support_app_confirmed, support_app_viewed_at, sync_with_local_database_completed, is_new_user, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        profile._id, 
-        profile.email, 
-        profile.registered, 
-        profile.updated, 
-        profile.supportApp.confirmed ? 1 : 0, 
+        profile._id,
+        profile.email,
+        profile.registered,
+        profile.updated,
+        profile.supportApp.confirmed ? 1 : 0,
         profile.supportApp.viewedAt,
         syncCompleted ? 1 : 0,
         isNewUser ? 1 : 0,
-        timestamp
+        timestamp,
       ],
     );
 
     // eslint-disable-next-line no-console
-    console.log(`👤 [SQLite Cache] Профиль сохранен: userId=${profile._id}, email=${profile.email}, syncCompleted=${syncCompleted}, isNewUser=${isNewUser}`);
+    console.log(
+      `👤 [SQLite Cache] Профиль сохранен: userId=${profile._id}, email=${profile.email}, syncCompleted=${syncCompleted}, isNewUser=${isNewUser}`,
+    );
   } catch (error) {
     console.error('Error saving profile:', error);
     throw error;
@@ -72,14 +73,18 @@ export const loadProfile = async (): Promise<{
       sync_with_local_database_completed: number;
       is_new_user: number;
       timestamp: number;
-    }>(`SELECT user_id, email, registered, updated, support_app_confirmed, support_app_viewed_at, sync_with_local_database_completed, is_new_user, timestamp FROM user_profile LIMIT 1`);
+    }>(
+      `SELECT user_id, email, registered, updated, support_app_confirmed, support_app_viewed_at, sync_with_local_database_completed, is_new_user, timestamp FROM user_profile LIMIT 1`,
+    );
 
     if (!result) {
       return null;
     }
 
     // eslint-disable-next-line no-console
-    console.log(`👤 [SQLite Cache] Загружен профиль из локальной БД: userId=${result.user_id}, email=${result.email}, syncCompleted=${result.sync_with_local_database_completed === 1}, isNewUser=${result.is_new_user === 1}`);
+    console.log(
+      `👤 [SQLite Cache] Загружен профиль из локальной БД: userId=${result.user_id}, email=${result.email}, syncCompleted=${result.sync_with_local_database_completed === 1}, isNewUser=${result.is_new_user === 1}`,
+    );
 
     return {
       _id: result.user_id,
@@ -167,10 +172,9 @@ export const saveGuestProfile = async (forceCreate: boolean = false): Promise<vo
 export const setSyncWithLocalDatabaseCompleted = async (completed: boolean): Promise<void> => {
   try {
     const database = await getDatabase();
-    await database.runAsync(
-      `UPDATE user_profile SET sync_with_local_database_completed = ? WHERE id IN (SELECT id FROM user_profile LIMIT 1)`,
-      [completed ? 1 : 0],
-    );
+    await database.runAsync(`UPDATE user_profile SET sync_with_local_database_completed = ? WHERE id IN (SELECT id FROM user_profile LIMIT 1)`, [
+      completed ? 1 : 0,
+    ]);
     // eslint-disable-next-line no-console
     console.log(`✅ [SQLite Cache] syncWithLocalDatabaseCompleted установлен: ${completed}`);
   } catch (error) {
@@ -178,4 +182,3 @@ export const setSyncWithLocalDatabaseCompleted = async (completed: boolean): Pro
     throw error;
   }
 };
-
