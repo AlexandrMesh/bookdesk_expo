@@ -1,6 +1,5 @@
 import React, { FC, lazy, useCallback, useEffect, useState } from 'react';
 
-import { useNetInfo } from '@react-native-community/netinfo';
 import { BottomTabBar, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -80,7 +79,6 @@ const SignIn = lazy(() => import('~screens/Auth/SignIn'));
 const SignUp = lazy(() => import('~screens/Auth/SignUp'));
 
 const UnderConstruction = lazy(() => import('./UnderConstruction'));
-const NoConnection = lazy(() => import('./NoConnection'));
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -450,7 +448,6 @@ const MainNavigator: FC<MainNavigatorProps> = ({ isUpdateAvailable, googlePlayUr
 const Main = () => {
   const [shouldDisplayUnderConstructionView, setShouldDisplayUnderConstructionView] = useState(false);
   const [googlePlayUrl, setGooglePlayUrl] = useState('');
-  const { isConnected } = useNetInfo();
 
   const dispatch = useAppDispatch();
   const _checkAuth = useCallback((token: string) => dispatch(checkAuth(token)), [dispatch]);
@@ -492,15 +489,6 @@ const Main = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Дополнительный эффект для проверки авторизации при восстановлении подключения
-  useEffect(() => {
-    // Если подключение восстановилось, а мы еще не проверяли авторизацию,
-    // пробуем проверить еще раз
-    if (isConnected === true && checkingStatus === IDLE) {
-      checkAuthentication();
-    }
-  }, [isConnected, checkingStatus, checkAuthentication]);
-
   // Проверка EAS Updates при запуске приложения
   useEffect(() => {
     checkAndInstallUpdate().catch(() => {
@@ -522,14 +510,6 @@ const Main = () => {
     return (
       <InSuspense>
         <UnderConstruction />
-      </InSuspense>
-    );
-  }
-
-  if (isConnected === false) {
-    return (
-      <InSuspense>
-        <NoConnection />
       </InSuspense>
     );
   }
