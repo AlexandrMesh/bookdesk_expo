@@ -1,7 +1,5 @@
 import { createReducer } from '@reduxjs/toolkit';
-import isEmpty from 'lodash/isEmpty';
 import union from 'lodash/union';
-import uniqBy from 'lodash/uniqBy';
 
 import { ALL, COMPLETED, IN_PROGRESS, PLANNED } from '~constants/boardType';
 import { FAILED, IDLE, PENDING, SUCCEEDED } from '~constants/loadingStatuses';
@@ -233,9 +231,9 @@ export default createReducer(defaultState, (builder) => {
       state.updatedBookValues.loadingDataStatus = PENDING;
     })
     .addCase(booksActions.updateUserBookAddedDate.fulfilled, (state, { payload: { bookStatus, countByYear, added, bookId } }) => {
-      state.board[bookStatus].booksCountByYear = countByYear;
-      state.bookDetails.data.bookStatus = bookStatus;
-      state.bookDetails.data.added = added;
+      if (countByYear) {
+        state.board[bookStatus].booksCountByYear = countByYear;
+      }
       state.updatingBookStatus = SUCCEEDED;
       state.board[ALL].data = state.board[ALL].data.map((book) => (book.bookId === bookId ? { ...book, added } : book));
       state.board[bookStatus].data = state.board[bookStatus].data.map((book) => (book.bookId === bookId ? { ...book, added } : book));
@@ -244,9 +242,6 @@ export default createReducer(defaultState, (builder) => {
     })
     .addCase(booksActions.updateUserBookAddedDate.rejected, (state) => {
       state.updatedBookValues.loadingDataStatus = FAILED;
-    })
-    .addCase(booksActions.clearBookDetails, (state) => {
-      state.bookDetails = getDefaultBookDetailsState();
     })
     .addCase(booksActions.setBookVotes, (state, action) => {
       state.bookVotes = action.payload;
@@ -258,10 +253,6 @@ export default createReducer(defaultState, (builder) => {
       state.bookVotes = userVotes;
       state.board[ALL].data = state.board[ALL].data.map((book) => (book.bookId === meta.arg.bookId ? { ...book, votesCount } : book));
       state.search.data = state.search.data.map((book) => (book.bookId === meta.arg.bookId ? { ...book, votesCount } : book));
-
-      if (!isEmpty(state.bookDetails.data)) {
-        state.bookDetails.data.votesCount = votesCount;
-      }
 
       if (bookStatus) {
         state.board[bookStatus].data = state.board[bookStatus].data.map((book) => (book.bookId === meta.arg.bookId ? { ...book, votesCount } : book));
@@ -275,11 +266,9 @@ export default createReducer(defaultState, (builder) => {
     })
     .addCase(
       booksActions.updateUserBook.fulfilled,
-      (state, { payload: { boardType, currentBookStatus, countByYear, bookId, bookStatus, added, newBookStatus } }) => {
-        state.board[currentBookStatus || ALL].booksCountByYear = countByYear;
-        if (!isEmpty(state.bookDetails.data)) {
-          state.bookDetails.data.bookStatus = bookStatus;
-          state.bookDetails.data.added = added;
+      (state, { payload: { currentBookStatus, countByYear, bookId, bookStatus, added, newBookStatus } }) => {
+        if (countByYear) {
+          state.board[currentBookStatus || ALL].booksCountByYear = countByYear;
         }
 
         // Находим книгу на старой доске или в ALL
@@ -292,8 +281,8 @@ export default createReducer(defaultState, (builder) => {
         }
         // Если не нашли, ищем на всех досках
         if (!updatedBook) {
-          for (const boardKey of [PLANNED, IN_PROGRESS, COMPLETED]) {
-            updatedBook = state.board[boardKey].data.find((book) => book.bookId === bookId);
+          for (const boardKey of [PLANNED, IN_PROGRESS, COMPLETED] as BookStatus[]) {
+            updatedBook = state.board[boardKey].data.find((book: IBook) => book.bookId === bookId);
             if (updatedBook) break;
           }
         }
@@ -335,10 +324,10 @@ export default createReducer(defaultState, (builder) => {
     .addCase(booksActions.updateBookOnBoardAndSearch, (state, { payload }) => {
       const { bookId, bookStatus, title, pages, authorsList, coverPath, categoryPath, added, annotation } = payload;
       const targetBoard = bookStatus || ALL;
-      
+
       // Проверяем, есть ли книга в списке доски
       const existingBookIndex = state.board[targetBoard].data.findIndex((book) => book.bookId === bookId);
-      
+
       const updatedBook: IBook = {
         bookId,
         title,
@@ -350,7 +339,7 @@ export default createReducer(defaultState, (builder) => {
         ...(added && { added }),
         ...(annotation && { annotation }),
       };
-      
+
       if (existingBookIndex >= 0) {
         // Обновляем существующую книгу
         state.board[targetBoard].data[existingBookIndex] = {
@@ -362,7 +351,7 @@ export default createReducer(defaultState, (builder) => {
         state.board[targetBoard].data = [updatedBook, ...state.board[targetBoard].data];
         state.board[targetBoard].pagination.totalItems = (state.board[targetBoard].pagination.totalItems || 0) + 1;
       }
-      
+
       // Обновляем или добавляем в поиск
       const existingSearchIndex = state.search.data.findIndex((book) => book.bookId === bookId);
       if (existingSearchIndex >= 0) {
@@ -384,10 +373,10 @@ export default createReducer(defaultState, (builder) => {
           board.pagination.totalItems = Math.max(0, (board.pagination.totalItems || 0) - 1);
         }
       });
-      
+
       // Удаляем книгу из поиска
       state.search.data = state.search.data.filter((book) => book.bookId !== bookId);
-      
+
       // Удаляем связанные данные
       state.bookNotes = state.bookNotes.filter((note) => note.bookId !== bookId);
       state.bookRatings = state.bookRatings.filter((rating) => rating.bookId !== bookId);
@@ -428,16 +417,6 @@ export default createReducer(defaultState, (builder) => {
     .addCase(booksActions.loadCategories.rejected, (state) => {
       state.categories.shouldReloadData = false;
       state.categories.loadingDataStatus = FAILED;
-    })
-    .addCase(booksActions.loadBookDetails.pending, (state) => {
-      state.bookDetails.loadingDataStatus = PENDING;
-    })
-    .addCase(booksActions.loadBookDetails.fulfilled, (state, action) => {
-      state.bookDetails.data = action.payload;
-      state.bookDetails.loadingDataStatus = SUCCEEDED;
-    })
-    .addCase(booksActions.loadBookDetails.rejected, (state) => {
-      state.bookDetails.loadingDataStatus = FAILED;
     })
     .addCase(booksActions.resetCategories, (state, action) => {
       state.board[action.payload].editableFilterParams.categorySearchQuery = '';

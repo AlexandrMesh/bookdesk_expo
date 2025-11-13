@@ -13,7 +13,6 @@ const getBooks = (state: StateWithBooks) => state.books;
 const getSearch = (state: StateWithBooks) => getBooks(state).search;
 const getCategories = (state: StateWithBooks) => getBooks(state).categories;
 const getBoard = (state: StateWithBooks) => getBooks(state).board;
-const getBookDetails = (state: StateWithBooks) => getBooks(state).bookDetails;
 const getUpdatedBookValues = (state: StateWithBooks) => getBooks(state).updatedBookValues;
 
 export const getBoardType = (state: StateWithBooks) => getBooks(state).boardType;
@@ -38,9 +37,6 @@ export const getUpdatingBookStatus = (state: StateWithBooks) => getBooks(state).
 // Export getCategoriesData from common for backwards compatibility
 export { getCategoriesData };
 export const getShouldReloadCategories = (state: StateWithBooks) => getCategories(state).shouldReloadData;
-
-export const getLoadingBookDetailsStatus = (state: StateWithBooks) => getBookDetails(state).loadingDataStatus;
-export const getBookDetailsData = (state: StateWithBooks) => getBookDetails(state).data;
 
 export const getBookToUpdate = (state: StateWithBooks) => getUpdatedBookValues(state).bookToUpdate;
 export const getBookValuesUpdatingStatus = (state: StateWithBooks) => getUpdatedBookValues(state).loadingDataStatus;
@@ -130,11 +126,6 @@ export const deriveSectionedBookListData = (status: BookStatus) =>
 export const deriveSearchBookListData = createSelector([getSearchResults, getCategoriesData], (searchResults, categories) =>
   searchResults.map((book) => ({ ...book, categoryValue: categories.find((category) => category.path === book.categoryPath)?.value })),
 );
-
-export const deriveBookDetails = createSelector([getBookDetailsData, getCategoriesData], (bookDetails, categories) => ({
-  ...bookDetails,
-  categoryValue: categories.find((category) => category.path === bookDetails.categoryPath)?.value,
-}));
 
 export const deriveLoadingBookListStatus = (status: BookStatus) => createSelector([deriveBoard(status)], (board) => board.loadingDataStatus);
 

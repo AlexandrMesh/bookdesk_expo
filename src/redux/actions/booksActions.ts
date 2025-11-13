@@ -90,7 +90,6 @@ export const setCoverUrl = createAction<string>(`${PREFIX}/setCoverUrl`);
 export const searchCategory = createAction<{ boardType: BookStatus; query: string }>(`${PREFIX}/searchCategory`);
 export const clearSearchQueryForCategory = createAction<BookStatus>(`${PREFIX}/clearSearchQueryForCategory`);
 export const resetCategories = createAction<BookStatus>(`${PREFIX}/resetCategories`);
-export const clearBookDetails = createAction(`${PREFIX}/clearBookDetails`);
 export const toggleExpandedCategoryBooks = createAction<{ path: string; boardType: BookStatus }>(`${PREFIX}/toggleExpandedCategoryBooks`);
 export const addToIndeterminatedCategories = createAction<{ boardType: BookStatus; value: string }>(`${PREFIX}/addToIndeterminatedCategories`);
 export const clearIndeterminatedCategories = createAction<{ boardType: BookStatus; path: string }>(`${PREFIX}/toggleExpandedCategory`);
@@ -207,26 +206,6 @@ export const loadSearchResults = createAsyncThunk(
         hasNextPage: false,
         shouldLoadMoreResults: false,
       };
-    }
-  },
-);
-
-export const getSimilarBooks = createAsyncThunk(
-  `${PREFIX}/getSimilarBooks`,
-  async ({ bookId, categoryPath }: { bookId: string; categoryPath: string | undefined }) => {
-    const { language } = i18n;
-
-    const params = {
-      bookId,
-      categoryPath,
-      language,
-    };
-    try {
-      const { data } = (await DataService().getSimilarBooks({ ...params })) || {};
-      return data;
-    } catch (error) {
-      console.error(error);
-      throw error;
     }
   },
 );
@@ -465,16 +444,6 @@ export const loadCategories = createAsyncThunk(`${PREFIX}/loadCategories`, async
   }
 });
 
-export const loadBookDetails = createAsyncThunk(`${PREFIX}/loadBookDetails`, async (bookId: string) => {
-  try {
-    const { data } = (await DataService().getBookDetails({ bookId })) || {};
-    return data;
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
-});
-
 export const loadMoreSearchResults = createAsyncThunk(
   `${PREFIX}/loadMoreSearchResults`,
   async (boardType: BookStatus, { dispatch, getState }: AppThunkAPI) => {
@@ -564,12 +533,28 @@ export const deleteUserComment = createAsyncThunk(`${PREFIX}/deleteUserComment`,
   }
 });
 
-export const deleteUserBookRating = createAsyncThunk(`${PREFIX}/deleteUserBookRating`, async (bookId: string) => {
+export const deleteUserBookRating = createAsyncThunk(`${PREFIX}/deleteUserBookRating`, async (bookId: string, { getState }: AppThunkAPI) => {
   try {
-    const { data } = await DataService().deleteUserBookRating({ bookId });
-    return data;
+    // eslint-disable-next-line no-console
+    console.log('🗑️ [deleteUserBookRating] Удаление рейтинга через локальную БД');
+    // eslint-disable-next-line no-console
+    console.log(`   bookId: ${bookId}`);
+
+    // Удаляем из локальной БД
+    const { deleteBookRating } = await import('~utils/boardStorage');
+    await deleteBookRating(bookId);
+
+    // Получаем текущие рейтинги из state и удаляем нужный
+    const state = getState();
+    const currentRatings = state.books.bookRatings || [];
+    const updatedRatings = currentRatings.filter((r: IRating) => r.bookId !== bookId);
+
+    // eslint-disable-next-line no-console
+    console.log(`✅ [deleteUserBookRating] Рейтинг успешно удален из локальной БД (было: ${currentRatings.length}, стало: ${updatedRatings.length})`);
+
+    return updatedRatings;
   } catch (error) {
-    console.error(error);
+    console.error('Error deleting user book rating:', error);
     throw error;
   }
 });
