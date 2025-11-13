@@ -30,8 +30,10 @@ const BookList: FC<Props> = ({ data = [], loadMoreBooks = () => undefined, loadi
   const { t: tBooks } = useTranslation('books');
   const listRef = useRef<any>(null);
   const imgUrl = useGetImgUrl();
+  // Убеждаемся что data всегда массив
+  const safeData = Array.isArray(data) ? data : [];
   const getFooter = useCallback(() => {
-    if (loadingDataStatus === PENDING && data?.length > 0) {
+    if (loadingDataStatus === PENDING && safeData?.length > 0) {
       return (
         <View style={styles.listFooterComponent}>
           <Spinner />
@@ -104,17 +106,17 @@ const BookList: FC<Props> = ({ data = [], loadMoreBooks = () => undefined, loadi
   }, []);
 
   useEffect(() => {
-    if (data?.length === 0 && loadingDataStatus === SUCCEEDED) {
+    if (safeData?.length === 0 && loadingDataStatus === SUCCEEDED) {
       listRef?.current?.scrollToOffset({ offset: 0 });
     }
-  }, [data?.length, loadingDataStatus]);
+  }, [safeData?.length, loadingDataStatus]);
 
   return (
     <View style={styles.container}>
       <FlashList
         ref={listRef}
         horizontal={horizontal}
-        data={data}
+        data={safeData}
         renderItem={renderItem}
         getItemType={getItemType}
         keyExtractor={getKeyExtractor}

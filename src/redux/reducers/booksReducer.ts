@@ -267,23 +267,32 @@ export default createReducer(defaultState, (builder) => {
     .addCase(
       booksActions.updateUserBook.fulfilled,
       (state, { payload: { currentBookStatus, countByYear, bookId, bookStatus, added, newBookStatus } }) => {
-        if (countByYear) {
+        if (countByYear && Array.isArray(countByYear)) {
           state.board[currentBookStatus || ALL].booksCountByYear = countByYear;
         }
 
         // Находим книгу на старой доске или в ALL
         let updatedBook: IBook | undefined = undefined;
         if (currentBookStatus && currentBookStatus !== ALL) {
-          updatedBook = state.board[currentBookStatus].data.find((book) => book.bookId === bookId);
+          const boardData = state.board[currentBookStatus]?.data;
+          if (Array.isArray(boardData)) {
+            updatedBook = boardData.find((book) => book.bookId === bookId);
+          }
         }
         if (!updatedBook) {
-          updatedBook = state.board[ALL].data.find((book) => book.bookId === bookId);
+          const allBoardData = state.board[ALL]?.data;
+          if (Array.isArray(allBoardData)) {
+            updatedBook = allBoardData.find((book) => book.bookId === bookId);
+          }
         }
         // Если не нашли, ищем на всех досках
         if (!updatedBook) {
           for (const boardKey of [PLANNED, IN_PROGRESS, COMPLETED] as BookStatus[]) {
-            updatedBook = state.board[boardKey].data.find((book: IBook) => book.bookId === bookId);
-            if (updatedBook) break;
+            const boardData = state.board[boardKey]?.data;
+            if (Array.isArray(boardData)) {
+              updatedBook = boardData.find((book: IBook) => book.bookId === bookId);
+              if (updatedBook) break;
+            }
           }
         }
 
@@ -292,26 +301,38 @@ export default createReducer(defaultState, (builder) => {
 
           // Удаляем книгу со старой доски (если книга имела конкретный статус)
           if (currentBookStatus && currentBookStatus !== ALL) {
-            state.board[currentBookStatus].data = state.board[currentBookStatus].data.filter((book) => book.bookId !== bookId);
-            state.board[currentBookStatus].pagination.totalItems =
-              state.board[currentBookStatus].pagination.totalItems > 0 ? state.board[currentBookStatus].pagination.totalItems - 1 : 0;
+            const boardData = state.board[currentBookStatus]?.data;
+            if (Array.isArray(boardData)) {
+              state.board[currentBookStatus].data = boardData.filter((book) => book.bookId !== bookId);
+              state.board[currentBookStatus].pagination.totalItems =
+                state.board[currentBookStatus].pagination.totalItems > 0 ? state.board[currentBookStatus].pagination.totalItems - 1 : 0;
+            }
           }
 
           // Обновляем книгу в доске ALL (если она там есть)
-          state.board[ALL].data = state.board[ALL].data.map((book) => (book.bookId === bookId ? bookWithNewStatus : book));
-          state.search.data = state.search.data.map((book) => (book.bookId === bookId ? bookWithNewStatus : book));
+          const allBoardData = state.board[ALL]?.data;
+          if (Array.isArray(allBoardData)) {
+            state.board[ALL].data = allBoardData.map((book) => (book.bookId === bookId ? bookWithNewStatus : book));
+          }
+          const searchData = state.search?.data;
+          if (Array.isArray(searchData)) {
+            state.search.data = searchData.map((book) => (book.bookId === bookId ? bookWithNewStatus : book));
+          }
 
           // Добавляем книгу на новую доску локально (если это не ALL)
           if (newBookStatus !== ALL) {
-            // Проверяем, нет ли уже этой книги на новой доске
-            const existsOnNewBoard = state.board[newBookStatus].data.some((book) => book.bookId === bookId);
-            if (!existsOnNewBoard) {
-              // Добавляем книгу в начало списка новой доски
-              state.board[newBookStatus].data = [bookWithNewStatus, ...state.board[newBookStatus].data];
-              state.board[newBookStatus].pagination.totalItems = (state.board[newBookStatus].pagination.totalItems || 0) + 1;
-            } else {
-              // Если книга уже есть, просто обновляем её
-              state.board[newBookStatus].data = state.board[newBookStatus].data.map((book) => (book.bookId === bookId ? bookWithNewStatus : book));
+            const newBoardData = state.board[newBookStatus]?.data;
+            if (Array.isArray(newBoardData)) {
+              // Проверяем, нет ли уже этой книги на новой доске
+              const existsOnNewBoard = newBoardData.some((book) => book.bookId === bookId);
+              if (!existsOnNewBoard) {
+                // Добавляем книгу в начало списка новой доски
+                state.board[newBookStatus].data = [bookWithNewStatus, ...newBoardData];
+                state.board[newBookStatus].pagination.totalItems = (state.board[newBookStatus].pagination.totalItems || 0) + 1;
+              } else {
+                // Если книга уже есть, просто обновляем её
+                state.board[newBookStatus].data = newBoardData.map((book) => (book.bookId === bookId ? bookWithNewStatus : book));
+              }
             }
           }
         } else {
@@ -395,11 +416,13 @@ export default createReducer(defaultState, (builder) => {
         state.board[boardType].loadingDataStatus = SUCCEEDED;
         state.board[boardType].shouldReloadData = false;
         // Больше не используем пагинацию, всегда заменяем данные полностью
-        state.board[boardType].data = data;
+        // Убеждаемся что data всегда массив
+        state.board[boardType].data = Array.isArray(data) ? data : [];
         state.board[boardType].pagination.pageIndex = 0;
         state.board[boardType].pagination.totalItems = totalItems;
         state.board[boardType].pagination.hasNextPage = false;
-        state.board[boardType].booksCountByYear = booksCountByYear || state.board[boardType].booksCountByYear;
+        // Убеждаемся что booksCountByYear всегда массив
+        state.board[boardType].booksCountByYear = Array.isArray(booksCountByYear) ? booksCountByYear : (state.board[boardType].booksCountByYear || []);
       },
     )
     .addCase(booksActions.loadBookList.rejected, (state, action) => {

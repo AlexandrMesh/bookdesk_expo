@@ -103,10 +103,12 @@ export const deriveBookListData = (status: BookStatus) =>
 export const deriveSectionedBookListData = (status: BookStatus) =>
   createSelector(
     [deriveBookListData(status), deriveBooksCountByYear(status)],
-    (books, booksCountByYear) =>
-      map(
+    (books, booksCountByYear) => {
+      // Убеждаемся что books это массив
+      const booksArray = Array.isArray(books) ? books : [];
+      return map(
         groupBy(
-          [...books]
+          [...booksArray]
             .sort((a, b) => (b.added || 0) - (a.added || 0))
             .map((item) => ({
               ...item,
@@ -116,11 +118,13 @@ export const deriveSectionedBookListData = (status: BookStatus) =>
         ),
         (value: any[], key: string) => {
           // Используем реальное количество книг в группе вместо booksCountByYear
-          const count = value.length;
-          const data = [`${key}/${count}`, value.sort((a, b) => b.added - a.added)].flat();
+          const count = Array.isArray(value) ? value.length : 0;
+          const sortedValue = Array.isArray(value) ? value.sort((a, b) => (b.added || 0) - (a.added || 0)) : [];
+          const data = [`${key}/${count}`, sortedValue].flat();
           return data;
         },
-      ).flat() as any[],
+      ).flat() as any[];
+    },
   );
 
 export const deriveSearchBookListData = createSelector([getSearchResults, getCategoriesData], (searchResults, categories) =>

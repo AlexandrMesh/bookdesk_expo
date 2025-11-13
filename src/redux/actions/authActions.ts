@@ -423,11 +423,11 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
           console.error('Error saving goal items from server:', error);
         }
 
-        // Загружаем книги с сервера для всех досок
+        // Загружаем книги с сервера для досок (кроме ALL - она не сохраняется)
         // eslint-disable-next-line no-console
-        console.log('📚 [checkAuth] Загружаем книги с сервера для всех досок');
+        console.log('📚 [checkAuth] Загружаем книги с сервера для досок (PLANNED, IN_PROGRESS, COMPLETED)');
         try {
-          const boardTypes = [ALL, PLANNED, IN_PROGRESS, COMPLETED] as const;
+          const boardTypes = [PLANNED, IN_PROGRESS, COMPLETED] as const;
           for (const boardType of boardTypes) {
             try {
               // eslint-disable-next-line no-console
