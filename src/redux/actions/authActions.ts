@@ -125,7 +125,7 @@ export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: s
       } else {
         // eslint-disable-next-line no-console
         console.log('👤 [checkAuth] Профиль уже существует, используем его');
-        
+
         // Загружаем данные из локальной БД (рейтинги, лайки, заметки, цель)
         // Загружаем цель из локальной БД
         try {
@@ -734,13 +734,13 @@ export const resetData = createAsyncThunk(`${PREFIX}/resetData`, async (_, { dis
   try {
     await initDatabase();
     await resetAllDatabaseData();
-    
+
     // Очищаем Redux state
     dispatch(clearBooksData());
     dispatch(clearCustomBooksData());
     dispatch(clearStatisticData());
     dispatch(clearGoalsData());
-    
+
     // Создаем нового гостевого пользователя с текущей датой регистрации
     // forceCreate=true чтобы принудительно создать нового пользователя даже если профиль был удален
     await saveGuestProfile(true);
@@ -750,7 +750,7 @@ export const resetData = createAsyncThunk(`${PREFIX}/resetData`, async (_, { dis
       // Вызываем checkAuth с пустым токеном, чтобы обновить состояние
       dispatch(checkAuth(''));
     }
-    
+
     // eslint-disable-next-line no-console
     console.log('✅ [resetData] Все данные приложения сброшены, создан новый гостевой пользователь');
   } catch (error) {
