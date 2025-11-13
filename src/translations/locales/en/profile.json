@@ -11,5 +11,6 @@
   "resetDataSuccess": "All data has been successfully reset",
   "resetDataError": "Error resetting data",
   "about": "About app",
-  "newVersionAvailable": "New version of the application is available"
+  "newVersionAvailable": "New version of the application is available",
+  "openAuthTest": "Open sign-in screen (test)"
 }

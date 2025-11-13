@@ -141,6 +141,7 @@ const Step3 = () => {
       </ScrollView>
 
       <View>
+        <Text style={styles.tip}>{t('common:requiredFields')}</Text>
         <View style={styles.footerButtonsWrapper}>
           <Button theme={SECONDARY} style={styles.footerButton} onPress={onPressBack} title={t('common:back')} />
           <Button disabled={isAddDisabled || !selectedCategoryLabel} style={styles.footerButton} onPress={handleAddBook} title={t('common:add')} />

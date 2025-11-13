@@ -44,7 +44,7 @@ export { saveProfile, loadProfile, deleteProfile, hasUserProfile, saveGuestProfi
 export { getBooksByYear, getGoalItemsByYear } from './database/statistics';
 
 // Категории
-export { saveCategories, loadCategories } from './database/categories';
+export { saveCategories, loadCategories, loadCategoriesFromJson, initializeCategoriesFromJson } from './database/categories';
 
 // Сброс данных
 export { resetAllDatabaseData } from './database/database';

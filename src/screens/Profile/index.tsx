@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useAppDispatch, useAppSelector } from '~hooks';
 
-import { ABOUT_ROUTE } from '~constants/routes';
+import { ABOUT_ROUTE, SIGN_IN_ROUTE } from '~constants/routes';
 import { SECONDARY } from '~constants/themes';
 import { useAppUpdates } from '~hooks/useAppUpdates';
 import { resetData } from '~redux/actions/authActions';
@@ -99,6 +99,12 @@ const Profile: FC<Props> = ({ isUpdateAvailable, googlePlayUrl }) => {
               </View>
             )}
             <Button theme={SECONDARY} style={styles.marginBottom} onPress={() => navigation.navigate(ABOUT_ROUTE)} title={t('aboutApp')} />
+            <Button
+              theme={SECONDARY}
+              style={styles.marginBottom}
+              onPress={() => navigation.navigate(SIGN_IN_ROUTE)}
+              title={t('openAuthTest')}
+            />
             <Button theme={SECONDARY} onPress={_resetData} title={t('resetData')} />
           </ScrollView>
         </View>

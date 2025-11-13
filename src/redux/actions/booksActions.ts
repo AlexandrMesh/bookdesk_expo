@@ -39,6 +39,7 @@ import { BookStatus, IBook, IBookNote, IRating, IVote } from '~types/books';
 import {
   deleteBookNote,
   initDatabase,
+  initializeCategoriesFromJson,
   loadBoardData,
   loadCategories as loadCategoriesFromDB,
   saveBoardData,
@@ -431,51 +432,43 @@ export const loadCategories = createAsyncThunk(`${PREFIX}/loadCategories`, async
     return categories;
   }
 
-  if (!shouldRewrite && !shouldReloadCategories) {
-    try {
-      const cachedCategories = await loadCategoriesFromDB(language);
-      if (cachedCategories.length > 0) {
-        // eslint-disable-next-line no-console
-        console.log('✅ [loadCategories] Используются категории из локального кэша');
-        return cachedCategories;
-      } else {
-        // eslint-disable-next-line no-console
-        console.log('❌ [loadCategories] Категории не найдены в локальном кэше, загрузка с сервера...');
-      }
-    } catch (error) {
-      console.error('Error loading categories from cache:', error);
-      // Продолжаем загрузку с сервера в случае ошибки
-    }
-  } else {
-    if (shouldRewrite) {
-      // eslint-disable-next-line no-console
-      console.log('🔄 [loadCategories] Принудительное обновление - загрузка с сервера');
-    } else {
-      // eslint-disable-next-line no-console
-      console.log('🔄 [loadCategories] Перезагрузка - загрузка с сервера');
-    }
-  }
-
-  // Загружаем с сервера
+  // Всегда загружаем категории локально (из БД или из TS файла)
   try {
-    const { data } = (await DataService().getCategories({ language })) || {};
-
-    // Сохраняем в локальную БД
-    if (data && data.length > 0) {
-      try {
-        await saveCategories(data, language);
-        // eslint-disable-next-line no-console
-        console.log('✅ [loadCategories] Категории успешно сохранены в кэш');
-      } catch (error) {
-        console.error('Error saving categories to cache:', error);
-        // Не прерываем выполнение, если не удалось сохранить в кэш
-      }
+    const cachedCategories = await loadCategoriesFromDB(language);
+    if (cachedCategories.length > 0) {
+      // eslint-disable-next-line no-console
+      console.log('✅ [loadCategories] Используются категории из локального кэша');
+      return cachedCategories;
     }
-
-    return data;
+    
+    // Если категорий нет в БД, загружаем из TS файла и сохраняем в БД
+    // eslint-disable-next-line no-console
+    console.log('📂 [loadCategories] Категории не найдены в локальном кэше, загружаем из TS файла...');
+    const categoriesFromTs = await initializeCategoriesFromJson(language);
+    if (categoriesFromTs.length > 0) {
+      // eslint-disable-next-line no-console
+      console.log('✅ [loadCategories] Категории загружены из TS файла и сохранены в БД');
+      return categoriesFromTs;
+    }
+    
+    // Если и из TS файла не удалось загрузить, возвращаем пустой массив
+    // eslint-disable-next-line no-console
+    console.log('❌ [loadCategories] Не удалось загрузить категории ни из БД, ни из TS файла');
+    return [];
   } catch (error) {
     console.error('Error loading categories:', error);
-    throw error;
+    // В случае ошибки пытаемся загрузить из TS файла
+    try {
+      const categoriesFromTs = await initializeCategoriesFromJson(language);
+      if (categoriesFromTs.length > 0) {
+        // eslint-disable-next-line no-console
+        console.log('✅ [loadCategories] Категории загружены из TS файла (fallback после ошибки)');
+        return categoriesFromTs;
+      }
+    } catch (tsError) {
+      console.error('Error loading categories from TS file:', tsError);
+    }
+    return [];
   }
 });
 

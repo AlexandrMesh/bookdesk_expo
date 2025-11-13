@@ -799,6 +799,9 @@ export const resetData = createAsyncThunk(`${PREFIX}/resetData`, async (_, { dis
     dispatch(clearStatisticData());
     dispatch(clearGoalsData());
 
+    // Явно устанавливаем цели в null, чтобы убедиться, что они очищены
+    dispatch(setGoal({ pages: 0, type: 'daily' as any }));
+
     // Создаем нового гостевого пользователя с текущей датой регистрации
     // forceCreate=true чтобы принудительно создать нового пользователя даже если профиль был удален
     await saveGuestProfile(true);
@@ -806,6 +809,7 @@ export const resetData = createAsyncThunk(`${PREFIX}/resetData`, async (_, { dis
     if (newProfile) {
       // Обновляем Redux state с новым профилем через checkAuth
       // Вызываем checkAuth с пустым токеном, чтобы обновить состояние
+      // Но не загружаем цели, так как их нет в БД после сброса
       dispatch(checkAuth(''));
     }
 

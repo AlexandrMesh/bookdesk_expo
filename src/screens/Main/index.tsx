@@ -35,6 +35,7 @@ import {
   PROFILE_NAVIGATOR_ROUTE,
   PROFILE_ROUTE,
   SEARCH_ROUTE,
+  SIGN_IN_ROUTE,
   STAT_NAVIGATOR_ROUTE,
   STAT_ROUTE,
 } from '~constants/routes';
@@ -76,6 +77,7 @@ const DateUpdater = lazy(() => import('~screens/Home/DateUpdater'));
 const CoverViewer = lazy(() => import('~screens/Home/CoverViewer'));
 
 const UnderConstruction = lazy(() => import('./UnderConstruction'));
+const SignIn = lazy(() => import('~screens/Auth/SignIn'));
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -280,7 +282,7 @@ type ProfileNavigatorProps = {
 };
 
 const ProfileNavigator: FC<ProfileNavigatorProps> = ({ isUpdateAvailable, googlePlayUrl }) => {
-  const { t } = useTranslation('profile');
+  const { t } = useTranslation(['profile', 'auth']);
 
   return (
     <Stack.Navigator
@@ -305,6 +307,13 @@ const ProfileNavigator: FC<ProfileNavigatorProps> = ({ isUpdateAvailable, google
         {() => (
           <InSuspense>
             <About />
+          </InSuspense>
+        )}
+      </Stack.Screen>
+      <Stack.Screen name={SIGN_IN_ROUTE} options={{ title: t('auth:signIn', { defaultValue: 'Авторизация' }) }}>
+        {() => (
+          <InSuspense>
+            <SignIn />
           </InSuspense>
         )}
       </Stack.Screen>

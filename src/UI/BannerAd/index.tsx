@@ -3,17 +3,35 @@ import React from 'react';
 import { Dimensions, View } from 'react-native';
 
 import Constants from 'expo-constants';
+import NetInfo from '@react-native-community/netinfo';
 
 const BannerAd: React.FC = () => {
   const [adSize, setAdSize] = React.useState<any>(null);
   const [BannerViewComponent, setBannerViewComponent] = React.useState<any>(null);
   const [adRequest, setAdRequest] = React.useState<any>(null);
+  const [isConnected, setIsConnected] = React.useState<boolean | null>(null);
 
   const isExpoGo = Constants.appOwnership === 'expo';
 
   React.useEffect(() => {
-    // Загружаем Yandex Ads только если НЕ в Expo Go
-    if (!isExpoGo) {
+    // Проверяем наличие интернета
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      setIsConnected(state.isConnected);
+    });
+
+    // Получаем начальное состояние
+    NetInfo.fetch().then((state) => {
+      setIsConnected(state.isConnected);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  React.useEffect(() => {
+    // Загружаем Yandex Ads только если НЕ в Expo Go и есть интернет
+    if (!isExpoGo && isConnected) {
       (async () => {
         try {
           const { AdRequest, AdTheme, BannerAdSize, BannerView, Gender, Location } = await import('yandex-mobile-ads');
@@ -40,11 +58,16 @@ const BannerAd: React.FC = () => {
           console.log('Yandex Mobile Ads not available:', error);
         }
       })();
+    } else {
+      // Если нет интернета или Expo Go - сбрасываем состояние рекламы
+      setAdSize(null);
+      setBannerViewComponent(null);
+      setAdRequest(null);
     }
-  }, [isExpoGo]);
+  }, [isExpoGo, isConnected]);
 
-  // В Expo Go или если реклама не загрузилась - показываем пустой View
-  if (isExpoGo || !adSize || !BannerViewComponent || !adRequest) {
+  // В Expo Go, если нет интернета или если реклама не загрузилась - показываем пустой View
+  if (isExpoGo || !isConnected || !adSize || !BannerViewComponent || !adRequest) {
     return <View />;
   }
 
