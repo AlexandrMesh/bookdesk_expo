@@ -136,3 +136,32 @@ export const getDatabase = async (): Promise<SQLite.SQLiteDatabase> => {
   return db;
 };
 
+/**
+ * Полный сброс всех данных базы данных
+ */
+export const resetAllDatabaseData = async (): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    
+    // Очищаем все таблицы
+    await database.execAsync(`
+      DELETE FROM board_data;
+      DELETE FROM book_ratings;
+      DELETE FROM book_votes;
+      DELETE FROM user_votes;
+      DELETE FROM book_dates;
+      DELETE FROM book_notes;
+      DELETE FROM goal_items;
+      DELETE FROM user_goal;
+      DELETE FROM user_profile;
+      DELETE FROM categories;
+    `);
+    
+    // eslint-disable-next-line no-console
+    console.log('🗑️ [SQLite Cache] Все данные базы данных сброшены');
+  } catch (error) {
+    console.error('Error resetting all database data:', error);
+    throw error;
+  }
+};
+

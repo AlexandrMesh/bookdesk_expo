@@ -18,6 +18,7 @@ import {
   loadGoal,
   loadProfile,
   loadUserVotes,
+  resetAllDatabaseData,
   saveGoal,
   saveProfile,
 } from '~utils/boardStorage';
@@ -644,6 +645,25 @@ export const signOut = createAsyncThunk(`${PREFIX}/signOut`, async (_, { dispatc
     } catch (storageError) {
       console.error('Error removing token:', storageError);
     }
+    throw error;
+  }
+});
+
+export const resetData = createAsyncThunk(`${PREFIX}/resetData`, async (_, { dispatch }) => {
+  try {
+    await initDatabase();
+    await resetAllDatabaseData();
+    
+    // Очищаем Redux state
+    dispatch(clearBooksData());
+    dispatch(clearCustomBooksData());
+    dispatch(clearStatisticData());
+    dispatch(clearGoalsData());
+    
+    // eslint-disable-next-line no-console
+    console.log('✅ [resetData] Все данные приложения сброшены');
+  } catch (error) {
+    console.error('Error resetting data:', error);
     throw error;
   }
 });

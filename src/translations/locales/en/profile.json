@@ -4,6 +4,11 @@
   "registered": "Registered: ",
   "aboutApp": "About app",
   "signOut": "Sign-Out",
+  "resetData": "Reset Data",
+  "resetDataConfirm": "Are you sure you want to reset all application data? This action cannot be undone.",
+  "resetDataTitle": "Reset Data",
+  "resetDataSuccess": "All data has been successfully reset",
+  "resetDataError": "Error resetting data",
   "about": "About app",
   "newVersionAvailable": "New version of the application is available"
 }

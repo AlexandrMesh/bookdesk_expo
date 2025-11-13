@@ -2,8 +2,7 @@ import React, { useCallback, useEffect } from 'react';
 
 import { View } from 'react-native';
 
-import { useIsFocused } from '@react-navigation/native';
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 
 import { useAppDispatch, useAppSelector } from '~hooks';
 

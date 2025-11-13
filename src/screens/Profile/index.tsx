@@ -1,6 +1,6 @@
 import React, { FC } from 'react';
 
-import { ScrollView, Text, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
 
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -10,7 +10,7 @@ import { useAppDispatch, useAppSelector } from '~hooks';
 import { ABOUT_ROUTE } from '~constants/routes';
 import { SECONDARY } from '~constants/themes';
 import { useAppUpdates } from '~hooks/useAppUpdates';
-import { signOut } from '~redux/actions/authActions';
+import { resetData } from '~redux/actions/authActions';
 import { getRegistered, getUserEmail } from '~redux/selectors/auth';
 import Button from '~UI/Button';
 
@@ -29,7 +29,32 @@ const Profile: FC<Props> = ({ isUpdateAvailable, googlePlayUrl }) => {
   const { language } = i18n;
 
   const dispatch = useAppDispatch();
-  const _signOut = () => dispatch(signOut());
+  const _resetData = () => {
+    Alert.alert(
+      t('resetDataTitle'),
+      t('resetDataConfirm'),
+      [
+        {
+          text: t('common:cancel', { defaultValue: 'Отмена' }),
+          style: 'cancel',
+        },
+        {
+          text: t('resetData'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await dispatch(resetData()).unwrap();
+              Alert.alert(t('resetDataTitle'), t('resetDataSuccess'));
+            } catch (error) {
+              Alert.alert(t('resetDataTitle'), t('resetDataError'));
+              console.error('Error resetting data:', error);
+            }
+          },
+        },
+      ],
+      { cancelable: true },
+    );
+  };
 
   const email = useAppSelector(getUserEmail);
   const registered = useAppSelector(getRegistered);
@@ -63,7 +88,7 @@ const Profile: FC<Props> = ({ isUpdateAvailable, googlePlayUrl }) => {
               </View>
             )}
             <Button theme={SECONDARY} style={styles.marginBottom} onPress={() => navigation.navigate(ABOUT_ROUTE)} title={t('aboutApp')} />
-            <Button theme={SECONDARY} onPress={_signOut} title={t('signOut')} />
+            <Button theme={SECONDARY} onPress={_resetData} title={t('resetData')} />
           </ScrollView>
         </View>
       </View>

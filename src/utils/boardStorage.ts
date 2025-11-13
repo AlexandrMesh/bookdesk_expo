@@ -46,5 +46,8 @@ export { getBooksByYear, getGoalItemsByYear } from './database/statistics';
 // Категории
 export { saveCategories, loadCategories } from './database/categories';
 
+// Сброс данных
+export { resetAllDatabaseData } from './database/database';
+
 // Типы
 export type { BoardData } from './database/types';
