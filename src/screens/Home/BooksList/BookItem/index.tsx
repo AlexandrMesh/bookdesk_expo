@@ -119,8 +119,9 @@ const BookItem: FC<Props> = memo(
           </View>
           <View style={styles.rightSide}>
             <Text style={[styles.title, styles.lightColor]}>{title}</Text>
-            {(authorsList as string[]).length > 0 &&
-              authorsList?.map(
+            {Array.isArray(authorsList) &&
+              authorsList.length > 0 &&
+              authorsList.map(
                 (author, index) =>
                   index < 2 && (
                     <View key={`${author}_${index}`}>

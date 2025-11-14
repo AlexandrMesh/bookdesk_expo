@@ -59,7 +59,7 @@ export const saveBoardData = async (
     // eslint-disable-next-line no-console
     console.log(`   Страница: ${pageIndex}`);
     // eslint-disable-next-line no-console
-    console.log(`   Фильтры: ${filterParams.length > 0 ? filterParams.join(', ') : 'нет'}`);
+    console.log(`   Фильтры: ${filterParams && filterParams.length > 0 ? filterParams.join(', ') : 'нет'}`);
     // eslint-disable-next-line no-console
     console.log(`   Сортировка: ${sortType} (${sortDirection})`);
     // eslint-disable-next-line no-console
@@ -253,7 +253,19 @@ export const loadBoardData = async (
     const allBooks: IBook[] = [];
     let latestTimestamp = 0;
     let booksCountByYear: any = undefined;
-    const filterParamsParsed = JSON.parse(allResults[0].filter_params) as string[];
+    // Безопасно парсим filter_params, если что-то пошло не так, используем переданный filterParams или пустой массив
+    let filterParamsParsed: string[] = [];
+    try {
+      if (allResults[0].filter_params) {
+        const parsed = JSON.parse(allResults[0].filter_params);
+        filterParamsParsed = Array.isArray(parsed) ? parsed : filterParams || [];
+      } else {
+        filterParamsParsed = filterParams || [];
+      }
+    } catch (error) {
+      console.warn('Error parsing filter_params from cache, using provided filterParams:', error);
+      filterParamsParsed = filterParams || [];
+    }
 
     // Сначала собираем данные с языком 'all', затем остальные
     const resultsWithAll = allResults.filter((r) => r.language === 'all');
@@ -423,19 +435,33 @@ export const loadAllBoardData = async (
       [boardType, filterParamsStr, sortType, sortDirection],
     );
 
-    return results.map((result) => ({
-      boardType: result.board_type as BookStatus,
-      data: JSON.parse(result.data) as IBook[],
-      totalItems: result.total_items,
-      hasNextPage: result.has_next_page === 1,
-      pageIndex: result.page_index,
-      filterParams: JSON.parse(result.filter_params) as string[],
-      sortType: result.sort_type,
-      sortDirection: result.sort_direction,
-      language: result.language,
-      booksCountByYear: result.books_count_by_year ? JSON.parse(result.books_count_by_year) : undefined,
-      timestamp: result.timestamp,
-    }));
+    return results.map((result) => {
+      // Безопасно парсим filter_params
+      let parsedFilterParams: string[] = [];
+      try {
+        if (result.filter_params) {
+          const parsed = JSON.parse(result.filter_params);
+          parsedFilterParams = Array.isArray(parsed) ? parsed : [];
+        }
+      } catch (error) {
+        console.warn('Error parsing filter_params in loadAllBoardData:', error);
+        parsedFilterParams = [];
+      }
+
+      return {
+        boardType: result.board_type as BookStatus,
+        data: JSON.parse(result.data) as IBook[],
+        totalItems: result.total_items,
+        hasNextPage: result.has_next_page === 1,
+        pageIndex: result.page_index,
+        filterParams: parsedFilterParams,
+        sortType: result.sort_type,
+        sortDirection: result.sort_direction,
+        language: result.language,
+        booksCountByYear: result.books_count_by_year ? JSON.parse(result.books_count_by_year) : undefined,
+        timestamp: result.timestamp,
+      };
+    });
   } catch (error) {
     console.error('Error loading all board data:', error);
     return [];

@@ -401,11 +401,25 @@ export const loadBookList = createAsyncThunk(
 export const loadBookListFromLocalDB = createAsyncThunk(
   `${PREFIX}/loadBookListFromLocalDB`,
   async ({ boardType, shouldLoadMoreResults }: { boardType: BookStatus; shouldLoadMoreResults: boolean }, { getState }: AppThunkAPI) => {
+    // DEBUG: Логируем начало загрузки
+    console.log(`🔍 [loadBookListFromLocalDB DEBUG] ${boardType}: Начало загрузки`);
+
     const state = getState();
     const pageIndex = deriveBookListPageIndex(boardType)(state);
     const filterParams = deriveFilterBookCategoryPaths(boardType)(state);
     const sortParams = deriveBookListSortParams(boardType)(state);
     const { language } = i18n;
+
+    // DEBUG: Логируем параметры загрузки
+    console.log(`🔍 [loadBookListFromLocalDB DEBUG] ${boardType}: Параметры:`, {
+      pageIndex,
+      filterParamsIsArray: Array.isArray(filterParams),
+      filterParamsLength: Array.isArray(filterParams) ? filterParams.length : typeof filterParams,
+      sortParamsExists: !!sortParams,
+      sortParamsType: sortParams?.type,
+      sortParamsDirection: sortParams?.direction,
+      language,
+    });
 
     const targetPageIndex = shouldLoadMoreResults ? pageIndex + 1 : 0;
 
@@ -425,6 +439,15 @@ export const loadBookListFromLocalDB = createAsyncThunk(
       const cachedData = await loadBoardData(boardType, targetPageIndex, filterParams, sortType, sortDirection, language);
 
       if (cachedData) {
+        // DEBUG: Логируем загруженные данные
+        console.log(`🔍 [loadBookListFromLocalDB DEBUG] ${boardType}: cachedData получен:`, {
+          dataIsArray: Array.isArray(cachedData.data),
+          dataLength: Array.isArray(cachedData.data) ? cachedData.data.length : typeof cachedData.data,
+          filterParamsExists: !!cachedData.filterParams,
+          filterParamsIsArray: Array.isArray(cachedData.filterParams),
+          filterParamsLength: Array.isArray(cachedData.filterParams) ? cachedData.filterParams.length : typeof cachedData.filterParams,
+        });
+
         // eslint-disable-next-line no-console
         console.log(`✅ [loadBookListFromLocalDB] Загружено ${cachedData.data.length} книг из локальной БД`);
 
@@ -436,7 +459,7 @@ export const loadBookListFromLocalDB = createAsyncThunk(
           console.log(`   Подсчитано booksCountByYear из локальной БД: ${booksCountByYear?.length || 0} месяцев`);
         }
 
-        return {
+        const returnPayload = {
           boardType,
           data: cachedData.data,
           totalItems: cachedData.data.length, // Используем реальное количество книг
@@ -445,6 +468,16 @@ export const loadBookListFromLocalDB = createAsyncThunk(
           booksCountByYear,
           fromCache: true,
         };
+
+        // DEBUG: Логируем payload перед возвратом
+        console.log(`🔍 [loadBookListFromLocalDB DEBUG] ${boardType}: Возвращаем payload:`, {
+          dataIsArray: Array.isArray(returnPayload.data),
+          dataLength: Array.isArray(returnPayload.data) ? returnPayload.data.length : typeof returnPayload.data,
+          booksCountByYearIsArray: Array.isArray(returnPayload.booksCountByYear),
+          booksCountByYearType: typeof returnPayload.booksCountByYear,
+        });
+
+        return returnPayload;
       } else {
         // eslint-disable-next-line no-console
         console.log('⚠️ [loadBookListFromLocalDB] Данные не найдены в локальной БД, возвращаем пустой массив');

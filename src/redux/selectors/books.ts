@@ -43,14 +43,62 @@ export const getBookValuesUpdatingStatus = (state: StateWithBooks) => getUpdated
 
 export const getUserBookRatings = (state: StateWithBooks) => getBooks(state).bookRatings;
 
-export const deriveBoard = (status: BookStatus) => createSelector([getBoard], (board) => board[status]);
+export const deriveBoard = (status: BookStatus) =>
+  createSelector([getBoard], (board) => {
+    // DEBUG: Логируем состояние board
+    console.log(`🔍 [deriveBoard DEBUG] ${status}:`, {
+      boardExists: !!board,
+      boardType: typeof board,
+      boardStatusExists: board ? !!board[status] : false,
+      boardStatusType: board && board[status] ? typeof board[status] : 'N/A',
+    });
+
+    // Защита от undefined - возвращаем дефолтное состояние если board или board[status] undefined
+    if (!board || !board[status]) {
+      console.log(`🔍 [deriveBoard DEBUG] ${status}: board или board[status] undefined, возвращаем дефолтное состояние`);
+      const { IDLE } = require('~constants/loadingStatuses');
+      return {
+        data: [],
+        booksCountByYear: [],
+        loadingDataStatus: IDLE,
+        shouldReloadData: false,
+        editableFilterParams: { categoryPaths: [], expanded: [], indeterminated: [], categorySearchQuery: '' },
+        filterParams: { categoryPaths: [], expanded: [], indeterminated: [], categorySearchQuery: '' },
+        sortParams: { type: '', direction: null },
+        pagination: { pageIndex: -1, totalItems: 0, hasNextPage: false },
+      };
+    }
+
+    const boardState = board[status];
+    console.log(`🔍 [deriveBoard DEBUG] ${status}: boardState:`, {
+      dataIsArray: Array.isArray(boardState.data),
+      dataLength: Array.isArray(boardState.data) ? boardState.data.length : 'not array',
+      booksCountByYearIsArray: Array.isArray(boardState.booksCountByYear),
+      loadingDataStatus: boardState.loadingDataStatus,
+      filterParamsExists: !!boardState.filterParams,
+      filterParamsCategoryPaths: boardState.filterParams?.categoryPaths
+        ? Array.isArray(boardState.filterParams.categoryPaths)
+          ? `array[${boardState.filterParams.categoryPaths.length}]`
+          : typeof boardState.filterParams.categoryPaths
+        : 'undefined',
+    });
+
+    return boardState;
+  });
 
 export const deriveUserBookRating = (bookIdExternal: string) =>
   createSelector([getUserBookRatings], (bookRatings) => bookRatings.find(({ bookId }) => bookId === bookIdExternal));
 
 export const deriveBookListEditableFilterParams = (status: BookStatus) =>
-  createSelector([deriveBoard(status)], (board) => board.editableFilterParams);
-export const deriveBookListFilterParams = (status: BookStatus) => createSelector([deriveBoard(status)], (board) => board.filterParams);
+  createSelector(
+    [deriveBoard(status)],
+    (board) => board?.editableFilterParams || { categoryPaths: [], expanded: [], indeterminated: [], categorySearchQuery: '' },
+  );
+export const deriveBookListFilterParams = (status: BookStatus) =>
+  createSelector(
+    [deriveBoard(status)],
+    (board) => board?.filterParams || { categoryPaths: [], expanded: [], indeterminated: [], categorySearchQuery: '' },
+  );
 
 export const deriveEditableIndeterminatedCategories = (status: BookStatus) =>
   createSelector([deriveBookListEditableFilterParams(status)], (editableFilterParams) => editableFilterParams.indeterminated);
@@ -74,11 +122,13 @@ export const deriveCategorySearchQuery = (status: BookStatus) =>
   createSelector([deriveBookListEditableFilterParams(status)], (editableFilterParams) => editableFilterParams.categorySearchQuery);
 
 export const deriveFilterBookCategoryPaths = (status: BookStatus) =>
-  createSelector([deriveBookListFilterParams(status)], (filterParams) =>
-    (filterParams.categoryPaths as string[]).filter((item) => item.split('.').length === 3),
-  );
+  createSelector([deriveBookListFilterParams(status)], (filterParams) => {
+    const categoryPaths = filterParams?.categoryPaths;
+    return Array.isArray(categoryPaths) ? categoryPaths.filter((item) => item && typeof item === 'string' && item.split('.').length === 3) : [];
+  });
 
-export const deriveBooksCountByYear = (status: BookStatus) => createSelector([deriveBoard(status)], (board) => board.booksCountByYear);
+export const deriveBooksCountByYear = (status: BookStatus) =>
+  createSelector([deriveBoard(status)], (board) => (board && Array.isArray(board.booksCountByYear) ? board.booksCountByYear : []));
 
 export const deriveSearchQuery = createSelector([getSearchQuery], (query) => query.trim());
 
@@ -93,7 +143,8 @@ export const deriveCategoriesSearchResult = (status: BookStatus) =>
       : [];
   });
 
-export const deriveBoardData = (status: BookStatus) => createSelector([deriveBoard(status)], (board) => (Array.isArray(board?.data) ? board.data : []));
+export const deriveBoardData = (status: BookStatus) =>
+  createSelector([deriveBoard(status)], (board) => (board && Array.isArray(board.data) ? board.data : []));
 
 export const deriveBookListData = (status: BookStatus) =>
   createSelector([deriveBoardData(status), getCategoriesData], (board, categories) => {
@@ -104,39 +155,99 @@ export const deriveBookListData = (status: BookStatus) =>
   });
 
 export const deriveSectionedBookListData = (status: BookStatus) =>
-  createSelector(
-    [deriveBookListData(status), deriveBooksCountByYear(status)],
-    (books, booksCountByYear) => {
-      // Убеждаемся что books это массив
-      const booksArray = Array.isArray(books) ? books : [];
-      return map(
-        groupBy(
-          [...booksArray]
-            .sort((a, b) => (b.added || 0) - (a.added || 0))
-            .map((item) => ({
-              ...item,
-              monthAndYear: new Date((item as any).added)?.toLocaleString(i18n.language, { month: 'long', year: 'numeric' }),
-            })),
-          'monthAndYear',
-        ),
-        (value: any[], key: string) => {
-          // Используем реальное количество книг в группе вместо booksCountByYear
-          const count = Array.isArray(value) ? value.length : 0;
-          const sortedValue = Array.isArray(value) ? value.sort((a, b) => (b.added || 0) - (a.added || 0)) : [];
-          const data = [`${key}/${count}`, sortedValue].flat();
-          return data;
-        },
-      ).flat() as any[];
-    },
-  );
+  createSelector([deriveBookListData(status), deriveBooksCountByYear(status)], (books, _booksCountByYear) => {
+    // DEBUG: Логируем входные данные
+    console.log(`🔍 [deriveSectionedBookListData DEBUG] ${status}:`, {
+      books: books ? (Array.isArray(books) ? `array[${books.length}]` : typeof books) : 'null/undefined',
+      booksIsArray: Array.isArray(books),
+      booksType: typeof books,
+    });
+
+    // Убеждаемся что books это массив
+    const booksArray = Array.isArray(books) ? books : [];
+
+    // Если массив пустой, возвращаем пустой массив
+    if (booksArray.length === 0) {
+      console.log(`🔍 [deriveSectionedBookListData DEBUG] ${status}: booksArray пустой, возвращаем []`);
+      return [];
+    }
+
+    try {
+      const sortedBooks = [...booksArray].sort((a, b) => (b.added || 0) - (a.added || 0));
+      const mappedBooks = sortedBooks.map((item) => {
+        const monthAndYear = item.added ? new Date(item.added).toLocaleString(i18n.language, { month: 'long', year: 'numeric' }) : 'Invalid Date';
+        return {
+          ...item,
+          monthAndYear,
+        };
+      });
+
+      console.log(`🔍 [deriveSectionedBookListData DEBUG] ${status}: mappedBooks:`, {
+        length: mappedBooks.length,
+        firstItem: mappedBooks[0] ? { monthAndYear: mappedBooks[0].monthAndYear, hasAdded: !!mappedBooks[0].added } : null,
+      });
+
+      const grouped = groupBy(mappedBooks, 'monthAndYear');
+
+      console.log(`🔍 [deriveSectionedBookListData DEBUG] ${status}: grouped:`, {
+        isObject: typeof grouped === 'object',
+        keys: grouped ? Object.keys(grouped).length : 0,
+        groupedType: typeof grouped,
+      });
+
+      // Убеждаемся что grouped это объект
+      if (!grouped || typeof grouped !== 'object') {
+        console.log(`🔍 [deriveSectionedBookListData DEBUG] ${status}: grouped не объект, возвращаем []`);
+        return [];
+      }
+
+      const result = map(grouped, (value: any[], key: string) => {
+        // DEBUG: Логируем каждую группу
+        const isArray = Array.isArray(value);
+        const count = isArray ? value.length : 0;
+        console.log(`🔍 [deriveSectionedBookListData DEBUG] ${status}: группа "${key}":`, {
+          valueIsArray: isArray,
+          count,
+          valueType: typeof value,
+        });
+
+        // Используем реальное количество книг в группе вместо booksCountByYear
+        const sortedValue = isArray ? value.sort((a, b) => (b.added || 0) - (a.added || 0)) : [];
+        const data = [`${key}/${count}`, sortedValue].flat();
+        return data;
+      });
+
+      console.log(`🔍 [deriveSectionedBookListData DEBUG] ${status}: result:`, {
+        isArray: Array.isArray(result),
+        length: Array.isArray(result) ? result.length : 'not array',
+        resultType: typeof result,
+      });
+
+      // Убеждаемся что result это массив перед вызовом flat
+      const finalResult = Array.isArray(result) ? result.flat() : [];
+      console.log(`🔍 [deriveSectionedBookListData DEBUG] ${status}: finalResult:`, {
+        isArray: Array.isArray(finalResult),
+        length: finalResult.length,
+      });
+      return finalResult;
+    } catch (error) {
+      console.error(`🔍 [deriveSectionedBookListData DEBUG] ${status}: ERROR:`, error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'no stack');
+      return [];
+    }
+  });
 
 export const deriveSearchBookListData = createSelector([getSearchResults, getCategoriesData], (searchResults, categories) =>
-  searchResults.map((book) => ({ ...book, categoryValue: categories.find((category) => category.path === book.categoryPath)?.value })),
+  searchResults.map((book) => ({
+    ...book,
+    categoryValue: categories.find((category) => category.path === book.categoryPath)?.value,
+  })),
 );
 
-export const deriveLoadingBookListStatus = (status: BookStatus) => createSelector([deriveBoard(status)], (board) => board.loadingDataStatus);
+export const deriveLoadingBookListStatus = (status: BookStatus) =>
+  createSelector([deriveBoard(status)], (board) => board?.loadingDataStatus || 'idle');
 
-export const deriveShouldReloadBookList = (status: BookStatus) => createSelector([deriveBoard(status)], (board) => board.shouldReloadData);
+export const deriveShouldReloadBookList = (status: BookStatus) => createSelector([deriveBoard(status)], (board) => board?.shouldReloadData || false);
 
 export const deriveBookListPagination = (status: BookStatus) => createSelector([deriveBoard(status)], (board) => board.pagination);
 

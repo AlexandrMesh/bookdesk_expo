@@ -46,10 +46,22 @@ const InProgressBooks = () => {
     });
   }, [dispatch, navigation]);
 
+  // DEBUG: Логируем состояние перед использованием селекторов
   const sectionedBookListData = useAppSelector(deriveSectionedBookListData(IN_PROGRESS));
   const loadingDataStatus = useAppSelector(deriveLoadingBookListStatus(IN_PROGRESS));
   const shouldReloadData = useAppSelector(deriveShouldReloadBookList(IN_PROGRESS));
   const totalItems = useAppSelector(deriveBookListTotalItems(IN_PROGRESS));
+
+  // DEBUG: Логируем значения селекторов
+  useEffect(() => {
+    console.log('🔍 [InProgressBooks DEBUG] Селекторы:', {
+      sectionedBookListData: sectionedBookListData ? (Array.isArray(sectionedBookListData) ? `array[${sectionedBookListData.length}]` : typeof sectionedBookListData) : 'null/undefined',
+      loadingDataStatus,
+      shouldReloadData,
+      totalItems,
+      isFocused,
+    });
+  }, [sectionedBookListData, loadingDataStatus, shouldReloadData, totalItems, isFocused]);
 
   useEffect(() => {
     if (isFocused) {
