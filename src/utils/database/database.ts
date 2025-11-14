@@ -111,7 +111,103 @@ export const initDatabase = async (): Promise<void> => {
           UNIQUE(language)
         );
         CREATE INDEX IF NOT EXISTS idx_categories_language ON categories(language);
+        CREATE TABLE IF NOT EXISTS books (
+          book_id TEXT PRIMARY KEY,
+          title TEXT,
+          cover_path TEXT,
+          authors TEXT,
+          pages INTEGER,
+          category_value TEXT,
+          category_path TEXT,
+          book_status TEXT,
+          added INTEGER,
+          rating INTEGER,
+          votes_count INTEGER,
+          comment TEXT,
+          comment_added INTEGER,
+          annotation TEXT,
+          timestamp INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_books_book_id ON books(book_id);
+        CREATE INDEX IF NOT EXISTS idx_books_book_status ON books(book_status);
+        CREATE INDEX IF NOT EXISTS idx_books_added ON books(added);
+        CREATE INDEX IF NOT EXISTS idx_books_timestamp ON books(timestamp);
       `);
+
+      // Миграция: переносим данные из старых таблиц в новую единую таблицу books
+      try {
+        // Проверяем, есть ли данные в старых таблицах, но нет в новой
+        const existingBooks = await db.getFirstAsync<{ count: number }>(`SELECT COUNT(*) as count FROM books`);
+        const hasOldData = await db.getFirstAsync<{ count: number }>(`
+          SELECT COUNT(*) as count FROM (
+            SELECT book_id FROM book_dates
+            UNION
+            SELECT book_id FROM book_ratings
+            UNION
+            SELECT book_id FROM book_votes
+            UNION
+            SELECT book_id FROM book_notes
+          )
+        `);
+
+        if (hasOldData && hasOldData.count > 0 && (!existingBooks || existingBooks.count === 0)) {
+          // eslint-disable-next-line no-console
+          console.log('🔄 [Migration] Начинаем миграцию данных из старых таблиц в единую таблицу books...');
+
+          // Получаем все уникальные book_id из старых таблиц
+          const allBookIds = await db.getAllAsync<{ book_id: string }>(`
+            SELECT DISTINCT book_id FROM (
+              SELECT book_id FROM book_dates
+              UNION
+              SELECT book_id FROM book_ratings
+              UNION
+              SELECT book_id FROM book_votes
+              UNION
+              SELECT book_id FROM book_notes
+            )
+          `);
+
+          // Для каждого book_id собираем данные из всех таблиц
+          for (const { book_id } of allBookIds) {
+            const dateData = await db.getFirstAsync<{ added: number; book_status: string | null }>(
+              `SELECT added, book_status FROM book_dates WHERE book_id = ?`,
+              [book_id],
+            );
+            const ratingData = await db.getFirstAsync<{ rating: number }>(`SELECT rating FROM book_ratings WHERE book_id = ?`, [book_id]);
+            const votesData = await db.getFirstAsync<{ votes_count: number }>(`SELECT votes_count FROM book_votes WHERE book_id = ?`, [book_id]);
+            const noteData = await db.getFirstAsync<{ comment: string; added: number }>(`SELECT comment, added FROM book_notes WHERE book_id = ?`, [
+              book_id,
+            ]);
+
+            // Вставляем или обновляем запись в единой таблице
+            await db.runAsync(
+              `
+              INSERT OR REPLACE INTO books (
+                book_id, added, book_status, rating, votes_count, comment, comment_added, timestamp
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+              [
+                book_id,
+                dateData?.added || null,
+                dateData?.book_status || null,
+                ratingData?.rating || null,
+                votesData?.votes_count || null,
+                noteData?.comment || null,
+                noteData?.added || null,
+                Date.now(),
+              ],
+            );
+          }
+
+          // eslint-disable-next-line no-console
+          console.log(`✅ [Migration] Мигрировано ${allBookIds.length} книг из старых таблиц в единую таблицу books`);
+        }
+      } catch (error: any) {
+        // Игнорируем ошибки миграции, но логируем их
+        if (!error?.message?.includes('no such table')) {
+          console.warn('Migration warning (books table migration):', error);
+        }
+      }
 
       // Миграция: добавляем новые поля если их еще нет
       // SQLite не поддерживает IF NOT EXISTS для ALTER TABLE, поэтому используем try-catch
@@ -204,22 +300,39 @@ export const resetAllDatabaseData = async (): Promise<void> => {
   try {
     const database = await getDatabase();
 
-    // Очищаем все таблицы
-    await database.execAsync(`
-      DELETE FROM board_data;
-      DELETE FROM book_ratings;
-      DELETE FROM book_votes;
-      DELETE FROM user_votes;
-      DELETE FROM book_dates;
-      DELETE FROM book_notes;
-      DELETE FROM goal_items;
-      DELETE FROM user_goal;
-      DELETE FROM user_profile;
-      DELETE FROM categories;
-    `);
+    // Используем транзакцию для атомарности операции
+    await database.withTransactionAsync(async () => {
+      // Очищаем все таблицы в правильном порядке
+      // Сначала зависимые таблицы, затем основную таблицу books
+      const tables = [
+        'board_data',
+        'book_ratings',
+        'book_votes',
+        'user_votes',
+        'book_dates',
+        'book_notes',
+        'goal_items',
+        'user_goal',
+        'user_profile',
+        'categories',
+        'books', // Единая таблица книг - очищаем последней
+      ];
+
+      for (const table of tables) {
+        try {
+          await database.runAsync(`DELETE FROM ${table}`);
+        } catch (error) {
+          // Игнорируем ошибки если таблица не существует
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (!errorMessage.includes('no such table')) {
+            console.warn(`Warning: Could not delete from table ${table}:`, error);
+          }
+        }
+      }
+    });
 
     // eslint-disable-next-line no-console
-    console.log('🗑️ [SQLite Cache] Все данные базы данных сброшены');
+    console.log('🗑️ [SQLite Cache] Все данные базы данных сброшены (включая единую таблицу books)');
   } catch (error) {
     console.error('Error resetting all database data:', error);
     throw error;

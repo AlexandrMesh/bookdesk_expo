@@ -8,9 +8,9 @@ import { useAppDispatch, useAppSelector } from '~hooks';
 
 import { ALL, COMPLETED, IN_PROGRESS, PLANNED } from '~constants/boardType';
 import { updateUserBook } from '~redux/actions/booksActions';
-import { getBoardType } from '~redux/selectors/books';
+import { deriveBoard, getBoardType } from '~redux/selectors/books';
 import colors from '~styles/colors';
-import { BookStatus } from '~types/books';
+import { BookStatus, IBook } from '~types/books';
 import Dropdown from '~UI/Dropdown';
 
 export type Props = {
@@ -35,6 +35,7 @@ const BookStatusDropdown: FC<Props> = ({ bookStatus, bookId, dropdownLeftPositio
   const [isLoading, setIsLoading] = useState(false);
   const statusColor = getStatusColor(bookStatus);
   const boardType = useAppSelector(getBoardType) as BookStatus;
+  const currentBoard = useAppSelector(deriveBoard(boardType));
 
   const actionTypes: { title: string; value: BookStatus }[] = useMemo(
     () => [
@@ -56,9 +57,27 @@ const BookStatusDropdown: FC<Props> = ({ bookStatus, bookId, dropdownLeftPositio
       const added = new Date().getTime();
       try {
         setIsLoading(true);
+        
+        // Получаем полную книгу из единой таблицы или из кэша
+        let fullBook: IBook | null = null;
+        try {
+          const { loadBook } = await import('~utils/database/books');
+          fullBook = await loadBook(bookId);
+        } catch (error) {
+          console.warn(`Error loading book from unified table:`, error);
+        }
+        
+        // Если не нашли в единой таблице, пытаемся найти в текущем board state
+        if (!fullBook && currentBoard?.data) {
+          fullBook = currentBoard.data.find((b) => b.bookId === bookId) || null;
+        }
+        
+        // Используем полную книгу, если нашли, иначе создаем минимальный объект
+        const bookToUpdate: IBook = fullBook || { bookId, bookStatus };
+        
         await dispatch(
           updateUserBook({
-            book: { bookId, bookStatus },
+            book: bookToUpdate,
             added,
             newBookStatus,
             boardType,
@@ -68,7 +87,7 @@ const BookStatusDropdown: FC<Props> = ({ bookStatus, bookId, dropdownLeftPositio
         setIsLoading(false);
       }
     },
-    [boardType, bookId, bookStatus, dispatch, isLoading],
+    [boardType, bookId, bookStatus, dispatch, isLoading, currentBoard],
   );
 
   return (

@@ -767,10 +767,44 @@ export const updateBookVotesInCache = async (bookId: string, votesCount: number)
 /**
  * Обновление статуса и даты книги во всех записях кэша
  */
-export const updateBookStatusInCache = async (bookId: string, bookStatus: BookStatus, added: number): Promise<void> => {
+export const updateBookStatusInCache = async (bookId: string, bookStatus: BookStatus, added: number, fullBook?: IBook): Promise<void> => {
   await updateBookInCache(bookId, { bookStatus, added });
   const { saveBookDate } = await import('./bookDates');
   await saveBookDate(bookId, added, bookStatus);
+
+  // Сохраняем полные данные книги в единую таблицу, если они переданы
+  if (fullBook) {
+    try {
+      const { saveBook } = await import('./books');
+      // Обновляем статус и дату в полном объекте книги
+      const updatedBook = { ...fullBook, bookStatus, added };
+      await saveBook(updatedBook);
+      // eslint-disable-next-line no-console
+      console.log(`📚 [SQLite Cache] Полные данные книги сохранены в единую таблицу: ${bookId}`);
+    } catch (error) {
+      console.warn(`Error saving full book data to unified table for book ${bookId}:`, error);
+    }
+  } else {
+    // Если полные данные не переданы, пытаемся загрузить из кэша
+    try {
+      const database = await getDatabase();
+      const allRecords = await database.getAllAsync<{ data: string }>(`SELECT data FROM board_data LIMIT 1`);
+      if (allRecords && allRecords.length > 0) {
+        const books = JSON.parse(allRecords[0].data) as IBook[];
+        const existingBook = books.find((b) => b.bookId === bookId);
+        if (existingBook) {
+          const { saveBook } = await import('./books');
+          const updatedBook = { ...existingBook, bookStatus, added };
+          await saveBook(updatedBook);
+          // eslint-disable-next-line no-console
+          console.log(`📚 [SQLite Cache] Данные книги загружены из кэша и сохранены в единую таблицу: ${bookId}`);
+        }
+      }
+    } catch (error) {
+      console.warn(`Error loading book data from cache for book ${bookId}:`, error);
+    }
+  }
+
   // eslint-disable-next-line no-console
   console.log(`📝 [SQLite Cache] Обновлен статус книги ${bookId}: ${bookStatus}, дата: ${new Date(added).toLocaleDateString()}`);
   // eslint-disable-next-line no-console

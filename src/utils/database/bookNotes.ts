@@ -17,6 +17,14 @@ export const saveBookNote = async (bookId: string, comment: string, added: numbe
       timestamp,
     ]);
 
+    // Обновляем единую таблицу books
+    try {
+      const { updateBook } = await import('./books');
+      await updateBook(bookId, { comment, commentAdded: added });
+    } catch (error) {
+      console.warn(`Error updating unified books table for book ${bookId}:`, error);
+    }
+
     // eslint-disable-next-line no-console
     console.log(
       `📝 [SQLite Cache] Заметка сохранена: bookId=${bookId}, comment=${comment.substring(0, 50)}${comment.length > 50 ? '...' : ''}, added=${new Date(added).toLocaleDateString()}`,
@@ -73,6 +81,15 @@ export const deleteBookNote = async (bookId: string): Promise<void> => {
   try {
     const database = await getDatabase();
     await database.runAsync(`DELETE FROM book_notes WHERE book_id = ?`, [bookId]);
+
+    // Обновляем единую таблицу books
+    try {
+      const { updateBook } = await import('./books');
+      await updateBook(bookId, { comment: null as any, commentAdded: null as any });
+    } catch (error) {
+      console.warn(`Error updating unified books table for book ${bookId}:`, error);
+    }
+
     // eslint-disable-next-line no-console
     console.log(`🗑️ [SQLite Cache] Заметка удалена: bookId=${bookId}`);
   } catch (error) {

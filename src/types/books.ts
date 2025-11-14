@@ -23,6 +23,7 @@ export interface IBook {
   bookStatus: BookStatus | null;
   added?: number;
   votesCount?: number;
+  rating?: number;
   annotation?: string;
   comment?: string;
   commentAdded?: number | null;

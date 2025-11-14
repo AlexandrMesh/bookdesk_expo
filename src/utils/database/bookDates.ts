@@ -17,6 +17,14 @@ export const saveBookDate = async (bookId: string, added: number, bookStatus?: B
       timestamp,
     ]);
 
+    // Обновляем единую таблицу books
+    try {
+      const { updateBook } = await import('./books');
+      await updateBook(bookId, { added, bookStatus: bookStatus || null });
+    } catch (error) {
+      console.warn(`Error updating unified books table for book ${bookId}:`, error);
+    }
+
     // eslint-disable-next-line no-console
     console.log(`📅 [SQLite Cache] Дата сохранена: bookId=${bookId}, added=${new Date(added).toLocaleDateString()}, status=${bookStatus || 'null'}`);
   } catch (error) {
@@ -46,6 +54,14 @@ export const saveBookStatus = async (bookId: string, bookStatus: BookStatus | nu
       bookStatus || null,
       timestamp,
     ]);
+
+    // Обновляем единую таблицу books
+    try {
+      const { updateBook } = await import('./books');
+      await updateBook(bookId, { bookStatus: bookStatus || null, added: currentAdded });
+    } catch (error) {
+      console.warn(`Error updating unified books table for book ${bookId}:`, error);
+    }
 
     // eslint-disable-next-line no-console
     console.log(

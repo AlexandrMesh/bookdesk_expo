@@ -12,6 +12,14 @@ export const saveBookVotesCount = async (bookId: string, votesCount: number): Pr
 
     await database.runAsync(`INSERT OR REPLACE INTO book_votes (book_id, votes_count, timestamp) VALUES (?, ?, ?)`, [bookId, votesCount, timestamp]);
 
+    // Обновляем единую таблицу books
+    try {
+      const { updateBook } = await import('./books');
+      await updateBook(bookId, { votesCount });
+    } catch (error) {
+      console.warn(`Error updating unified books table for book ${bookId}:`, error);
+    }
+
     // eslint-disable-next-line no-console
     console.log(`👍 [SQLite Cache] Лайки сохранены: bookId=${bookId}, votesCount=${votesCount}`);
   } catch (error) {

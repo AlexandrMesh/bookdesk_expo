@@ -273,20 +273,16 @@ export const loadBookList = createAsyncThunk(
         const imgUrl = await getImgUrl();
         const { convertBookCoverToBase64 } = await import('~utils/imageConverter');
 
-        // Сначала сохраняем даты и статусы для всех книг
+        // Сохраняем все книги в единую таблицу (данные будут агрегированы)
         if (items && items.length > 0) {
-          for (const book of items) {
-            try {
-              if (book.added && book.bookStatus) {
-                await saveBookDate(book.bookId, book.added, book.bookStatus);
-              } else if (book.bookStatus) {
-                await saveBookStatus(book.bookId, book.bookStatus);
-              } else if (book.added) {
-                await saveBookDate(book.bookId, book.added);
-              }
-            } catch (error) {
-              console.error(`Error saving date/status for book ${book.bookId}:`, error);
-            }
+          try {
+            const { saveBooks } = await import('~utils/database/books');
+            // Сначала сохраняем книги без обложек (базовая информация)
+            await saveBooks(items);
+            // eslint-disable-next-line no-console
+            console.log(`💾 [loadBookList] Сохранено ${items.length} книг в единую таблицу`);
+          } catch (error) {
+            console.error('Error saving books to unified table:', error);
           }
         }
 
@@ -339,6 +335,22 @@ export const loadBookList = createAsyncThunk(
               ...book,
               coverPath,
             });
+          }
+
+          // Обновляем обложки в единой таблице после конвертации
+          if (booksWithBase64Covers.length > 0) {
+            try {
+              const { updateBook } = await import('~utils/database/books');
+              for (const book of booksWithBase64Covers) {
+                if (book.coverPath) {
+                  await updateBook(book.bookId, { coverPath: book.coverPath });
+                }
+              }
+              // eslint-disable-next-line no-console
+              console.log(`🖼️ [loadBookList] Обновлены обложки в единой таблице для ${booksWithBase64Covers.length} книг`);
+            } catch (error) {
+              console.error('Error updating covers in unified table:', error);
+            }
           }
 
           // eslint-disable-next-line no-console
@@ -718,11 +730,12 @@ export const updateUserBook = createAsyncThunk(
 
       // Обновляем в локальной БД
       // updateBookStatusInCache обновляет статус книги во всех записях кэша
-      await updateBookStatusInCache(bookId, newBookStatus, added);
+      // Передаем полный объект книги, чтобы сохранить все данные (название, авторы, страницы и т.д.)
+      const updatedBook = { ...book, bookStatus: newBookStatus, added };
+      await updateBookStatusInCache(bookId, newBookStatus, added, updatedBook);
 
       // Убеждаемся, что книга есть в board_data для новой доски
       // Это важно для новых пользователей, у которых может не быть записей в board_data
-      const updatedBook = { ...book, bookStatus: newBookStatus, added };
       const { addBookToCache } = await import('~utils/boardStorage');
       await addBookToCache(newBookStatus, updatedBook);
 

@@ -12,6 +12,14 @@ export const saveBookRating = async (bookId: string, rating: number): Promise<vo
 
     await database.runAsync(`INSERT OR REPLACE INTO book_ratings (book_id, rating, timestamp) VALUES (?, ?, ?)`, [bookId, rating, timestamp]);
 
+    // Обновляем единую таблицу books
+    try {
+      const { updateBookRating } = await import('./books');
+      await updateBookRating(bookId, rating);
+    } catch (error) {
+      console.warn(`Error updating unified books table for book ${bookId}:`, error);
+    }
+
     // eslint-disable-next-line no-console
     console.log(`⭐ [SQLite Cache] Рейтинг сохранен: bookId=${bookId}, rating=${rating}`);
   } catch (error) {
@@ -64,6 +72,15 @@ export const deleteBookRating = async (bookId: string): Promise<void> => {
   try {
     const database = await getDatabase();
     await database.runAsync(`DELETE FROM book_ratings WHERE book_id = ?`, [bookId]);
+
+    // Обновляем единую таблицу books
+    try {
+      const { updateBookRating } = await import('./books');
+      await updateBookRating(bookId, null);
+    } catch (error) {
+      console.warn(`Error updating unified books table for book ${bookId}:`, error);
+    }
+
     // eslint-disable-next-line no-console
     console.log(`🗑️ [SQLite Cache] Рейтинг удален: bookId=${bookId}`);
   } catch (error) {
