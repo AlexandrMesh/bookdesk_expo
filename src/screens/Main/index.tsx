@@ -517,6 +517,10 @@ const Main = () => {
       console.log(
         `🔍 [initializeApp] Проверка состояния: profile=${profile ? 'есть' : 'нет'}, syncDatabaseCompleted=${profile?.syncDatabaseCompleted}, token=${token ? 'есть' : 'нет'}`,
       );
+      // eslint-disable-next-line no-console
+      console.log(
+        `🔍 [initializeApp] Данные профиля из БД: _id=${profile?._id || 'нет'}, email=${profile?.email || 'нет'}, registered=${profile?.registered || 'нет'}`,
+      );
 
       // Проверяем syncDatabaseCompleted (явно проверяем на true)
       if (profile && profile.syncDatabaseCompleted === true) {

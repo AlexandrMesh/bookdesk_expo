@@ -18,14 +18,28 @@ export const saveProfile = async (profile: {
     const timestamp = Date.now();
 
     // Загружаем существующий профиль чтобы сохранить значения syncWithLocalDatabaseCompleted, syncDatabaseCompleted и isNewUser
+    // НО: если новый профиль имеет другой user_id, то не используем значения из старого профиля
     const existingProfile = await loadProfile();
+    const isDifferentUser = existingProfile && existingProfile._id !== profile._id;
+
     const syncCompleted =
       profile.syncWithLocalDatabaseCompleted !== undefined
         ? profile.syncWithLocalDatabaseCompleted
-        : (existingProfile?.syncWithLocalDatabaseCompleted ?? false);
+        : isDifferentUser
+          ? false
+          : (existingProfile?.syncWithLocalDatabaseCompleted ?? false);
     const syncDatabaseCompletedValue =
-      profile.syncDatabaseCompleted !== undefined ? profile.syncDatabaseCompleted : (existingProfile?.syncDatabaseCompleted ?? false);
-    const isNewUser = profile.isNewUser !== undefined ? profile.isNewUser : (existingProfile?.isNewUser ?? false);
+      profile.syncDatabaseCompleted !== undefined
+        ? profile.syncDatabaseCompleted
+        : isDifferentUser
+          ? false
+          : (existingProfile?.syncDatabaseCompleted ?? false);
+    const isNewUser = profile.isNewUser !== undefined ? profile.isNewUser : isDifferentUser ? false : (existingProfile?.isNewUser ?? false);
+
+    // eslint-disable-next-line no-console
+    console.log(
+      `👤 [SQLite Cache] Сохраняем профиль: userId=${profile._id}, email=${profile.email}, registered=${profile.registered}, syncDatabaseCompleted=${syncDatabaseCompletedValue}`,
+    );
 
     await database.runAsync(
       `INSERT OR REPLACE INTO user_profile (user_id, email, registered, updated, support_app_confirmed, support_app_viewed_at, sync_with_local_database_completed, sync_database_completed, is_new_user, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -43,9 +57,15 @@ export const saveProfile = async (profile: {
       ],
     );
 
+    // Проверяем, что профиль действительно сохранился
+    const savedProfile = await loadProfile();
     // eslint-disable-next-line no-console
     console.log(
-      `👤 [SQLite Cache] Профиль сохранен: userId=${profile._id}, email=${profile.email}, syncCompleted=${syncCompleted}, isNewUser=${isNewUser}`,
+      `👤 [SQLite Cache] Профиль сохранен: userId=${profile._id}, email=${profile.email}, registered=${profile.registered}, syncCompleted=${syncCompleted}, syncDatabaseCompleted=${syncDatabaseCompletedValue}, isNewUser=${isNewUser}`,
+    );
+    // eslint-disable-next-line no-console
+    console.log(
+      `👤 [SQLite Cache] Проверка сохраненного профиля: userId=${savedProfile?._id || 'нет'}, email=${savedProfile?.email || 'нет'}, registered=${savedProfile?.registered || 'нет'}`,
     );
   } catch (error) {
     console.error('Error saving profile:', error);
@@ -89,10 +109,10 @@ export const loadProfile = async (): Promise<{
 
     // eslint-disable-next-line no-console
     console.log(
-      `👤 [SQLite Cache] Загружен профиль из локальной БД: userId=${result.user_id}, email=${result.email}, syncCompleted=${result.sync_with_local_database_completed === 1}, syncDatabaseCompleted=${result.sync_database_completed === 1}, isNewUser=${result.is_new_user === 1}`,
+      `👤 [SQLite Cache] Загружен профиль из локальной БД: userId=${result.user_id}, email=${result.email}, registered=${result.registered}, syncCompleted=${result.sync_with_local_database_completed === 1}, syncDatabaseCompleted=${result.sync_database_completed === 1}, isNewUser=${result.is_new_user === 1}`,
     );
 
-    return {
+    const loadedProfile = {
       _id: result.user_id,
       email: result.email,
       registered: result.registered,
@@ -105,6 +125,13 @@ export const loadProfile = async (): Promise<{
       syncDatabaseCompleted: (result.sync_database_completed ?? 0) === 1,
       isNewUser: result.is_new_user === 1,
     };
+
+    // eslint-disable-next-line no-console
+    console.log(
+      `👤 [SQLite Cache] Возвращаемый профиль: _id=${loadedProfile._id}, email=${loadedProfile.email}, registered=${loadedProfile.registered}`,
+    );
+
+    return loadedProfile;
   } catch (error) {
     console.error('Error loading profile:', error);
     return null;

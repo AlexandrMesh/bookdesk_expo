@@ -204,6 +204,11 @@ export const checkAuthAndSyncDB = createAsyncThunk(`${PREFIX}/checkAuthAndSyncDB
     const serverData = data;
     const serverProfile = serverData.profile;
 
+    // eslint-disable-next-line no-console
+    console.log(
+      `👤 [checkAuthAndSyncDB] Профиль получен с сервера: _id=${serverProfile?._id || 'нет'}, email=${serverProfile?.email || 'нет'}, registered=${serverProfile?.registered || 'нет'}`,
+    );
+
     // Сохраняем профиль (пока без syncDatabaseCompleted)
     await saveProfile({
       ...serverProfile,
@@ -291,28 +296,64 @@ export const checkAuthAndSyncDB = createAsyncThunk(`${PREFIX}/checkAuthAndSyncDB
     // eslint-disable-next-line no-console
     console.log('✅ [checkAuthAndSyncDB] Все данные загружены с сервера, устанавливаем syncDatabaseCompleted=true');
     await setSyncDatabaseCompleted(true);
-    await saveProfile({
+
+    // Сохраняем профиль с сервера с syncDatabaseCompleted = true
+    // ВАЖНО: используем serverProfile, чтобы сохранить все поля включая _id, email, registered
+    const profileToSave: IProfile = {
       ...serverProfile,
       syncDatabaseCompleted: true,
-    });
+    };
+    await saveProfile(profileToSave);
 
     // Проверяем, что значение действительно сохранилось
     const savedProfile = await loadProfile();
-    if (savedProfile && savedProfile.syncDatabaseCompleted !== true) {
+    if (!savedProfile) {
+      console.error('⚠️ [checkAuthAndSyncDB] Профиль не найден после сохранения!');
+      throw new Error('Profile not found after save');
+    }
+
+    // Проверяем, что все поля сохранились правильно
+    if (savedProfile._id !== serverProfile._id) {
+      console.error(`⚠️ [checkAuthAndSyncDB] user_id не совпадает! Ожидалось: ${serverProfile._id}, получено: ${savedProfile._id}`);
+    }
+    if (savedProfile.email !== serverProfile.email) {
+      console.error(`⚠️ [checkAuthAndSyncDB] email не совпадает! Ожидалось: ${serverProfile.email}, получено: ${savedProfile.email}`);
+    }
+    if (savedProfile.registered !== serverProfile.registered) {
+      console.error(`⚠️ [checkAuthAndSyncDB] registered не совпадает! Ожидалось: ${serverProfile.registered}, получено: ${savedProfile.registered}`);
+    }
+
+    if (savedProfile.syncDatabaseCompleted !== true) {
       console.warn(`⚠️ [checkAuthAndSyncDB] syncDatabaseCompleted не установлен правильно! Текущее значение: ${savedProfile.syncDatabaseCompleted}`);
       // Пытаемся установить еще раз
       await setSyncDatabaseCompleted(true);
+      await saveProfile(profileToSave);
     } else {
       // eslint-disable-next-line no-console
-      console.log(`✅ [checkAuthAndSyncDB] syncDatabaseCompleted успешно установлен: ${savedProfile?.syncDatabaseCompleted}`);
+      console.log(`✅ [checkAuthAndSyncDB] syncDatabaseCompleted успешно установлен: ${savedProfile.syncDatabaseCompleted}`);
+      // eslint-disable-next-line no-console
+      console.log(
+        `✅ [checkAuthAndSyncDB] Профиль сохранен в БД: _id=${savedProfile._id}, email=${savedProfile.email}, registered=${savedProfile.registered}`,
+      );
     }
 
     // eslint-disable-next-line no-console
     console.log('✅ [checkAuthAndSyncDB] Синхронизация завершена успешно');
 
-    const finalProfile = savedProfile || { ...serverProfile, syncDatabaseCompleted: true };
+    // ВАЖНО: возвращаем профиль с сервера (serverProfile) с syncDatabaseCompleted = true,
+    // а не загруженный из БД, чтобы гарантировать наличие всех полей (_id, email, registered)
+    const finalProfile: IProfile = {
+      ...serverProfile,
+      syncDatabaseCompleted: true,
+    };
+
+    // eslint-disable-next-line no-console
+    console.log(
+      `👤 [checkAuthAndSyncDB] Возвращаем профиль: _id=${finalProfile._id}, email=${finalProfile.email}, registered=${finalProfile.registered}`,
+    );
+
     return {
-      profile: finalProfile as IProfile,
+      profile: finalProfile,
       isSignedIn: true,
     };
   } catch (error) {
