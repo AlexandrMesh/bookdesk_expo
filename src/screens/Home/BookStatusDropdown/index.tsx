@@ -57,7 +57,7 @@ const BookStatusDropdown: FC<Props> = ({ bookStatus, bookId, dropdownLeftPositio
       const added = new Date().getTime();
       try {
         setIsLoading(true);
-        
+
         // Получаем полную книгу из единой таблицы или из кэша
         let fullBook: IBook | null = null;
         try {
@@ -66,15 +66,15 @@ const BookStatusDropdown: FC<Props> = ({ bookStatus, bookId, dropdownLeftPositio
         } catch (error) {
           console.warn(`Error loading book from unified table:`, error);
         }
-        
+
         // Если не нашли в единой таблице, пытаемся найти в текущем board state
         if (!fullBook && currentBoard?.data) {
           fullBook = currentBoard.data.find((b) => b.bookId === bookId) || null;
         }
-        
+
         // Используем полную книгу, если нашли, иначе создаем минимальный объект
         const bookToUpdate: IBook = fullBook || { bookId, bookStatus };
-        
+
         await dispatch(
           updateUserBook({
             book: bookToUpdate,
