@@ -124,8 +124,7 @@ const BookList: FC<Props> = ({ data = [], loadMoreBooks = () => undefined, loadi
         ListEmptyComponent={getListEmptyComponent}
         onEndReached={onEndReached}
         ListFooterComponent={getFooter}
-        estimatedItemSize={horizontal ? 200 : 150}
-        initialNumToRender={horizontal ? 3 : 10}
+        removeClippedSubviews={false}
       />
     </View>
   );

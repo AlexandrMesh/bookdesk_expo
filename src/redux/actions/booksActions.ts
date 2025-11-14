@@ -277,22 +277,85 @@ export const loadBookList = createAsyncThunk(
         const sortDirection = (sortParams.direction ?? '') as string;
 
         // Сохраняем даты и статусы книг отдельно
+        // Конвертируем обложки в base64 для локального хранения
+        const { getImgUrl } = await import('~config/api');
+        const imgUrl = await getImgUrl();
+        const { convertBookCoverToBase64 } = await import('~utils/imageConverter');
+
+        // Сначала сохраняем даты и статусы для всех книг
         if (items && items.length > 0) {
           for (const book of items) {
             try {
               if (book.added && book.bookStatus) {
                 await saveBookDate(book.bookId, book.added, book.bookStatus);
               } else if (book.bookStatus) {
-                // Сохраняем только статус, если даты нет
                 await saveBookStatus(book.bookId, book.bookStatus);
               } else if (book.added) {
-                // Сохраняем только дату, если статуса нет
                 await saveBookDate(book.bookId, book.added);
               }
             } catch (error) {
               console.error(`Error saving date/status for book ${book.bookId}:`, error);
             }
           }
+        }
+
+        // Конвертируем обложки в base64 для локального хранения
+        const booksWithBase64Covers: typeof items = [];
+        if (items && items.length > 0) {
+          // eslint-disable-next-line no-console
+          console.log(`🖼️ [loadBookList] Начинаем конвертацию обложек в base64 для ${items.length} книг`);
+          let convertedCount = 0;
+          let skippedCount = 0;
+          let errorCount = 0;
+
+          // Конвертируем обложки параллельно, но с ограничением (по 5 одновременно)
+          const CONCURRENT_LIMIT = 5;
+          const booksToConvert = items.filter((book) => book.coverPath && !book.coverPath.startsWith('data:image') && imgUrl);
+
+          // Формируем карту конвертированных обложек
+          const coverMap = new Map<string, string>();
+          for (let i = 0; i < booksToConvert.length; i += CONCURRENT_LIMIT) {
+            const batch = booksToConvert.slice(i, i + CONCURRENT_LIMIT);
+            const conversionPromises = batch.map(async (book) => {
+              try {
+                const base64Cover = await convertBookCoverToBase64(book.coverPath!, imgUrl);
+                if (base64Cover) {
+                  coverMap.set(book.bookId, base64Cover);
+                  convertedCount++;
+                } else {
+                  errorCount++;
+                }
+              } catch (error) {
+                console.error(`Error converting cover to base64 for book ${book.bookId}:`, error);
+                errorCount++;
+              }
+            });
+            await Promise.all(conversionPromises);
+          }
+
+          // Формируем финальный массив книг с конвертированными обложками
+          for (const book of items) {
+            let coverPath = book.coverPath;
+            if (coverPath && !coverPath.startsWith('data:image') && coverMap.has(book.bookId)) {
+              coverPath = coverMap.get(book.bookId)!;
+            } else if (coverPath && coverPath.startsWith('data:image')) {
+              skippedCount++;
+            } else if (!coverPath) {
+              skippedCount++;
+            }
+
+            booksWithBase64Covers.push({
+              ...book,
+              coverPath,
+            });
+          }
+
+          // eslint-disable-next-line no-console
+          console.log(
+            `✅ [loadBookList] Конвертация обложек завершена: конвертировано=${convertedCount}, пропущено=${skippedCount}, ошибок=${errorCount}`,
+          );
+        } else {
+          booksWithBase64Covers.push(...(items || []));
         }
 
         await saveBoardData(
@@ -302,8 +365,8 @@ export const loadBookList = createAsyncThunk(
           sortType,
           sortDirection,
           language,
-          items || [],
-          items?.length || 0,
+          booksWithBase64Covers,
+          booksWithBase64Covers.length,
           false,
           booksCountByYear,
         );

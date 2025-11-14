@@ -1,5 +1,5 @@
 /* eslint-disable react/display-name */
-import React, { FC, memo, useCallback } from 'react';
+import React, { FC, memo, useCallback, useMemo } from 'react';
 
 import { Pressable, StyleProp, Text, View, ViewStyle } from 'react-native';
 
@@ -53,12 +53,29 @@ const BookItem: FC<Props> = memo(
       });
     }, [navigation, bookId, title, pages, authorsList, annotation, bookStatus, coverPath]);
 
-    const getImageUri = useCallback(() => {
+    const imageUri = useMemo(() => {
       if (!coverPath) return '';
       const lower = String(coverPath);
-      const isAbsolute = /^https?:\/\//i.test(lower) || lower.startsWith('file:') || lower.startsWith('content:') || lower.startsWith('data:');
-      return isAbsolute ? coverPath : `${book.imgUrl}/${coverPath}.webp`;
+
+      // Если обложка уже в формате data:image, используем её напрямую
+      if (lower.startsWith('data:image')) {
+        return coverPath;
+      }
+
+      // Если это абсолютный URL (http/https/file/content), используем его напрямую
+      if (/^https?:\/\//i.test(lower) || lower.startsWith('file:') || lower.startsWith('content:')) {
+        return coverPath;
+      }
+
+      // Для относительных путей формируем URL с imgUrl
+      if (!book.imgUrl) return '';
+      const hasWebpExtension = lower.endsWith('.webp');
+      const finalCoverPath = hasWebpExtension ? coverPath : `${coverPath}.webp`;
+
+      return `${book.imgUrl}/${finalCoverPath}`;
     }, [coverPath, book.imgUrl]);
+
+    const getImageUri = useCallback(() => imageUri, [imageUri]);
 
     const handleCoverPress = useCallback(() => {
       if (coverPath) {
@@ -73,18 +90,26 @@ const BookItem: FC<Props> = memo(
         <View style={styles.bookItem}>
           <View style={styles.leftSide}>
             <View style={styles.coverWrapper}>
-              {coverPath && (
+              {coverPath && imageUri ? (
                 <Pressable onPress={handleCoverPress} style={styles.coverPressable}>
                   <Image
+                    key={`${bookId}-${coverPath.substring(0, 50)}`}
                     style={styles.cover}
                     source={{
-                      uri: getImageUri(),
+                      uri: imageUri,
                     }}
+                    cachePolicy={imageUri.startsWith('data:image') ? 'none' : 'memory-disk'}
+                    contentFit='cover'
+                    transition={200}
+                    priority='high'
+                    recyclingKey={`${bookId}-${coverPath.substring(0, 50)}`}
                   />
                   <View style={styles.zoomIconContainer}>
                     <ZoomIn size={20} color={colors.neutral_white} />
                   </View>
                 </Pressable>
+              ) : (
+                <View style={[styles.cover, { backgroundColor: colors.neutral_medium }]} />
               )}
             </View>
             <View>
