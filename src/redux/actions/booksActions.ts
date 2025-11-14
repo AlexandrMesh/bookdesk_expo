@@ -35,7 +35,7 @@ import {
 } from '~redux/selectors/books';
 import { AppThunkAPI } from '~redux/store/configureStore';
 import i18n from '~translations/i18n';
-import { BookStatus, IBook, IBookNote, IRating, IVote } from '~types/books';
+import { BookStatus, IBook, IBookNote, ICategory, IRating, IVote } from '~types/books';
 import {
   deleteBookNote,
   initDatabase,
@@ -95,6 +95,7 @@ export const addToIndeterminatedCategories = createAction<{ boardType: BookStatu
 export const clearIndeterminatedCategories = createAction<{ boardType: BookStatus; path: string }>(`${PREFIX}/toggleExpandedCategory`);
 export const setBookVotes = createAction<IVote[]>(`${PREFIX}/setBookVotes`);
 export const setBookNotes = createAction<IBookNote[]>(`${PREFIX}/setBookNotes`);
+export const setCategories = createAction<ICategory[]>(`${PREFIX}/setCategories`);
 export const triggerReloadSearchResults = createAction(`${PREFIX}/triggerReloadSearchResults`);
 export const clearBooksData = createAction(`${PREFIX}/clearBooksData`);
 export const clearDataForChangeLanguage = createAction(`${PREFIX}/clearDataForChangeLanguage`);

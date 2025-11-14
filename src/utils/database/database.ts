@@ -154,6 +154,25 @@ export const initDatabase = async (): Promise<void> => {
         }
       }
 
+      // Инициализируем категории из config/categories.ts при первом запуске
+      try {
+        const { initializeCategoriesFromJson } = await import('./categories');
+        // Инициализируем категории для всех поддерживаемых языков
+        const languages = ['ru', 'en'];
+        for (const lang of languages) {
+          try {
+            await initializeCategoriesFromJson(lang);
+          } catch (error) {
+            console.error(`Error initializing categories for language ${lang}:`, error);
+          }
+        }
+        // eslint-disable-next-line no-console
+        console.log('✅ [initDatabase] Категории инициализированы из config/categories.ts');
+      } catch (error) {
+        console.error('Error initializing categories during database init:', error);
+        // Не прерываем инициализацию БД из-за ошибки категорий
+      }
+
       initPromise = null; // Сбрасываем промис после успешной инициализации
     } catch (error) {
       initPromise = null; // Сбрасываем промис при ошибке

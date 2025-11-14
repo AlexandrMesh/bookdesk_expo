@@ -460,6 +460,11 @@ export default createReducer(defaultState, (builder) => {
       state.categories.shouldReloadData = false;
       state.categories.loadingDataStatus = FAILED;
     })
+    .addCase(booksActions.setCategories, (state, action) => {
+      state.categories.data = action.payload || [];
+      state.categories.loadingDataStatus = SUCCEEDED;
+      state.categories.shouldReloadData = false;
+    })
     .addCase(booksActions.resetCategories, (state, action) => {
       state.board[action.payload].editableFilterParams.categorySearchQuery = '';
     })

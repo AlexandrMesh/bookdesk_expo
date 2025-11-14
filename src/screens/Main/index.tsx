@@ -41,7 +41,7 @@ import {
 } from '~constants/routes';
 import { useAppUpdates } from '~hooks/useAppUpdates';
 import { checkAuthAndSyncDB, initializationComplete } from '~redux/actions/authActions';
-import { loadBookListFromLocalDB, setBookNotes, setBookVotes, userBookRatingsLoaded } from '~redux/actions/booksActions';
+import { loadBookListFromLocalDB, setBookNotes, setBookVotes, userBookRatingsLoaded, setCategories } from '~redux/actions/booksActions';
 import { getGoalItems, setGoal } from '~redux/actions/goalsActions';
 import { getCheckingStatus } from '~redux/selectors/auth';
 import { getGoalNumberOfPages, getGoalType } from '~redux/selectors/goals';
@@ -52,7 +52,16 @@ import i18n from '~translations/i18n';
 import { GoalType } from '~types/goals';
 import BannerAd from '~UI/BannerAd';
 import { Spinner } from '~UI/Spinner';
-import { initDatabase, loadProfile, saveGuestProfile, loadGoal, loadBookNotes, loadUserVotes, loadBookRatings } from '~utils/boardStorage';
+import {
+  initDatabase,
+  loadProfile,
+  saveGuestProfile,
+  loadGoal,
+  loadBookNotes,
+  loadUserVotes,
+  loadBookRatings,
+  loadCategories,
+} from '~utils/boardStorage';
 import { maybeAskForReview, recordAppOpen } from '~utils/reviewPrompt';
 import { getToken } from '~utils/secureStorage';
 
@@ -468,10 +477,37 @@ const Main = () => {
   const hasGoal = !!useAppSelector(getGoalNumberOfPages);
   const goalType = useAppSelector(getGoalType);
 
+  // Вспомогательная функция для загрузки категорий из локальной БД
+  const loadCategoriesToRedux = useCallback(async () => {
+    try {
+      const { language } = i18n;
+      const categoriesFromDB = await loadCategories(language);
+      if (categoriesFromDB.length > 0) {
+        dispatch(setCategories(categoriesFromDB));
+        // eslint-disable-next-line no-console
+        console.log(`📂 [initializeApp] Категории загружены из локальной БД: ${categoriesFromDB.length} для языка ${language}`);
+        return;
+      }
+      // Если категорий нет, инициализируем из config/categories.ts
+      const { initializeCategoriesFromJson } = await import('~utils/boardStorage');
+      const initializedCategories = await initializeCategoriesFromJson(language);
+      if (initializedCategories.length > 0) {
+        dispatch(setCategories(initializedCategories));
+        // eslint-disable-next-line no-console
+        console.log(`📂 [initializeApp] Категории инициализированы из config/categories.ts: ${initializedCategories.length}`);
+      }
+    } catch (error) {
+      console.error('Error loading categories:', error);
+    }
+  }, [dispatch]);
+
   const initializeApp = useCallback(async () => {
     try {
       // Инициализируем базу данных
       await initDatabase();
+
+      // Загружаем категории из локальной БД автоматически
+      await loadCategoriesToRedux();
 
       // Загружаем профиль из локальной БД
       const profile = await loadProfile();
@@ -584,7 +620,7 @@ const Main = () => {
       // Помечаем проверку как завершенную с ошибкой
       dispatch(initializationComplete({ profile: null, isSignedIn: false }));
     }
-  }, [_checkAuthAndSyncDB, dispatch]);
+  }, [_checkAuthAndSyncDB, dispatch, loadCategoriesToRedux]);
 
   // Инициализация конфигурации приложения
   useEffect(() => {
