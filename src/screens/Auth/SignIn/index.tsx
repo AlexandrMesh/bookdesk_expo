@@ -13,7 +13,7 @@ import { GOOGLE_ICON } from '~constants/dimensions';
 import { PENDING } from '~constants/loadingStatuses';
 import { SIGN_UP_ROUTE } from '~constants/routes';
 import { SECONDARY } from '~constants/themes';
-import { setSignInError, signin, checkAuthAndSyncDB } from '~redux/actions/authActions';
+import { setSignInError, signin } from '~redux/actions/authActions';
 import { getSignInErrors, getSignInLoadingDataStatus } from '~redux/selectors/auth';
 import Logo from '~screens/Auth/Logo';
 import Button from '~UI/Button';
@@ -32,7 +32,6 @@ const SignIn = () => {
 
   const dispatch = useAppDispatch();
   const _signin = (params: { email: string; password: string }) => dispatch(signin(params));
-  const _checkAuthAndSyncDB = () => dispatch(checkAuthAndSyncDB());
   const _setSignInError = (fieldName: string, error: string | null) => dispatch(setSignInError({ fieldName, error }));
 
   const loadingDataStatus = useAppSelector(getSignInLoadingDataStatus);
@@ -62,9 +61,10 @@ const SignIn = () => {
     if (isValidForm()) {
       try {
         await _signin({ email, password }).unwrap();
-        // После успешной авторизации запускаем синхронизацию
-        // _checkAuthAndSyncDB();
-      } catch (error) {
+        // Токен сохранен, синхронизация произойдет при следующем запуске приложения
+        // eslint-disable-next-line no-console
+        console.log('✅ [SignIn] Авторизация успешна, токен сохранен. Синхронизация произойдет при следующем запуске приложения.');
+      } catch {
         // Ошибка уже обработана в signin
       }
     }

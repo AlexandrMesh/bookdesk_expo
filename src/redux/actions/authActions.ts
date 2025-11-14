@@ -1272,9 +1272,15 @@ export const resetData = createAsyncThunk(`${PREFIX}/resetData`, async (_, { dis
   try {
     await initDatabase();
 
-    // Сохраняем syncWithLocalDatabaseCompleted перед сбросом
-    const existingProfile = await loadProfile();
-    const wasSyncCompleted = existingProfile?.syncWithLocalDatabaseCompleted ?? false;
+    // Удаляем токен
+    try {
+      await removeToken();
+      // eslint-disable-next-line no-console
+      console.log('🗑️ [resetData] Токен удален');
+    } catch (error) {
+      console.error('Error removing token:', error);
+      // Продолжаем выполнение даже если не удалось удалить токен
+    }
 
     await resetAllDatabaseData();
 
@@ -1289,29 +1295,21 @@ export const resetData = createAsyncThunk(`${PREFIX}/resetData`, async (_, { dis
 
     // Создаем нового гостевого пользователя с текущей датой регистрации
     // forceCreate=true чтобы принудительно создать нового пользователя даже если профиль был удален
+    // Гостевой профиль создается с syncDatabaseCompleted = false
     await saveGuestProfile(true);
 
-    // Если syncWithLocalDatabaseCompleted был true, сохраняем его
-    if (wasSyncCompleted) {
-      await setSyncWithLocalDatabaseCompleted(true);
-      const newProfile = await loadProfile();
-      if (newProfile) {
-        await saveProfile({ ...newProfile, syncWithLocalDatabaseCompleted: true });
-      }
-    }
-
+    // Явно устанавливаем syncDatabaseCompleted = false для нового профиля
+    await setSyncDatabaseCompleted(false);
     const newProfile = await loadProfile();
     if (newProfile) {
-      // Обновляем Redux state с новым профилем через checkAuth
-      // Вызываем checkAuth с пустым токеном, чтобы обновить состояние
-      // Но не загружаем цели, так как их нет в БД после сброса
-      dispatch(checkAuth(''));
+      // Убеждаемся, что syncDatabaseCompleted = false
+      await saveProfile({ ...newProfile, syncDatabaseCompleted: false });
+      // Обновляем Redux state с новым профилем
+      dispatch(initializationComplete({ profile: newProfile, isSignedIn: false }));
     }
 
     // eslint-disable-next-line no-console
-    console.log(
-      `✅ [resetData] Все данные приложения сброшены, создан новый гостевой пользователь, syncWithLocalDatabaseCompleted=${wasSyncCompleted}`,
-    );
+    console.log('✅ [resetData] Все данные приложения сброшены, токен удален, syncDatabaseCompleted сброшен, создан новый гостевой пользователь');
   } catch (error) {
     console.error('Error resetting data:', error);
     throw error;
