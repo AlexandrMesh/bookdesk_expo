@@ -11,12 +11,13 @@ export const getBooksByYear = async (): Promise<{
 }> => {
   try {
     const database = await getDatabase();
+    // Используем единую таблицу books вместо book_dates
     const results = await database.getAllAsync<{
       book_id: string;
-      added: number;
+      added: number | null;
       book_status: string | null;
       timestamp: number;
-    }>(`SELECT book_id, added, book_status, timestamp FROM book_dates WHERE book_status = ? ORDER BY added ASC`, ['completed']);
+    }>(`SELECT book_id, added, book_status, timestamp FROM books WHERE book_status = ? AND added IS NOT NULL ORDER BY added ASC`, ['completed']);
 
     // Группируем по годам и месяцам
     const groupedByYearMonth: Record<string, number> = {};
@@ -25,6 +26,9 @@ export const getBooksByYear = async (): Promise<{
     const currentMonth = currentDate.getMonth() + 1;
 
     results.forEach((result) => {
+      if (!result.added) {
+        return; // Пропускаем записи без даты
+      }
       const date = new Date(result.added);
       const year = date.getFullYear();
       const month = date.getMonth() + 1;

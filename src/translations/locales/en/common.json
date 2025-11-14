@@ -33,5 +33,6 @@
   "moreDetails": "More details",
   "retry": "Retry",
   "confirmationDeleteTitle": "Confirm the action",
-  "confirmationDeleteDescription": "Are you sure you want to delete?"
+  "confirmationDeleteDescription": "Are you sure you want to delete?",
+  "syncingData": "Syncing data..."
 }

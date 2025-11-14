@@ -33,5 +33,6 @@
   "moreDetails": "Подробнее",
   "retry": "Проверить",
   "confirmationDeleteTitle": "Подтвердите действие",
-  "confirmationDeleteDescription": "Вы действительно хотите удалить?"
+  "confirmationDeleteDescription": "Вы действительно хотите удалить?",
+  "syncingData": "Синхронизация данных..."
 }

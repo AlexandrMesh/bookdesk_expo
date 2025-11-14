@@ -464,6 +464,7 @@ const MainNavigator: FC<MainNavigatorProps> = ({ isUpdateAvailable, googlePlayUr
 };
 
 const Main = () => {
+  const { t } = useTranslation('common');
   const [shouldDisplayUnderConstructionView, setShouldDisplayUnderConstructionView] = useState(false);
   const [googlePlayUrl, setGooglePlayUrl] = useState('');
 
@@ -697,7 +698,7 @@ const Main = () => {
           </>
         </InSuspense>
         {/* Показываем спиннер во время синхронизации данных с сервера */}
-        {checkingStatus === PENDING && <Spinner label='Синхронизация данных...' />}
+        {checkingStatus === PENDING && <Spinner label={t('syncingData')} />}
       </NavigationContainer>
     </SafeAreaProvider>
   );
