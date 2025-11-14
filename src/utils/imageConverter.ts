@@ -78,4 +78,3 @@ export const convertBookCoverToBase64 = async (coverPath: string, imgUrl: string
     return null;
   }
 };
-

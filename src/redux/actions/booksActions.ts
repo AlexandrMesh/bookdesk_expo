@@ -259,17 +259,8 @@ export const loadBookList = createAsyncThunk(
         console.log(`   Подсчитано booksCountByYear локально: ${booksCountByYear?.length || 0} месяцев`);
       }
 
-      const responseData = {
-        boardType,
-        data: items || [],
-        totalItems: items?.length || 0, // Используем реальное количество загруженных книг
-        hasNextPage: false, // Больше не используем пагинацию
-        shouldLoadMoreResults: false,
-        booksCountByYear,
-        fromCache: false,
-      };
-
-      // Сохраняем в кэш
+      // Сохраняем в кэш и конвертируем обложки
+      let booksWithBase64Covers: typeof items = items || [];
       try {
         // eslint-disable-next-line no-console
         console.log('💾 [loadBookList] Сохранение данных в локальный кэш...');
@@ -300,7 +291,6 @@ export const loadBookList = createAsyncThunk(
         }
 
         // Конвертируем обложки в base64 для локального хранения
-        const booksWithBase64Covers: typeof items = [];
         if (items && items.length > 0) {
           // eslint-disable-next-line no-console
           console.log(`🖼️ [loadBookList] Начинаем конвертацию обложек в base64 для ${items.length} книг`);
@@ -334,6 +324,7 @@ export const loadBookList = createAsyncThunk(
           }
 
           // Формируем финальный массив книг с конвертированными обложками
+          booksWithBase64Covers = [];
           for (const book of items) {
             let coverPath = book.coverPath;
             if (coverPath && !coverPath.startsWith('data:image') && coverMap.has(book.bookId)) {
@@ -354,8 +345,6 @@ export const loadBookList = createAsyncThunk(
           console.log(
             `✅ [loadBookList] Конвертация обложек завершена: конвертировано=${convertedCount}, пропущено=${skippedCount}, ошибок=${errorCount}`,
           );
-        } else {
-          booksWithBase64Covers.push(...(items || []));
         }
 
         await saveBoardData(
@@ -377,8 +366,19 @@ export const loadBookList = createAsyncThunk(
         // Не прерываем выполнение, если не удалось сохранить в кэш
       }
 
+      // ВАЖНО: Возвращаем данные с конвертированными обложками, чтобы Redux state обновился правильно
+      const responseData = {
+        boardType,
+        data: booksWithBase64Covers,
+        totalItems: booksWithBase64Covers.length,
+        hasNextPage: false,
+        shouldLoadMoreResults: false,
+        booksCountByYear,
+        fromCache: false,
+      };
+
       // eslint-disable-next-line no-console
-      console.log(`✅ [loadBookList] Загружено ${items?.length || 0} книг с сервера`);
+      console.log(`✅ [loadBookList] Загружено ${booksWithBase64Covers.length} книг с сервера (с конвертированными обложками)`);
       return responseData;
     } catch (error) {
       console.error('Error loading book list from server:', error);
