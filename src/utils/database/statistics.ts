@@ -1,5 +1,5 @@
-import { loadGoalItems } from './goals';
 import { getDatabase } from './database';
+import { loadGoalItems } from './goals';
 
 /**
  * Группировка книг со статусом COMPLETED по годам и месяцам для статистики
@@ -134,4 +134,3 @@ export const getGoalItemsByYear = async (): Promise<{
     };
   }
 };
-
