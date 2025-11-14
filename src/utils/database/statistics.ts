@@ -75,6 +75,7 @@ export const getBooksByYear = async (): Promise<{
 
 /**
  * Группировка goal items по годам и месяцам для статистики
+ * Использует только goal items (журнал прочитанных страниц) для точной статистики
  */
 export const getGoalItemsByYear = async (): Promise<{
   items: Array<{ year: number; month: number; count: number }>;
@@ -82,6 +83,8 @@ export const getGoalItemsByYear = async (): Promise<{
   pagesReadPerYear: number;
 }> => {
   try {
+    // Загружаем goal items из таблицы goal_items
+    // Это журнал прочитанных страниц, где пользователь вручную записывает сколько страниц прочитано
     const allItems = await loadGoalItems();
 
     // Группируем по годам и месяцам
@@ -90,6 +93,7 @@ export const getGoalItemsByYear = async (): Promise<{
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth() + 1;
 
+    // Добавляем страницы из goal items
     allItems.forEach((item) => {
       const date = new Date(item.added_at);
       const year = date.getFullYear();
@@ -102,11 +106,19 @@ export const getGoalItemsByYear = async (): Promise<{
       groupedByYearMonth[key] += item.pages;
     });
 
-    // Преобразуем в формат для generateBarChartData
-    const items = Object.entries(groupedByYearMonth).map(([key, count]) => {
-      const [year, month] = key.split('-').map(Number);
-      return { year, month, count };
-    });
+    // Преобразуем в формат для generateBarChartData и сортируем по году и месяцу
+    const items = Object.entries(groupedByYearMonth)
+      .map(([key, count]) => {
+        const [year, month] = key.split('-').map(Number);
+        return { year, month, count };
+      })
+      .sort((a, b) => {
+        // Сортируем сначала по году, затем по месяцу
+        if (a.year !== b.year) {
+          return a.year - b.year;
+        }
+        return a.month - b.month;
+      });
 
     // Вычисляем pagesReadPerMonth (текущий месяц)
     const currentMonthKey = `${currentYear}-${currentMonth}`;
@@ -118,7 +130,7 @@ export const getGoalItemsByYear = async (): Promise<{
       .reduce((sum, [, count]) => sum + count, 0);
 
     // eslint-disable-next-line no-console
-    console.log(`📊 [getGoalItemsByYear] Сгруппировано по годам/месяцам: ${items.length} записей`);
+    console.log(`📊 [getGoalItemsByYear] Сгруппировано по годам/месяцам: ${items.length} записей, всего goal items: ${allItems.length}`);
 
     return {
       items,

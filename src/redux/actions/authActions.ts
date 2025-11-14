@@ -270,7 +270,14 @@ export const checkAuthAndSyncDB = createAsyncThunk(`${PREFIX}/checkAuthAndSyncDB
       // eslint-disable-next-line no-console
       console.log(`📊 [checkAuthAndSyncDB] Сохраняем ${goalItems.length} записей журнала страниц с сервера в локальную БД`);
       await saveGoalItems(goalItems);
+    }
+    // Всегда загружаем goal items в Redux после синхронизации (даже если их нет на сервере, могут быть в локальной БД)
+    try {
       await dispatch(getGoalItems()).unwrap();
+      // eslint-disable-next-line no-console
+      console.log('✅ [checkAuthAndSyncDB] Goal items загружены в Redux');
+    } catch (error) {
+      console.error('Error loading goal items to Redux:', error);
     }
 
     // Загружаем книги с сервера для всех досок (PLANNED, IN_PROGRESS, COMPLETED)
