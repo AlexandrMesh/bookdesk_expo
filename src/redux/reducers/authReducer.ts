@@ -46,6 +46,7 @@ const getDefaultProfileState = (): IProfile => ({
     viewedAt: null,
   },
   syncWithLocalDatabaseCompleted: false,
+  syncDatabaseCompleted: false,
   isNewUser: false,
 });
 
@@ -127,5 +128,37 @@ export default createReducer(defaultState, (builder) => {
       state.profile = getDefaultProfileState();
       state.signUp = getDefaultSignUpState();
       state.signIn = getDefaultSignInState();
+    })
+    .addCase(authActions.signin.pending, (state) => {
+      state.signIn.loadingDataStatus = PENDING;
+    })
+    .addCase(authActions.signin.fulfilled, (state) => {
+      state.signIn.loadingDataStatus = SUCCEEDED;
+    })
+    .addCase(authActions.signin.rejected, (state) => {
+      state.signIn.loadingDataStatus = FAILED;
+    })
+    .addCase(authActions.checkAuthAndSyncDB.pending, (state) => {
+      state.checkingStatus = PENDING;
+    })
+    .addCase(authActions.checkAuthAndSyncDB.fulfilled, (state, { payload: { profile, isSignedIn } }) => {
+      state.checkingStatus = SUCCEEDED;
+      state.signIn.isSignedIn = isSignedIn;
+      state.signIn.loadingDataStatus = SUCCEEDED;
+      state.profile = profile;
+    })
+    .addCase(authActions.checkAuthAndSyncDB.rejected, (state) => {
+      // При ошибке синхронизации - продолжаем работу с локальной БД
+      state.checkingStatus = SUCCEEDED;
+      state.signIn.isSignedIn = false;
+      state.profile = getDefaultProfileState();
+    })
+    .addCase(authActions.initializationComplete, (state, { payload: { profile, isSignedIn } }) => {
+      state.checkingStatus = SUCCEEDED;
+      state.signIn.isSignedIn = isSignedIn;
+      state.signIn.loadingDataStatus = SUCCEEDED;
+      if (profile) {
+        state.profile = profile;
+      }
     });
 });

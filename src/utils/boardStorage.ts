@@ -38,7 +38,15 @@ export { saveBookNote, loadBookNotes, deleteBookNote } from './database/bookNote
 export { saveGoalItem, saveGoalItems, loadGoalItems, deleteGoalItem, saveGoal, loadGoal, deleteGoal } from './database/goals';
 
 // Профиль
-export { saveProfile, loadProfile, deleteProfile, hasUserProfile, saveGuestProfile, setSyncWithLocalDatabaseCompleted } from './database/profile';
+export {
+  saveProfile,
+  loadProfile,
+  deleteProfile,
+  hasUserProfile,
+  saveGuestProfile,
+  setSyncWithLocalDatabaseCompleted,
+  setSyncDatabaseCompleted,
+} from './database/profile';
 
 // Статистика
 export { getBooksByYear, getGoalItemsByYear } from './database/statistics';

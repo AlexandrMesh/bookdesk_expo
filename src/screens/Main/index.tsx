@@ -13,6 +13,7 @@ import GoalIcon from '~assets/goal.svg';
 import HomeIcon from '~assets/home.svg';
 import ProfileIcon from '~assets/profile.svg';
 import StatIcon from '~assets/stat.svg';
+import { COMPLETED, IN_PROGRESS, PLANNED } from '~constants/boardType';
 import { BOTTOM_BAR_ADD_ICON, BOTTOM_BAR_ICON } from '~constants/dimensions';
 import { DAILY } from '~constants/goals';
 import { IDLE, PENDING, SUCCEEDED } from '~constants/loadingStatuses';
@@ -20,7 +21,6 @@ import {
   ABOUT_ROUTE,
   ADD_CUSTOM_BOOK_NAVIGATOR_ROUTE,
   ADD_GOAL,
-  BOOK_DETAILS_ROUTE,
   BOOK_NOTE_ROUTE,
   CUSTOM_BOOKS_ROUTE,
   CUSTOM_CATEGORY_CHOOSER_ROUTE,
@@ -40,7 +40,9 @@ import {
   STAT_ROUTE,
 } from '~constants/routes';
 import { useAppUpdates } from '~hooks/useAppUpdates';
-import { checkAuth } from '~redux/actions/authActions';
+import { checkAuthAndSyncDB, initializationComplete } from '~redux/actions/authActions';
+import { loadBookListFromLocalDB, setBookNotes, setBookVotes, userBookRatingsLoaded } from '~redux/actions/booksActions';
+import { getGoalItems, setGoal } from '~redux/actions/goalsActions';
 import { getCheckingStatus } from '~redux/selectors/auth';
 import { getGoalNumberOfPages, getGoalType } from '~redux/selectors/goals';
 import Home from '~screens/Home';
@@ -50,7 +52,7 @@ import i18n from '~translations/i18n';
 import { GoalType } from '~types/goals';
 import BannerAd from '~UI/BannerAd';
 import { Spinner } from '~UI/Spinner';
-import { hasUserProfile, initDatabase } from '~utils/boardStorage';
+import { initDatabase, loadProfile, saveGuestProfile, loadGoal, loadBookNotes, loadUserVotes, loadBookRatings } from '~utils/boardStorage';
 import { maybeAskForReview, recordAppOpen } from '~utils/reviewPrompt';
 import { getToken } from '~utils/secureStorage';
 
@@ -457,7 +459,7 @@ const Main = () => {
   const [googlePlayUrl, setGooglePlayUrl] = useState('');
 
   const dispatch = useAppDispatch();
-  const _checkAuth = useCallback((token: string) => dispatch(checkAuth(token)), [dispatch]);
+  const _checkAuthAndSyncDB = useCallback(() => dispatch(checkAuthAndSyncDB()), [dispatch]);
 
   // Хук для проверки EAS Updates
   const { checkAndInstallUpdate, isUpdateAvailable } = useAppUpdates();
@@ -466,28 +468,123 @@ const Main = () => {
   const hasGoal = !!useAppSelector(getGoalNumberOfPages);
   const goalType = useAppSelector(getGoalType);
 
-  const checkAuthentication = useCallback(async () => {
+  const initializeApp = useCallback(async () => {
     try {
       // Инициализируем базу данных
       await initDatabase();
 
-      // Всегда проверяем токен, даже если пользователь уже есть в локальной БД
-      // Это нужно для правильного определения статуса авторизации
+      // Загружаем профиль из локальной БД
+      const profile = await loadProfile();
       const token = await getToken();
 
-      // Если есть токен - проверяем его и загружаем данные в фоне
-      // Если нет токена - checkAuth загрузит профиль из локальной БД и определит статус
-      // Просто dispatch, НЕ await - reducer сам обработает fulfilled/rejected
-      // Работает в фоне, не блокирует доступ к приложению
-      console.log(token, 'token');
-      _checkAuth(token || '');
+      // eslint-disable-next-line no-console
+      console.log(
+        `🔍 [initializeApp] Проверка состояния: profile=${profile ? 'есть' : 'нет'}, syncDatabaseCompleted=${profile?.syncDatabaseCompleted}, token=${token ? 'есть' : 'нет'}`,
+      );
+
+      // Проверяем syncDatabaseCompleted (явно проверяем на true)
+      if (profile && profile.syncDatabaseCompleted === true) {
+        // syncDatabaseCompleted = true - загружаем данные из локальной БД
+        // eslint-disable-next-line no-console
+        console.log('✅ [initializeApp] syncDatabaseCompleted=true, загружаем данные из локальной БД');
+
+        // Загружаем цель из локальной БД
+        try {
+          const localGoal = await loadGoal();
+          if (localGoal) {
+            dispatch(setGoal({ pages: localGoal.numberOfPages || 0, type: localGoal.goalType as any }));
+          }
+        } catch (error) {
+          console.error('Error loading goal from local DB:', error);
+        }
+
+        // Загружаем заметки из локальной БД
+        try {
+          const localBookNotes = await loadBookNotes();
+          if (localBookNotes.length > 0) {
+            dispatch(setBookNotes(localBookNotes));
+          }
+        } catch (error) {
+          console.error('Error loading book notes from local DB:', error);
+        }
+
+        // Загружаем лайки из локальной БД
+        try {
+          const localUserVotes = await loadUserVotes();
+          if (localUserVotes.length > 0) {
+            dispatch(setBookVotes(localUserVotes));
+          }
+        } catch (error) {
+          console.error('Error loading user votes from local DB:', error);
+        }
+
+        // Загружаем рейтинги из локальной БД
+        try {
+          const localRatings = await loadBookRatings();
+          if (localRatings.length > 0) {
+            dispatch(userBookRatingsLoaded(localRatings));
+          }
+        } catch (error) {
+          console.error('Error loading ratings from local DB:', error);
+        }
+
+        // Загружаем goal items из локальной БД
+        try {
+          await dispatch(getGoalItems()).unwrap();
+        } catch (error) {
+          console.error('Error loading goal items from local DB:', error);
+        }
+
+        // Загружаем книги из локальной БД для досок
+        try {
+          const boardTypes = [PLANNED, IN_PROGRESS, COMPLETED] as const;
+          for (const boardType of boardTypes) {
+            try {
+              await dispatch(loadBookListFromLocalDB({ boardType, shouldLoadMoreResults: false })).unwrap();
+            } catch (error) {
+              console.error(`Error loading books for board ${boardType} from local DB:`, error);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading books from local DB:', error);
+        }
+
+        // Помечаем проверку как завершенную
+        dispatch(initializationComplete({ profile, isSignedIn: !!profile?.email }));
+      } else if (token) {
+        // syncDatabaseCompleted = false/undefined и есть токен - выполняем checkAuthAndSyncDB
+        // eslint-disable-next-line no-console
+        console.log(
+          `🔄 [initializeApp] syncDatabaseCompleted=${profile?.syncDatabaseCompleted ?? 'undefined'} и есть токен, выполняем checkAuthAndSyncDB`,
+        );
+        _checkAuthAndSyncDB();
+      } else {
+        // syncDatabaseCompleted = false и нет токена - создаем нового пользователя
+        // eslint-disable-next-line no-console
+        console.log('👤 [initializeApp] syncDatabaseCompleted=false и нет токена, создаем нового пользователя');
+
+        if (!profile) {
+          // Создаем гостевого пользователя с текущей датой регистрации
+          await saveGuestProfile();
+          const newProfile = await loadProfile();
+          if (newProfile) {
+            // Помечаем проверку как завершенную
+            dispatch(initializationComplete({ profile: newProfile, isSignedIn: false }));
+          } else {
+            dispatch(initializationComplete({ profile: null, isSignedIn: false }));
+          }
+        } else {
+          // Профиль уже есть, просто помечаем проверку как завершенную
+          dispatch(initializationComplete({ profile, isSignedIn: false }));
+        }
+      }
     } catch (error) {
-      // Ошибка при проверке - продолжаем работу
-      console.error('Error in checkAuthentication:', error);
-      // Вызываем checkAuth с пустым токеном, чтобы пометить проверку как завершенную
-      _checkAuth('');
+      // Ошибка при инициализации - продолжаем работу
+      console.error('Error in initializeApp:', error);
+      // Помечаем проверку как завершенную с ошибкой
+      dispatch(initializationComplete({ profile: null, isSignedIn: false }));
     }
-  }, [_checkAuth]);
+  }, [_checkAuthAndSyncDB, dispatch]);
 
   // Инициализация конфигурации приложения
   useEffect(() => {
@@ -499,7 +596,7 @@ const Main = () => {
         setShouldDisplayUnderConstructionView(true);
       } else {
         recordAppOpen();
-        checkAuthentication();
+        initializeApp();
       }
     };
 

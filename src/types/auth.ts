@@ -7,6 +7,7 @@ export interface IProfile {
   updated: number | null;
   supportApp: ISupportApp;
   syncWithLocalDatabaseCompleted?: boolean;
+  syncDatabaseCompleted?: boolean;
   isNewUser?: boolean;
 }
 

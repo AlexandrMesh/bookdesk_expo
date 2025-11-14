@@ -13,7 +13,7 @@ import { GOOGLE_ICON } from '~constants/dimensions';
 import { PENDING } from '~constants/loadingStatuses';
 import { SIGN_UP_ROUTE } from '~constants/routes';
 import { SECONDARY } from '~constants/themes';
-import { setSignInError, signIn } from '~redux/actions/authActions';
+import { setSignInError, signin, checkAuthAndSyncDB } from '~redux/actions/authActions';
 import { getSignInErrors, getSignInLoadingDataStatus } from '~redux/selectors/auth';
 import Logo from '~screens/Auth/Logo';
 import Button from '~UI/Button';
@@ -31,7 +31,8 @@ const SignIn = () => {
   const navigation = useNavigation<any>();
 
   const dispatch = useAppDispatch();
-  const _signIn = (params: { email: string; password: string; isGoogleAccount?: boolean }) => dispatch(signIn(params));
+  const _signin = (params: { email: string; password: string }) => dispatch(signin(params));
+  const _checkAuthAndSyncDB = () => dispatch(checkAuthAndSyncDB());
   const _setSignInError = (fieldName: string, error: string | null) => dispatch(setSignInError({ fieldName, error }));
 
   const loadingDataStatus = useAppSelector(getSignInLoadingDataStatus);
@@ -57,13 +58,23 @@ const SignIn = () => {
     setPassword(password);
   };
 
-  const handleSubmitSignIn = () => {
+  const handleSubmitSignIn = async () => {
     if (isValidForm()) {
-      _signIn({ email, password });
+      try {
+        await _signin({ email, password }).unwrap();
+        // После успешной авторизации запускаем синхронизацию
+        // _checkAuthAndSyncDB();
+      } catch (error) {
+        // Ошибка уже обработана в signin
+      }
     }
   };
 
-  const handleGoogleSignIn = () => _signIn({ email: '', password: '', isGoogleAccount: true });
+  const handleGoogleSignIn = () => {
+    // Google Sign-In пока не поддерживается в новой функции signin
+    // Можно оставить старую логику или добавить поддержку позже
+    console.warn('Google Sign-In not yet supported in new signin function');
+  };
 
   const handleNavigateToSignUp = () => {
     if (!pendingSignIn) {

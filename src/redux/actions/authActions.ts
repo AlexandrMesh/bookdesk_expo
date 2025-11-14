@@ -36,6 +36,7 @@ import {
   saveProfile,
   saveUserVotes,
   setSyncWithLocalDatabaseCompleted,
+  setSyncDatabaseCompleted,
 } from '~utils/boardStorage';
 import { getToken, removeToken, saveToken } from '~utils/secureStorage';
 
@@ -114,6 +115,7 @@ const PREFIX = 'AUTH';
 export const authCheckingFailed = createAction(`${PREFIX}/authCheckingFailed`);
 export const setSignInError = createAction<{ fieldName: string; error: string | null }>(`${PREFIX}/setSignInError`);
 export const setSignUpError = createAction<{ fieldName: string; error: string | null }>(`${PREFIX}/setSignUpError`);
+export const initializationComplete = createAction<{ profile: IProfile | null; isSignedIn: boolean }>(`${PREFIX}/initializationComplete`);
 
 export const signInFailed = createAsyncThunk(`${PREFIX}/signInFailed`, async (error: { response: { data: { fieldName: string; key: string } } }) => {
   const responseData = error?.response?.data;
@@ -128,6 +130,201 @@ export const signInFailed = createAsyncThunk(`${PREFIX}/signInFailed`, async (er
     fieldName: 'password',
     error: getT('errors')('serverNotAvailable'),
   };
+});
+
+/**
+ * Простая функция авторизации - только проверяет логин/пароль и сохраняет токен
+ */
+export const signin = createAsyncThunk(
+  `${PREFIX}/signin`,
+  async ({ email, password }: { email: string; password: string }, { dispatch, rejectWithValue }) => {
+    try {
+      const { data } = await AuthService().signIn({ email, password });
+
+      if (data && data.token) {
+        // Сохраняем токен
+        await saveToken(data.token);
+        // eslint-disable-next-line no-console
+        console.log('✅ [signin] Токен сохранен');
+
+        return {
+          token: data.token,
+        };
+      } else {
+        return rejectWithValue('Token is missing from server response');
+      }
+    } catch (error: any) {
+      const responseData = error?.response?.data;
+      if (responseData) {
+        const { fieldName, key } = responseData;
+        dispatch(setSignInError({ fieldName, error: getT('errors')(key) }));
+      } else {
+        dispatch(setSignInError({ fieldName: 'password', error: getT('errors')('serverNotAvailable') }));
+      }
+      return rejectWithValue(error);
+    }
+  },
+);
+
+/**
+ * Проверка валидности токена и синхронизация всех данных с API в локальную БД
+ */
+export const checkAuthAndSyncDB = createAsyncThunk(`${PREFIX}/checkAuthAndSyncDB`, async (_, { dispatch, rejectWithValue }) => {
+  await initDatabase();
+
+  // Сначала проверяем, не была ли уже выполнена синхронизация
+  const existingProfile = await loadProfile();
+  if (existingProfile?.syncDatabaseCompleted) {
+    // eslint-disable-next-line no-console
+    console.log('✅ [checkAuthAndSyncDB] syncDatabaseCompleted уже true, синхронизация не требуется');
+    return {
+      profile: existingProfile as IProfile,
+      isSignedIn: !!existingProfile?.email,
+    };
+  }
+
+  const token = await getToken();
+  if (!token) {
+    return rejectWithValue('No token available');
+  }
+
+  try {
+    // Проверяем валидность токена и загружаем все данные с сервера
+    // eslint-disable-next-line no-console
+    console.log('🔄 [checkAuthAndSyncDB] Начинаем синхронизацию данных с сервера');
+
+    const { data } = await AuthService().checkAuth(token);
+
+    if (!data || !data.profile) {
+      // Токен недействителен - удаляем его
+      await removeToken();
+      return rejectWithValue('Invalid token - no profile returned');
+    }
+
+    const serverData = data;
+    const serverProfile = serverData.profile;
+
+    // Сохраняем профиль (пока без syncDatabaseCompleted)
+    await saveProfile({
+      ...serverProfile,
+      syncDatabaseCompleted: false,
+    });
+    // eslint-disable-next-line no-console
+    console.log('👤 [checkAuthAndSyncDB] Профиль сохранен в локальную БД');
+
+    // Загружаем и сохраняем цель
+    if (serverData.numberOfPagesForGoal) {
+      // eslint-disable-next-line no-console
+      console.log('🎯 [checkAuthAndSyncDB] Сохраняем цель с сервера в локальную БД');
+      await saveGoal(serverData.numberOfPagesForGoal, serverData.goalType);
+      dispatch(setGoal({ pages: serverData.numberOfPagesForGoal, type: serverData.goalType }));
+    }
+
+    // Загружаем и сохраняем заметки
+    const notes = serverData.userComments || [];
+    if (notes.length > 0) {
+      // eslint-disable-next-line no-console
+      console.log(`📝 [checkAuthAndSyncDB] Сохраняем ${notes.length} заметок с сервера в локальную БД`);
+      dispatch(setBookNotes(notes));
+      for (const note of notes) {
+        try {
+          await saveBookNote(note.bookId, note.comment, note.added);
+        } catch (error) {
+          console.error(`Error saving note for book ${note.bookId}:`, error);
+        }
+      }
+    }
+
+    // Загружаем и сохраняем лайки
+    const votes = serverData.userVotes || [];
+    if (votes.length > 0) {
+      // eslint-disable-next-line no-console
+      console.log(`👍 [checkAuthAndSyncDB] Сохраняем ${votes.length} лайков с сервера в локальную БД`);
+      dispatch(setBookVotes(votes));
+      await saveUserVotes(votes);
+    }
+
+    // Загружаем и сохраняем рейтинги
+    const ratings = serverData.userBookRatings || [];
+    if (ratings.length > 0) {
+      // eslint-disable-next-line no-console
+      console.log(`📖 [checkAuthAndSyncDB] Сохраняем ${ratings.length} рейтингов с сервера в локальную БД`);
+      dispatch(userBookRatingsLoaded(ratings));
+      for (const rating of ratings) {
+        try {
+          await saveBookRating(rating.bookId, rating.rating);
+        } catch (error) {
+          console.error(`Error saving rating for book ${rating.bookId}:`, error);
+        }
+      }
+    }
+
+    // Загружаем и сохраняем журнал страниц (goal items)
+    const goalItems = serverData.goalItems || [];
+    if (goalItems.length > 0) {
+      // eslint-disable-next-line no-console
+      console.log(`📊 [checkAuthAndSyncDB] Сохраняем ${goalItems.length} записей журнала страниц с сервера в локальную БД`);
+      await saveGoalItems(goalItems);
+      await dispatch(getGoalItems()).unwrap();
+    }
+
+    // Загружаем книги с сервера для всех досок (PLANNED, IN_PROGRESS, COMPLETED)
+    // eslint-disable-next-line no-console
+    console.log('📚 [checkAuthAndSyncDB] Загружаем книги с сервера для досок (PLANNED, IN_PROGRESS, COMPLETED)');
+    const boardTypes = [PLANNED, IN_PROGRESS, COMPLETED] as const;
+    for (const boardType of boardTypes) {
+      try {
+        // eslint-disable-next-line no-console
+        console.log(`📚 [checkAuthAndSyncDB] Загружаем книги для доски: ${boardType} с сервера`);
+        await dispatch(loadBookList({ boardType, shouldLoadMoreResults: false })).unwrap();
+      } catch (error) {
+        console.error(`Error loading books for board ${boardType} from server:`, error);
+        // Продолжаем загрузку других досок даже при ошибке
+      }
+    }
+
+    // Загружаем даты книг (если они есть в данных сервера)
+    // Примечание: даты книг обычно приходят вместе с книгами, но если есть отдельный endpoint, его нужно добавить
+    // Здесь предполагаем, что даты приходят вместе с книгами в loadBookList
+
+    // После успешной загрузки всех данных - устанавливаем syncDatabaseCompleted = true
+    // eslint-disable-next-line no-console
+    console.log('✅ [checkAuthAndSyncDB] Все данные загружены с сервера, устанавливаем syncDatabaseCompleted=true');
+    await setSyncDatabaseCompleted(true);
+    await saveProfile({
+      ...serverProfile,
+      syncDatabaseCompleted: true,
+    });
+
+    // Проверяем, что значение действительно сохранилось
+    const savedProfile = await loadProfile();
+    if (savedProfile && savedProfile.syncDatabaseCompleted !== true) {
+      console.warn(`⚠️ [checkAuthAndSyncDB] syncDatabaseCompleted не установлен правильно! Текущее значение: ${savedProfile.syncDatabaseCompleted}`);
+      // Пытаемся установить еще раз
+      await setSyncDatabaseCompleted(true);
+    } else {
+      // eslint-disable-next-line no-console
+      console.log(`✅ [checkAuthAndSyncDB] syncDatabaseCompleted успешно установлен: ${savedProfile?.syncDatabaseCompleted}`);
+    }
+
+    // eslint-disable-next-line no-console
+    console.log('✅ [checkAuthAndSyncDB] Синхронизация завершена успешно');
+
+    const finalProfile = savedProfile || { ...serverProfile, syncDatabaseCompleted: true };
+    return {
+      profile: finalProfile as IProfile,
+      isSignedIn: true,
+    };
+  } catch (error) {
+    console.error('Error in checkAuthAndSyncDB:', error);
+    // При ошибке удаляем недействительный токен
+    try {
+      await removeToken();
+    } catch (storageError) {
+      console.error('Error removing token from storage:', storageError);
+    }
+    return rejectWithValue(error);
+  }
 });
 
 export const checkAuth = createAsyncThunk(`${PREFIX}/checkAuth`, async (token: string, { dispatch, rejectWithValue }) => {

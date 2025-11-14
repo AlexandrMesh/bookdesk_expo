@@ -10,22 +10,25 @@ export const saveProfile = async (profile: {
   updated: number | null;
   supportApp: { confirmed: boolean; viewedAt: number | null };
   syncWithLocalDatabaseCompleted?: boolean;
+  syncDatabaseCompleted?: boolean;
   isNewUser?: boolean;
 }): Promise<void> => {
   try {
     const database = await getDatabase();
     const timestamp = Date.now();
 
-    // Загружаем существующий профиль чтобы сохранить значения syncWithLocalDatabaseCompleted и isNewUser
+    // Загружаем существующий профиль чтобы сохранить значения syncWithLocalDatabaseCompleted, syncDatabaseCompleted и isNewUser
     const existingProfile = await loadProfile();
     const syncCompleted =
       profile.syncWithLocalDatabaseCompleted !== undefined
         ? profile.syncWithLocalDatabaseCompleted
         : (existingProfile?.syncWithLocalDatabaseCompleted ?? false);
+    const syncDatabaseCompletedValue =
+      profile.syncDatabaseCompleted !== undefined ? profile.syncDatabaseCompleted : (existingProfile?.syncDatabaseCompleted ?? false);
     const isNewUser = profile.isNewUser !== undefined ? profile.isNewUser : (existingProfile?.isNewUser ?? false);
 
     await database.runAsync(
-      `INSERT OR REPLACE INTO user_profile (user_id, email, registered, updated, support_app_confirmed, support_app_viewed_at, sync_with_local_database_completed, is_new_user, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT OR REPLACE INTO user_profile (user_id, email, registered, updated, support_app_confirmed, support_app_viewed_at, sync_with_local_database_completed, sync_database_completed, is_new_user, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         profile._id,
         profile.email,
@@ -34,6 +37,7 @@ export const saveProfile = async (profile: {
         profile.supportApp.confirmed ? 1 : 0,
         profile.supportApp.viewedAt,
         syncCompleted ? 1 : 0,
+        syncDatabaseCompletedValue ? 1 : 0,
         isNewUser ? 1 : 0,
         timestamp,
       ],
@@ -59,6 +63,7 @@ export const loadProfile = async (): Promise<{
   updated: number | null;
   supportApp: { confirmed: boolean; viewedAt: number | null };
   syncWithLocalDatabaseCompleted: boolean;
+  syncDatabaseCompleted: boolean;
   isNewUser: boolean;
 } | null> => {
   try {
@@ -71,10 +76,11 @@ export const loadProfile = async (): Promise<{
       support_app_confirmed: number;
       support_app_viewed_at: number | null;
       sync_with_local_database_completed: number;
+      sync_database_completed: number;
       is_new_user: number;
       timestamp: number;
     }>(
-      `SELECT user_id, email, registered, updated, support_app_confirmed, support_app_viewed_at, sync_with_local_database_completed, is_new_user, timestamp FROM user_profile LIMIT 1`,
+      `SELECT user_id, email, registered, updated, support_app_confirmed, support_app_viewed_at, sync_with_local_database_completed, sync_database_completed, is_new_user, timestamp FROM user_profile LIMIT 1`,
     );
 
     if (!result) {
@@ -83,7 +89,7 @@ export const loadProfile = async (): Promise<{
 
     // eslint-disable-next-line no-console
     console.log(
-      `👤 [SQLite Cache] Загружен профиль из локальной БД: userId=${result.user_id}, email=${result.email}, syncCompleted=${result.sync_with_local_database_completed === 1}, isNewUser=${result.is_new_user === 1}`,
+      `👤 [SQLite Cache] Загружен профиль из локальной БД: userId=${result.user_id}, email=${result.email}, syncCompleted=${result.sync_with_local_database_completed === 1}, syncDatabaseCompleted=${result.sync_database_completed === 1}, isNewUser=${result.is_new_user === 1}`,
     );
 
     return {
@@ -96,6 +102,7 @@ export const loadProfile = async (): Promise<{
         viewedAt: result.support_app_viewed_at,
       },
       syncWithLocalDatabaseCompleted: result.sync_with_local_database_completed === 1,
+      syncDatabaseCompleted: (result.sync_database_completed ?? 0) === 1,
       isNewUser: result.is_new_user === 1,
     };
   } catch (error) {
@@ -154,8 +161,8 @@ export const saveGuestProfile = async (forceCreate: boolean = false): Promise<vo
 
     const database = await getDatabase();
     await database.runAsync(
-      `INSERT OR REPLACE INTO user_profile (user_id, email, registered, updated, support_app_confirmed, support_app_viewed_at, sync_with_local_database_completed, is_new_user, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [guestId, '', timestamp, null, 0, null, 0, 1, timestamp], // is_new_user = 1 (true) для новых пользователей
+      `INSERT OR REPLACE INTO user_profile (user_id, email, registered, updated, support_app_confirmed, support_app_viewed_at, sync_with_local_database_completed, sync_database_completed, is_new_user, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [guestId, '', timestamp, null, 0, null, 0, 0, 1, timestamp], // is_new_user = 1 (true) для новых пользователей, sync_database_completed = 0 (false)
     );
 
     // eslint-disable-next-line no-console
@@ -179,6 +186,29 @@ export const setSyncWithLocalDatabaseCompleted = async (completed: boolean): Pro
     console.log(`✅ [SQLite Cache] syncWithLocalDatabaseCompleted установлен: ${completed}`);
   } catch (error) {
     console.error('Error setting syncWithLocalDatabaseCompleted:', error);
+    throw error;
+  }
+};
+
+/**
+ * Установка флага syncDatabaseCompleted
+ */
+export const setSyncDatabaseCompleted = async (completed: boolean): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    // Обновляем все записи профиля (должна быть только одна)
+    const result = await database.runAsync(`UPDATE user_profile SET sync_database_completed = ?`, [completed ? 1 : 0]);
+    // eslint-disable-next-line no-console
+    console.log(`✅ [SQLite Cache] syncDatabaseCompleted установлен: ${completed}, обновлено записей: ${result.changes}`);
+
+    // Проверяем, что значение действительно установлено
+    const updatedProfile = await loadProfile();
+    if (updatedProfile) {
+      // eslint-disable-next-line no-console
+      console.log(`✅ [SQLite Cache] Проверка: syncDatabaseCompleted в профиле = ${updatedProfile.syncDatabaseCompleted} (ожидалось: ${completed})`);
+    }
+  } catch (error) {
+    console.error('Error setting syncDatabaseCompleted:', error);
     throw error;
   }
 };
