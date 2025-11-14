@@ -22,6 +22,14 @@ export const saveProfile = async (profile: {
     const existingProfile = await loadProfile();
     const isDifferentUser = existingProfile && existingProfile._id !== profile._id;
 
+    // ВАЖНО: Если сохраняем профиль с другим user_id (например, профиль с сервера вместо гостевого),
+    // то удаляем все старые записи профиля, чтобы гарантировать, что будет только одна запись
+    if (isDifferentUser) {
+      // eslint-disable-next-line no-console
+      console.log(`👤 [SQLite Cache] Сохраняем профиль с другим user_id (${profile._id} вместо ${existingProfile._id}), удаляем старые записи`);
+      await database.runAsync(`DELETE FROM user_profile`);
+    }
+
     const syncCompleted =
       profile.syncWithLocalDatabaseCompleted !== undefined
         ? profile.syncWithLocalDatabaseCompleted
@@ -173,13 +181,23 @@ export const hasUserProfile = async (): Promise<boolean> => {
 export const saveGuestProfile = async (forceCreate: boolean = false): Promise<void> => {
   try {
     // Проверяем, есть ли уже профиль
-    if (!forceCreate) {
-      const existingProfile = await loadProfile();
-      if (existingProfile) {
-        // eslint-disable-next-line no-console
-        console.log('👤 [saveGuestProfile] Профиль уже существует, пропускаем сохранение');
-        return;
-      }
+    const existingProfile = await loadProfile();
+
+    // ВАЖНО: Никогда не перезаписываем профиль, если syncDatabaseCompleted = true
+    // Это означает, что профиль был синхронизирован с сервера и содержит реальные данные пользователя
+    if (existingProfile && existingProfile.syncDatabaseCompleted === true) {
+      // eslint-disable-next-line no-console
+      console.log(
+        `👤 [saveGuestProfile] Профиль уже существует с syncDatabaseCompleted=true, НЕ перезаписываем! userId=${existingProfile._id}, email=${existingProfile.email}`,
+      );
+      return;
+    }
+
+    // Если forceCreate = false и профиль существует (но syncDatabaseCompleted != true), пропускаем
+    if (!forceCreate && existingProfile) {
+      // eslint-disable-next-line no-console
+      console.log('👤 [saveGuestProfile] Профиль уже существует, пропускаем сохранение');
+      return;
     }
 
     // Генерируем уникальный ID для гостевого пользователя

@@ -526,7 +526,9 @@ const Main = () => {
       if (profile && profile.syncDatabaseCompleted === true) {
         // syncDatabaseCompleted = true - загружаем данные из локальной БД
         // eslint-disable-next-line no-console
-        console.log('✅ [initializeApp] syncDatabaseCompleted=true, загружаем данные из локальной БД');
+        console.log(
+          `✅ [initializeApp] syncDatabaseCompleted=true, загружаем данные из локальной БД. Профиль: _id=${profile._id}, email=${profile.email}, registered=${profile.registered}`,
+        );
 
         // Загружаем цель из локальной БД
         try {
@@ -599,12 +601,16 @@ const Main = () => {
         );
         _checkAuthAndSyncDB();
       } else {
-        // syncDatabaseCompleted = false и нет токена - создаем нового пользователя
+        // syncDatabaseCompleted = false/undefined и нет токена - создаем нового пользователя
         // eslint-disable-next-line no-console
-        console.log('👤 [initializeApp] syncDatabaseCompleted=false и нет токена, создаем нового пользователя');
+        console.log(`👤 [initializeApp] syncDatabaseCompleted=${profile?.syncDatabaseCompleted ?? 'undefined'} и нет токена, проверяем профиль`);
 
+        // ВАЖНО: Проверяем, не является ли существующий профиль синхронизированным
+        // Если профиль существует и имеет email (не гостевой), то не создаем нового гостевого пользователя
         if (!profile) {
-          // Создаем гостевого пользователя с текущей датой регистрации
+          // Профиля нет - создаем гостевого пользователя с текущей датой регистрации
+          // eslint-disable-next-line no-console
+          console.log('👤 [initializeApp] Профиля нет, создаем гостевого пользователя');
           await saveGuestProfile();
           const newProfile = await loadProfile();
           if (newProfile) {
@@ -614,8 +620,13 @@ const Main = () => {
             dispatch(initializationComplete({ profile: null, isSignedIn: false }));
           }
         } else {
-          // Профиль уже есть, просто помечаем проверку как завершенную
-          dispatch(initializationComplete({ profile, isSignedIn: false }));
+          // Профиль уже есть
+          // eslint-disable-next-line no-console
+          console.log(
+            `👤 [initializeApp] Профиль уже существует: _id=${profile._id}, email=${profile.email || 'нет'}, registered=${profile.registered || 'нет'}`,
+          );
+          // Просто помечаем проверку как завершенную
+          dispatch(initializationComplete({ profile, isSignedIn: !!profile?.email }));
         }
       }
     } catch (error) {
