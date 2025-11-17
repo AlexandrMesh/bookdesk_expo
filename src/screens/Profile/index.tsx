@@ -99,12 +99,12 @@ const Profile: FC<Props> = ({ isUpdateAvailable, googlePlayUrl }) => {
               </View>
             )}
             <Button theme={SECONDARY} style={styles.marginBottom} onPress={() => navigation.navigate(ABOUT_ROUTE)} title={t('aboutApp')} />
-            <Button
+            {/* <Button
               theme={SECONDARY}
               style={styles.marginBottom}
               onPress={() => navigation.navigate(SIGN_IN_ROUTE)}
               title={t('openAuthTest')}
-            />
+            /> */}
             <Button theme={SECONDARY} onPress={_resetData} title={t('resetData')} />
           </ScrollView>
         </View>
