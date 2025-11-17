@@ -82,6 +82,14 @@ export const addCustomBook = createAsyncThunk(`${PREFIX}/addCustomBook`, async (
     dispatch(updateBookOnBoardAndSearch(response));
     dispatch(triggerReloadCustomBookList());
 
+    // Сохраняем книгу в единую таблицу, чтобы она была доступна при смене доски
+    try {
+      const { saveBook } = await import('~utils/database/books');
+      await saveBook(response as IBook);
+    } catch (error) {
+      console.error('Failed to save custom book in unified books table', error);
+    }
+
     // Сохраняем книгу в кэш board_data для выбранной доски, чтобы после перезапуска она загрузилась из локальной БД
     try {
       const { addBookToCache } = await import('~utils/boardStorage');
@@ -130,6 +138,14 @@ export const updateUserCustomBook = createAsyncThunk(
         console.error('Failed to update custom book in board_data cache', e);
       }
 
+      // Обновляем книгу в единой таблице
+      try {
+        const { saveBook } = await import('~utils/database/books');
+        await saveBook(response);
+      } catch (error) {
+        console.error('Failed to update custom book in unified books table', error);
+      }
+
       return response;
     } catch (error) {
       console.error(error);
@@ -145,29 +161,26 @@ export const updateUserCustomBook = createAsyncThunk(
   },
 );
 
-export const deleteCustomBook = createAsyncThunk(
-  `${PREFIX}/deleteCustomBook`,
-  async (bookId: string, { dispatch }: AppThunkAPI) => {
+export const deleteCustomBook = createAsyncThunk(`${PREFIX}/deleteCustomBook`, async (bookId: string, { dispatch }: AppThunkAPI) => {
+  try {
+    // Удаляем книгу из кэша board_data и связанных таблиц
     try {
-      // Удаляем книгу из кэша board_data и связанных таблиц
-      try {
-        const { removeBookFromCache } = await import('~utils/boardStorage');
-        await removeBookFromCache(bookId);
-      } catch (e) {
-        console.error('Failed to remove custom book from board_data cache', e);
-      }
-
-      // Удаляем книгу из Redux state через action
-      dispatch(removeBookFromBoardAndSearch(bookId));
-      dispatch(triggerReloadCustomBookList());
-
-      return bookId;
-    } catch (error) {
-      console.error('Error deleting custom book:', error);
-      throw error;
+      const { removeBookFromCache } = await import('~utils/boardStorage');
+      await removeBookFromCache(bookId);
+    } catch (e) {
+      console.error('Failed to remove custom book from board_data cache', e);
     }
-  },
-);
+
+    // Удаляем книгу из Redux state через action
+    dispatch(removeBookFromBoardAndSearch(bookId));
+    dispatch(triggerReloadCustomBookList());
+
+    return bookId;
+  } catch (error) {
+    console.error('Error deleting custom book:', error);
+    throw error;
+  }
+});
 
 // Re-export shared actions for backward compatibility
 export const updateSuggestedBook = sharedUpdateSuggestedBook;
