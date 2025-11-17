@@ -57,7 +57,8 @@ const EditCustomBook = () => {
 
   const [_title, setTitle] = useState<string | null>(params.title);
   const [titleError, setTitleError] = useState<string | null>(null);
-  const [_pages, setPages] = useState<string | null>(params.pages.toString());
+  const initialPagesValue = params.pages ? params.pages.toString() : '';
+  const [_pages, setPages] = useState<string | null>(initialPagesValue);
   const [authors, setAuthors] = useState(
     params.authorsList && params.authorsList.length > 0
       ? params.authorsList.map((item: string) => ({ id: uniqueId(), name: item, error: null }))
@@ -225,7 +226,7 @@ const EditCustomBook = () => {
   // Reset all state when switching to another book
   useEffect(() => {
     setTitle(params.title);
-    setPages(params.pages.toString());
+    setPages(params.pages ? params.pages.toString() : '');
     setAuthors(params.authorsList.map((item: string) => ({ id: uniqueId(), name: item, error: null })));
     const init = params.coverPath || DEFAULT_COVER;
     setShouldAddCover(init === DEFAULT_COVER ? false : true);
