@@ -11,6 +11,7 @@
   "en": "Английский",
   "needsToBeUpdated": "Необходимо обновить приложение",
   "noConnectionMessage": "Подключитесь к Интернету. Проверьте Ваше подключение к сети.",
+  "checkConnectionButton": "Проверить",
   "connectionType": "Тип соединения: {{type}}",
   "none": "Нет",
   "unknown": "Неизвестное",

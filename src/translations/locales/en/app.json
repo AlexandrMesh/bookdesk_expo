@@ -11,6 +11,7 @@
   "en": "English",
   "needsToBeUpdated": "Application needs to be updated",
   "noConnectionMessage": "Connect to the Internet. Check your network connection.",
+  "checkConnectionButton": "Check",
   "connectionType": "Connection type: {{type}}",
   "none": "None",
   "unknown": "Unknown",

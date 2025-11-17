@@ -1,10 +1,13 @@
+/* eslint-disable import/order */
 import React, { FC, lazy, useCallback, useEffect, useState } from 'react';
+import { Alert } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { BottomTabBar, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { NavigationContainer } from '@react-navigation/native';
+import { BottomTabBar, BottomTabBarProps, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { NavigationContainer, ParamListBase, RouteProp } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useTranslation } from 'react-i18next';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useAppDispatch, useAppSelector } from '~hooks';
 
@@ -40,7 +43,8 @@ import {
   STAT_ROUTE,
 } from '~constants/routes';
 import { useAppUpdates } from '~hooks/useAppUpdates';
-import { checkAuthAndSyncDB, initializationComplete } from '~redux/actions/authActions';
+import useNetworkStatus from '~hooks/useNetworkStatus';
+import { authCheckingFailed, checkAuthAndSyncDB, initializationComplete } from '~redux/actions/authActions';
 import { loadBookListFromLocalDB, setBookNotes, setBookVotes, userBookRatingsLoaded, setCategories } from '~redux/actions/booksActions';
 import { getGoalItems, setGoal } from '~redux/actions/goalsActions';
 import { getCheckingStatus } from '~redux/selectors/auth';
@@ -94,7 +98,9 @@ const SignIn = lazy(() => import('~screens/Auth/SignIn'));
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-const TabBarWithBanner = (props: any) => (
+type BottomTabRouteName = 'HomeNavigator' | 'StatNavigator' | 'AddCustomBookNavigator' | 'GoalsNavigator' | 'ProfileNavigator';
+
+const TabBarWithBanner = (props: BottomTabBarProps) => (
   <>
     <BannerAd />
     {}
@@ -347,7 +353,7 @@ type TabNavigatorProps = {
   goalType: GoalType | null;
 };
 
-const getIcon = (focused: boolean, route: any) => {
+const getIcon = (focused: boolean, route: RouteProp<ParamListBase, string>) => {
   const icon = {
     HomeNavigator: (
       <HomeIcon width={BOTTOM_BAR_ICON.width} height={BOTTOM_BAR_ICON.height} fill={focused ? colors.neutral_light : colors.neutral_medium} />
@@ -369,9 +375,10 @@ const getIcon = (focused: boolean, route: any) => {
     ProfileNavigator: (
       <ProfileIcon width={BOTTOM_BAR_ICON.width} height={BOTTOM_BAR_ICON.height} fill={focused ? colors.neutral_light : colors.neutral_medium} />
     ),
-  };
+  } as Record<BottomTabRouteName, React.ReactElement>;
 
-  return (icon as any)[route.name];
+  const routeName = route.name as BottomTabRouteName;
+  return icon[routeName] ?? null;
 };
 
 const TabNavigator: FC<TabNavigatorProps> = ({ isUpdateAvailable, googlePlayUrl, hasGoal, goalType }) => {
@@ -466,10 +473,39 @@ const MainNavigator: FC<MainNavigatorProps> = ({ isUpdateAvailable, googlePlayUr
 const Main = () => {
   const { t } = useTranslation('common');
   const [shouldDisplayUnderConstructionView, setShouldDisplayUnderConstructionView] = useState(false);
+  const [shouldRetrySyncWhenOnline, setShouldRetrySyncWhenOnline] = useState(false);
   const [googlePlayUrl, setGooglePlayUrl] = useState('');
 
   const dispatch = useAppDispatch();
   const _checkAuthAndSyncDB = useCallback(() => dispatch(checkAuthAndSyncDB()), [dispatch]);
+  const isOnline = useNetworkStatus();
+
+  const checkInternetBeforeSync = useCallback(async () => {
+    const netState = await NetInfo.fetch();
+    const hasInternet = Boolean(netState.isConnected && (netState.isInternetReachable ?? true));
+
+    if (!hasInternet) {
+      setShouldRetrySyncWhenOnline(true);
+      Alert.alert(
+        '',
+        i18n.t('app:noConnectionMessage'),
+        [
+          {
+            text: i18n.t('app:checkConnectionButton'),
+            onPress: () => {
+              checkInternetBeforeSync();
+            },
+          },
+        ],
+        { cancelable: false },
+      );
+      dispatch(authCheckingFailed());
+      return;
+    }
+
+    setShouldRetrySyncWhenOnline(false);
+    _checkAuthAndSyncDB();
+  }, [_checkAuthAndSyncDB, dispatch]);
 
   // Хук для проверки EAS Updates
   const { checkAndInstallUpdate, isUpdateAvailable } = useAppUpdates();
@@ -535,7 +571,7 @@ const Main = () => {
         try {
           const localGoal = await loadGoal();
           if (localGoal) {
-            dispatch(setGoal({ pages: localGoal.numberOfPages || 0, type: localGoal.goalType as any }));
+            dispatch(setGoal({ pages: localGoal.numberOfPages || 0, type: localGoal.goalType as GoalType }));
           }
         } catch (error) {
           console.error('Error loading goal from local DB:', error);
@@ -598,9 +634,10 @@ const Main = () => {
         // syncDatabaseCompleted = false/undefined и есть токен - выполняем checkAuthAndSyncDB
         // eslint-disable-next-line no-console
         console.log(
-          `🔄 [initializeApp] syncDatabaseCompleted=${profile?.syncDatabaseCompleted ?? 'undefined'} и есть токен, выполняем checkAuthAndSyncDB`,
+          `🔄 [initializeApp] syncDatabaseCompleted=${profile?.syncDatabaseCompleted ?? 'undefined'} и есть токен, проверяем интернет перед синхронизацией`,
         );
-        _checkAuthAndSyncDB();
+
+        await checkInternetBeforeSync();
       } else {
         // syncDatabaseCompleted = false/undefined и нет токена - создаем нового пользователя
         // eslint-disable-next-line no-console
@@ -636,7 +673,14 @@ const Main = () => {
       // Помечаем проверку как завершенную с ошибкой
       dispatch(initializationComplete({ profile: null, isSignedIn: false }));
     }
-  }, [_checkAuthAndSyncDB, dispatch, loadCategoriesToRedux]);
+  }, [checkInternetBeforeSync, dispatch, loadCategoriesToRedux]);
+
+  useEffect(() => {
+    if (shouldRetrySyncWhenOnline && isOnline) {
+      setShouldRetrySyncWhenOnline(false);
+      _checkAuthAndSyncDB();
+    }
+  }, [shouldRetrySyncWhenOnline, isOnline, _checkAuthAndSyncDB]);
 
   // Инициализация конфигурации приложения
   useEffect(() => {
