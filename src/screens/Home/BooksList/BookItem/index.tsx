@@ -160,6 +160,9 @@ const BookItem: FC<Props> = memo(
   },
   (prevProps, nextProps) => {
     return (
+      prevProps.imgUrl === nextProps.imgUrl &&
+      prevProps.isEditable === nextProps.isEditable &&
+      prevProps.bookItem.coverPath === nextProps.bookItem.coverPath &&
       prevProps.bookItem.votesCount === nextProps.bookItem.votesCount &&
       prevProps.bookItem.bookStatus === nextProps.bookItem.bookStatus &&
       prevProps.bookItem.added === nextProps.bookItem.added &&
