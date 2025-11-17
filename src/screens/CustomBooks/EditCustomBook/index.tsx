@@ -17,6 +17,7 @@ import { CLOSE_ICON } from '~constants/dimensions';
 import { SECONDARY } from '~constants/themes';
 import useDisplayAlert from '~hooks/useDisplayAlert';
 import useGetImgUrl from '~hooks/useGetImgUrl';
+import useNetworkStatus from '~hooks/useNetworkStatus';
 import { deleteCustomBook, updateUserCustomBook } from '~redux/actions/customBookActions';
 import colors from '~styles/colors';
 import { BookStatus } from '~types/books';
@@ -53,6 +54,7 @@ const EditCustomBook = () => {
   const navigation = useNavigation();
   const dispatch = useAppDispatch();
   const imgUrl = useGetImgUrl();
+  const isOnline = useNetworkStatus();
   const insets = useSafeAreaInsets();
 
   const [_title, setTitle] = useState<string | null>(params.title);
@@ -101,6 +103,7 @@ const EditCustomBook = () => {
     !draftIsSelectedInSuggestedList &&
     !draftIsCurrentCover &&
     (draftSelectedCover.startsWith('file:') || draftSelectedCover.startsWith('content:') || draftSelectedCover.startsWith('data:'));
+  const isDraftFindCoverDisabled = !isOnline || !!(draftShouldAddCover && !draftIsSelectedFromDevice && !draftIsCurrentCover);
 
   const suggestedCoversExist = suggestedCoversData.length > 0;
   const isSelectedInSuggestedList = !!selectedCover && suggestedCoversData.some((item) => item.coverPath === selectedCover);
@@ -207,7 +210,7 @@ const EditCustomBook = () => {
 
   // Load suggested covers (modal drafts)
   useEffect(() => {
-    if (_title && draftShouldAddCover && !draftSuggestedCoversExist && !draftSelectedCover) {
+    if (_title && draftShouldAddCover && !draftSuggestedCoversExist && !draftSelectedCover && isOnline) {
       setDraftLoadingDataStatus('pending');
       const loadCovers = async () => {
         try {
@@ -221,7 +224,7 @@ const EditCustomBook = () => {
       };
       loadCovers();
     }
-  }, [_title, draftShouldAddCover, draftSuggestedCoversExist, draftSelectedCover]);
+  }, [_title, draftShouldAddCover, draftSuggestedCoversExist, draftSelectedCover, isOnline]);
 
   // Reset all state when switching to another book
   useEffect(() => {
@@ -419,7 +422,7 @@ const EditCustomBook = () => {
                       title={t('customBook:withoutCover')}
                     />
                     <Button
-                      disabled={!!(draftShouldAddCover && !draftIsSelectedFromDevice && !draftIsCurrentCover)}
+                      disabled={isDraftFindCoverDisabled}
                       style={styles.button}
                       titleStyle={styles.buttonTitle}
                       onPress={handleFindCover}

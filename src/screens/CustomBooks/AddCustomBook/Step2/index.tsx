@@ -13,6 +13,7 @@ import { PENDING, SUCCEEDED } from '~constants/loadingStatuses';
 import { SECONDARY } from '~constants/themes';
 import { useAppDispatch, useAppSelector } from '~hooks';
 import useGetImgUrl from '~hooks/useGetImgUrl';
+import useNetworkStatus from '~hooks/useNetworkStatus';
 import { loadSuggestedCovers, selectCover, setAvailableStep, setCurrentStep, setShouldAddCover } from '~redux/actions/customBookActions';
 import {
   deriveIsValidStep2,
@@ -46,6 +47,7 @@ const Step2 = () => {
   const selectedCover = useAppSelector(getSelectedCover);
 
   const imgUrl = useGetImgUrl();
+  const isOnline = useNetworkStatus();
   const [isPickingFromDevice, setIsPickingFromDevice] = useState(false);
 
   const handlePressOnWithoutCover = () => {
@@ -94,12 +96,14 @@ const Step2 = () => {
     return true;
   });
 
+  const isFindCoverDisabled = !isOnline || !!(shouldAddCover && !isSelectedFromDevice);
+
   useEffect(() => {
     // Загружаем только если у нас включен поиск, ещё ничего не выбрано и нет загруженных обложек
-    if (bookName.value && shouldAddCover && !suggestedCoversExist && !selectedCover) {
+    if (bookName.value && shouldAddCover && !suggestedCoversExist && !selectedCover && isOnline) {
       dispatch(loadSuggestedCovers());
     }
-  }, [dispatch, bookName.value, shouldAddCover, suggestedCoversExist, selectedCover]);
+  }, [dispatch, bookName.value, shouldAddCover, suggestedCoversExist, selectedCover, isOnline]);
 
   return (
     <View style={styles.container}>
@@ -116,7 +120,7 @@ const Step2 = () => {
             title={t('customBook:withoutCover')}
           />
           <Button
-            disabled={!!(shouldAddCover && !isSelectedFromDevice)}
+            disabled={isFindCoverDisabled}
             style={styles.button}
             titleStyle={styles.buttonTitle}
             onPress={handleFindCover}
