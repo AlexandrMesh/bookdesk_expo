@@ -603,12 +603,7 @@ const EditCustomBook = () => {
               onPress={displayDeleteConfirmation}
               title={t('common:delete', { defaultValue: 'Удалить' })}
             />
-            <Button
-              style={styles.footerButton}
-              disabled={!isValidForm || isSaving || isDeleting}
-              onPress={handleEditBook}
-              title={t('common:save')}
-            />
+            <Button style={styles.footerButton} disabled={!isValidForm || isSaving || isDeleting} onPress={handleEditBook} title={t('common:save')} />
           </View>
         </View>
       </View>
