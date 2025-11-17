@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
-import { View, Text, SectionList, FlatList, Pressable } from 'react-native';
+import { View, Text, SectionList, Pressable } from 'react-native';
+
+import { FlashList } from '@shopify/flash-list';
 
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -30,6 +32,8 @@ import { getValidationFailure, validationTypes } from '~utils/validation';
 
 import ItemPlaceholder from '../ItemPlaceholder';
 import styles from './styles';
+
+const READING_HISTORY_ITEM_HEIGHT = 72;
 
 const Daily = () => {
   const { i18n, t } = useTranslation(['goals', 'errors', 'common', 'statistic']);
@@ -193,7 +197,15 @@ const Daily = () => {
   );
 
   const renderReadingHistoryNestedItems = useCallback(
-    (item: any) => <FlatList keyboardShouldPersistTaps='handled' data={item.data} renderItem={renderItem} keyExtractor={getKeyExtractor} />,
+    (item: any) => (
+      <FlashList
+        keyboardShouldPersistTaps='handled'
+        data={item.data}
+        renderItem={renderItem}
+        keyExtractor={getKeyExtractor}
+        estimatedItemSize={READING_HISTORY_ITEM_HEIGHT}
+      />
+    ),
     [getKeyExtractor, renderItem],
   );
 

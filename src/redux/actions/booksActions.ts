@@ -3,7 +3,7 @@ import difference from 'lodash/difference';
 import intersection from 'lodash/intersection';
 
 import { ALL } from '~constants/boardType';
-import { PAGE_SIZE } from '~constants/bookList';
+import { SEARCH_RESULTS_LIMIT } from '~constants/bookList';
 import DataService from '~http/services/books';
 import {
   removeBookFromBoardAndSearch as sharedRemoveBookFromBoardAndSearch,
@@ -17,7 +17,6 @@ import {
 import { triggerReloadStat } from '~redux/actions/statisticActions';
 import {
   deriveBookListData,
-  deriveBookListHasNextPage,
   deriveBookListPageIndex,
   deriveBookListSortParams,
   deriveBookListTotalItems,
@@ -28,8 +27,6 @@ import {
   getBookToUpdate,
   getCategoriesData,
   getSearchQuery,
-  getSearchResults,
-  getSearchResultsHasNextPage,
   getSearchSortParams,
   getShouldReloadCategories,
 } from '~redux/selectors/books';
@@ -186,14 +183,15 @@ export const loadSearchResults = createAsyncThunk(
       console.log('🔍 [loadSearchResults] Поиск в локальной БД...');
 
       const foundBooks = await searchBooksInCache(searchText, searchBoardType, sortType, sortDirection, language);
+      const limitedBooks = foundBooks.slice(0, SEARCH_RESULTS_LIMIT);
 
       // eslint-disable-next-line no-console
-      console.log(`✅ [loadSearchResults] Найдено книг: ${foundBooks.length}`);
+      console.log(`✅ [loadSearchResults] Найдено книг: ${foundBooks.length} (отображаем ${limitedBooks.length})`);
 
       return {
         boardType: ALL,
-        data: foundBooks,
-        totalItems: foundBooks.length,
+        data: limitedBooks,
+        totalItems: limitedBooks.length,
         hasNextPage: false, // Больше не используем пагинацию
         shouldLoadMoreResults: false,
       };
@@ -296,13 +294,14 @@ export const loadBookList = createAsyncThunk(
 
           // Конвертируем обложки параллельно, но с ограничением (по 5 одновременно)
           const CONCURRENT_LIMIT = 5;
-          const booksToConvert = items.filter((book) => book.coverPath && !book.coverPath.startsWith('data:image') && imgUrl);
+          const safeItems = (items || []) as IBook[];
+          const booksToConvert = safeItems.filter((book: IBook) => book.coverPath && !book.coverPath.startsWith('data:image') && Boolean(imgUrl));
 
           // Формируем карту конвертированных обложек
           const coverMap = new Map<string, string>();
           for (let i = 0; i < booksToConvert.length; i += CONCURRENT_LIMIT) {
             const batch = booksToConvert.slice(i, i + CONCURRENT_LIMIT);
-            const conversionPromises = batch.map(async (book) => {
+            const conversionPromises = batch.map(async (book: IBook) => {
               try {
                 const base64Cover = await convertBookCoverToBase64(book.coverPath!, imgUrl);
                 if (base64Cover) {
@@ -321,7 +320,7 @@ export const loadBookList = createAsyncThunk(
 
           // Формируем финальный массив книг с конвертированными обложками
           booksWithBase64Covers = [];
-          for (const book of items) {
+          for (const book of safeItems) {
             let coverPath = book.coverPath;
             if (coverPath && !coverPath.startsWith('data:image') && coverMap.has(book.bookId)) {
               coverPath = coverMap.get(book.bookId)!;
@@ -341,7 +340,7 @@ export const loadBookList = createAsyncThunk(
           if (booksWithBase64Covers.length > 0) {
             try {
               const { updateBook } = await import('~utils/database/books');
-              for (const book of booksWithBase64Covers) {
+              for (const book of booksWithBase64Covers as IBook[]) {
                 if (book.coverPath) {
                   await updateBook(book.bookId, { coverPath: book.coverPath });
                 }
@@ -521,20 +520,6 @@ export const loadBookListFromLocalDB = createAsyncThunk(
   },
 );
 
-export const loadMoreBooks = createAsyncThunk(`${PREFIX}/loadMoreBooks`, async (boardType: BookStatus, { dispatch, getState }: AppThunkAPI) => {
-  const state = getState();
-  const hasNextPage = deriveBookListHasNextPage(boardType)(state);
-  const bookList = deriveBookListData(boardType)(state);
-  try {
-    if (bookList.length >= PAGE_SIZE && hasNextPage) {
-      await dispatch(loadBookList({ boardType, shouldLoadMoreResults: true }));
-    }
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
-});
-
 export const loadCategories = createAsyncThunk(`${PREFIX}/loadCategories`, async (shouldRewrite: boolean, { getState }: AppThunkAPI) => {
   const state = getState();
   const categories = getCategoriesData(state);
@@ -593,23 +578,6 @@ export const loadCategories = createAsyncThunk(`${PREFIX}/loadCategories`, async
     return [];
   }
 });
-
-export const loadMoreSearchResults = createAsyncThunk(
-  `${PREFIX}/loadMoreSearchResults`,
-  async (boardType: BookStatus, { dispatch, getState }: AppThunkAPI) => {
-    const state = getState();
-    const hasNextPage = getSearchResultsHasNextPage(state);
-    const bookList = getSearchResults(state);
-    try {
-      if (bookList.length >= PAGE_SIZE && hasNextPage) {
-        await dispatch(loadSearchResults({ shouldLoadMoreResults: true, boardType }));
-      }
-    } catch (error) {
-      console.error(error);
-      throw error;
-    }
-  },
-);
 
 export const reloadBookList = createAsyncThunk(
   `${PREFIX}/reloadBookList`,

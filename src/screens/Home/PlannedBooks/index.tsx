@@ -9,7 +9,7 @@ import { useAppDispatch, useAppSelector } from '~hooks';
 import { PLANNED } from '~constants/boardType';
 import { IDLE, PENDING, SUCCEEDED } from '~constants/loadingStatuses';
 import { ADD_CUSTOM_BOOK_NAVIGATOR_ROUTE, CUSTOM_BOOKS_ROUTE } from '~constants/routes';
-import { loadBookList, loadCategories, loadMoreBooks, setBoardType } from '~redux/actions/booksActions';
+import { loadBookList, loadCategories, setBoardType } from '~redux/actions/booksActions';
 import { setStatus } from '~redux/actions/customBookActions';
 import {
   deriveLoadingBookListStatus,
@@ -30,11 +30,10 @@ const PlannedBooks = () => {
 
   const dispatch = useAppDispatch();
   const _loadBookList = useCallback(
-    ({ boardType, shouldLoadMoreResults, forceRefresh }: { boardType: BookStatus; shouldLoadMoreResults: boolean; forceRefresh?: boolean }) =>
-      dispatch(loadBookList({ boardType, shouldLoadMoreResults, forceRefresh })),
+    ({ boardType, shouldLoadMoreResults }: { boardType: BookStatus; shouldLoadMoreResults: boolean }) =>
+      dispatch(loadBookList({ boardType, shouldLoadMoreResults })),
     [dispatch],
   );
-  const _loadMoreBooks = useCallback(() => dispatch(loadMoreBooks(PLANNED)), [dispatch]);
   const _loadCategories = useCallback(() => dispatch(loadCategories(false)), [dispatch]);
   const _setBoardType = useCallback(() => dispatch(setBoardType(PLANNED)), [dispatch]);
   const _goToAddBook = useCallback(() => {
@@ -63,7 +62,6 @@ const PlannedBooks = () => {
         _loadBookList({
           boardType: PLANNED,
           shouldLoadMoreResults: false,
-          forceRefresh: false, // Загружаем из кэша (данные универсальные для всех языков)
         });
       };
       loadData();
@@ -79,7 +77,7 @@ const PlannedBooks = () => {
       {loadingDataStatus !== IDLE && loadingDataStatus !== PENDING ? (
         <ActionBar boardType={PLANNED} shouldRenderFilterButton={false} totalItems={totalItems} />
       ) : null}
-      <BooksList data={sectionedBookListData || []} loadMoreBooks={_loadMoreBooks} loadingDataStatus={loadingDataStatus} onPressAdd={_goToAddBook} />
+      <BooksList data={sectionedBookListData || []} loadingDataStatus={loadingDataStatus} onPressAdd={_goToAddBook} />
     </View>
   );
 };

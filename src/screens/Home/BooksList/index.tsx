@@ -5,7 +5,7 @@ import { Text, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useTranslation } from 'react-i18next';
 
-import { IDLE, PENDING, SUCCEEDED } from '~constants/loadingStatuses';
+import { PENDING, SUCCEEDED } from '~constants/loadingStatuses';
 import useGetImgUrl from '~hooks/useGetImgUrl';
 import { IBook } from '~types/books';
 import { LoadingType } from '~types/loadingTypes';
@@ -16,22 +16,26 @@ import BookItem from './BookItem';
 import ItemPlaceholder from './ItemPlaceholder';
 import styles from './styles';
 
+const BOOK_ITEM_ESTIMATED_HEIGHT = 260;
+const SECTION_HEADER_HEIGHT = 64;
+
 export type Props = {
   horizontal?: boolean;
-  data: IBook[];
-  loadMoreBooks?: () => void;
+  data: Array<IBook | string>;
   loadingDataStatus: LoadingType;
   isEditable?: boolean;
   onPressAdd?: () => void;
 };
 
-const BookList: FC<Props> = ({ data = [], loadMoreBooks = () => undefined, loadingDataStatus, horizontal, isEditable, onPressAdd }) => {
+const VirtualizedFlashList: any = FlashList;
+
+const BookList: FC<Props> = ({ data = [], loadingDataStatus, horizontal, isEditable, onPressAdd }) => {
   const { t: tCommon } = useTranslation('common');
   const { t: tBooks } = useTranslation('books');
   const listRef = useRef<any>(null);
   const imgUrl = useGetImgUrl();
   // Убеждаемся что data всегда массив
-  const safeData = Array.isArray(data) ? data : [];
+  const safeData = (Array.isArray(data) ? data : []) as Array<IBook | string>;
   const getFooter = useCallback(() => {
     if (loadingDataStatus === PENDING && safeData?.length > 0) {
       return (
@@ -61,13 +65,7 @@ const BookList: FC<Props> = ({ data = [], loadMoreBooks = () => undefined, loadi
     [],
   );
 
-  const onEndReached = useCallback(() => {
-    if (safeData?.length > 0 && loadingDataStatus !== PENDING && loadingDataStatus !== IDLE) {
-      loadMoreBooks();
-    }
-  }, [safeData?.length, loadMoreBooks, loadingDataStatus]);
-
-  const getKeyExtractor = useCallback((item: IBook) => (typeof item === 'string' ? item : item.bookId), []);
+  const getKeyExtractor = useCallback((item: IBook | string) => (typeof item === 'string' ? item : item.bookId), []);
 
   const renderSectionHeader = useCallback(
     (item: string) => {
@@ -105,6 +103,10 @@ const BookList: FC<Props> = ({ data = [], loadMoreBooks = () => undefined, loadi
     return typeof item === 'string' ? 'sectionHeader' : 'row';
   }, []);
 
+  const overrideItemLayout = useCallback((layout: any, item: IBook | string) => {
+    layout.size = typeof item === 'string' ? SECTION_HEADER_HEIGHT : BOOK_ITEM_ESTIMATED_HEIGHT;
+  }, []);
+
   useEffect(() => {
     if (safeData?.length === 0 && loadingDataStatus === SUCCEEDED) {
       listRef?.current?.scrollToOffset({ offset: 0 });
@@ -113,16 +115,16 @@ const BookList: FC<Props> = ({ data = [], loadMoreBooks = () => undefined, loadi
 
   return (
     <View style={styles.container}>
-      <FlashList
+      <VirtualizedFlashList
         ref={listRef}
         horizontal={horizontal}
         data={safeData}
         renderItem={renderItem}
         getItemType={getItemType}
         keyExtractor={getKeyExtractor}
-        onEndReachedThreshold={0.5}
+        estimatedItemSize={BOOK_ITEM_ESTIMATED_HEIGHT}
+        overrideItemLayout={overrideItemLayout}
         ListEmptyComponent={getListEmptyComponent}
-        onEndReached={onEndReached}
         ListFooterComponent={getFooter}
         removeClippedSubviews={false}
       />

@@ -10,7 +10,7 @@ import { useAppDispatch, useAppSelector } from '~hooks';
 
 import { ALL } from '~constants/boardType';
 import { PENDING, SUCCEEDED } from '~constants/loadingStatuses';
-import { clearSearchResults, loadSearchResults, loadMoreSearchResults, setBoardType } from '~redux/actions/booksActions';
+import { clearSearchResults, loadSearchResults, setBoardType } from '~redux/actions/booksActions';
 import {
   deriveSearchBookListData,
   deriveSearchQuery,
@@ -42,7 +42,6 @@ const SearchResults = () => {
     (shouldLoadMoreResults: boolean) => dispatch(loadSearchResults({ shouldLoadMoreResults, boardType: params.boardType })),
     [dispatch, params.boardType],
   );
-  const _loadMoreSearchResults = () => dispatch(loadMoreSearchResults(params.boardType));
   const _setBoardType = useCallback(() => dispatch(setBoardType(ALL)), [dispatch]);
   const _clearSearchResults = useCallback(() => dispatch(clearSearchResults()), [dispatch]);
 
@@ -83,7 +82,7 @@ const SearchResults = () => {
   return (
     <>
       {loadingDataStatus === PENDING ? null : <TotalCount count={searchResult.length > 0 ? totalItems : 0} />}
-      <BooksList loadMoreBooks={_loadMoreSearchResults} data={searchResult} loadingDataStatus={loadingDataStatus} />
+      <BooksList data={searchResult} loadingDataStatus={loadingDataStatus} />
     </>
   );
 };

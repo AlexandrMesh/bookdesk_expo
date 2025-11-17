@@ -1,5 +1,6 @@
 export const PAGE_SIZE = 50;
 export const PAGE_INDEX = 0;
+export const SEARCH_RESULTS_LIMIT = 100;
 
 export const SORTABLE_ITEMS = [
   { key: 'added', direction: -1 },

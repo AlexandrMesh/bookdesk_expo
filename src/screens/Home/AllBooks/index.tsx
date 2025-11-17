@@ -8,7 +8,7 @@ import { useAppDispatch, useAppSelector } from '~hooks';
 
 import { ALL } from '~constants/boardType';
 import { IDLE, PENDING, SUCCEEDED } from '~constants/loadingStatuses';
-import { loadBookList, loadMoreBooks, loadCategories, setBoardType } from '~redux/actions/booksActions';
+import { loadBookList, loadCategories, setBoardType } from '~redux/actions/booksActions';
 import {
   deriveBookListData,
   deriveLoadingBookListStatus,
@@ -33,7 +33,6 @@ const AllBooks = () => {
       dispatch(loadBookList({ boardType, shouldLoadMoreResults })),
     [dispatch],
   );
-  const _loadMoreBooks = useCallback(() => dispatch(loadMoreBooks(ALL)), [dispatch]);
   const _loadCategories = useCallback(() => dispatch(loadCategories(false)), [dispatch]);
   const _setBoardType = useCallback(() => dispatch(setBoardType(ALL)), [dispatch]);
 
@@ -71,7 +70,6 @@ const AllBooks = () => {
         _loadBookList({
           boardType: ALL,
           shouldLoadMoreResults: false,
-          forceRefresh: false, // Не принудительно, загружаем из кэша
         });
       };
       loadData();
@@ -87,7 +85,7 @@ const AllBooks = () => {
       {loadingDataStatus !== IDLE && loadingDataStatus !== PENDING ? (
         <ActionBar boardType={ALL} filterParams={filterParams} activeFiltersCount={activeFiltersCount} totalItems={totalItems} />
       ) : null}
-      <BooksList data={bookList} loadMoreBooks={_loadMoreBooks} loadingDataStatus={loadingDataStatus} />
+      <BooksList data={bookList} loadingDataStatus={loadingDataStatus} />
     </View>
   );
 };
