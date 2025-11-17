@@ -538,6 +538,69 @@ const Main = () => {
     }
   }, [dispatch]);
 
+  const loadLocalData = useCallback(async () => {
+    // Загружаем цель из локальной БД
+    try {
+      const localGoal = await loadGoal();
+      if (localGoal) {
+        dispatch(setGoal({ pages: localGoal.numberOfPages || 0, type: localGoal.goalType as GoalType }));
+      }
+    } catch (error) {
+      console.error('Error loading goal from local DB:', error);
+    }
+
+    // Загружаем заметки из локальной БД
+    try {
+      const localBookNotes = await loadBookNotes();
+      if (localBookNotes.length > 0) {
+        dispatch(setBookNotes(localBookNotes));
+      }
+    } catch (error) {
+      console.error('Error loading book notes from local DB:', error);
+    }
+
+    // Загружаем лайки из локальной БД
+    try {
+      const localUserVotes = await loadUserVotes();
+      if (localUserVotes.length > 0) {
+        dispatch(setBookVotes(localUserVotes));
+      }
+    } catch (error) {
+      console.error('Error loading user votes from local DB:', error);
+    }
+
+    // Загружаем рейтинги из локальной БД
+    try {
+      const localRatings = await loadBookRatings();
+      if (localRatings.length > 0) {
+        dispatch(userBookRatingsLoaded(localRatings));
+      }
+    } catch (error) {
+      console.error('Error loading ratings from local DB:', error);
+    }
+
+    // Загружаем goal items из локальной БД
+    try {
+      await dispatch(getGoalItems()).unwrap();
+    } catch (error) {
+      console.error('Error loading goal items from local DB:', error);
+    }
+
+    // Загружаем книги из локальной БД для досок
+    try {
+      const boardTypes = [PLANNED, IN_PROGRESS, COMPLETED] as const;
+      for (const boardType of boardTypes) {
+        try {
+          await dispatch(loadBookListFromLocalDB({ boardType, shouldLoadMoreResults: false })).unwrap();
+        } catch (error) {
+          console.error(`Error loading books for board ${boardType} from local DB:`, error);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading books from local DB:', error);
+    }
+  }, [dispatch]);
+
   const initializeApp = useCallback(async () => {
     try {
       // Инициализируем базу данных
@@ -567,66 +630,7 @@ const Main = () => {
           `✅ [initializeApp] syncDatabaseCompleted=true, загружаем данные из локальной БД. Профиль: _id=${profile._id}, email=${profile.email}, registered=${profile.registered}`,
         );
 
-        // Загружаем цель из локальной БД
-        try {
-          const localGoal = await loadGoal();
-          if (localGoal) {
-            dispatch(setGoal({ pages: localGoal.numberOfPages || 0, type: localGoal.goalType as GoalType }));
-          }
-        } catch (error) {
-          console.error('Error loading goal from local DB:', error);
-        }
-
-        // Загружаем заметки из локальной БД
-        try {
-          const localBookNotes = await loadBookNotes();
-          if (localBookNotes.length > 0) {
-            dispatch(setBookNotes(localBookNotes));
-          }
-        } catch (error) {
-          console.error('Error loading book notes from local DB:', error);
-        }
-
-        // Загружаем лайки из локальной БД
-        try {
-          const localUserVotes = await loadUserVotes();
-          if (localUserVotes.length > 0) {
-            dispatch(setBookVotes(localUserVotes));
-          }
-        } catch (error) {
-          console.error('Error loading user votes from local DB:', error);
-        }
-
-        // Загружаем рейтинги из локальной БД
-        try {
-          const localRatings = await loadBookRatings();
-          if (localRatings.length > 0) {
-            dispatch(userBookRatingsLoaded(localRatings));
-          }
-        } catch (error) {
-          console.error('Error loading ratings from local DB:', error);
-        }
-
-        // Загружаем goal items из локальной БД
-        try {
-          await dispatch(getGoalItems()).unwrap();
-        } catch (error) {
-          console.error('Error loading goal items from local DB:', error);
-        }
-
-        // Загружаем книги из локальной БД для досок
-        try {
-          const boardTypes = [PLANNED, IN_PROGRESS, COMPLETED] as const;
-          for (const boardType of boardTypes) {
-            try {
-              await dispatch(loadBookListFromLocalDB({ boardType, shouldLoadMoreResults: false })).unwrap();
-            } catch (error) {
-              console.error(`Error loading books for board ${boardType} from local DB:`, error);
-            }
-          }
-        } catch (error) {
-          console.error('Error loading books from local DB:', error);
-        }
+        await loadLocalData();
 
         // Помечаем проверку как завершенную
         dispatch(initializationComplete({ profile, isSignedIn: !!profile?.email }));
@@ -652,6 +656,7 @@ const Main = () => {
           await saveGuestProfile();
           const newProfile = await loadProfile();
           if (newProfile) {
+            await loadLocalData();
             // Помечаем проверку как завершенную
             dispatch(initializationComplete({ profile: newProfile, isSignedIn: false }));
           } else {
@@ -663,6 +668,7 @@ const Main = () => {
           console.log(
             `👤 [initializeApp] Профиль уже существует: _id=${profile._id}, email=${profile.email || 'нет'}, registered=${profile.registered || 'нет'}`,
           );
+          await loadLocalData();
           // Просто помечаем проверку как завершенную
           dispatch(initializationComplete({ profile, isSignedIn: !!profile?.email }));
         }
@@ -673,7 +679,7 @@ const Main = () => {
       // Помечаем проверку как завершенную с ошибкой
       dispatch(initializationComplete({ profile: null, isSignedIn: false }));
     }
-  }, [checkInternetBeforeSync, dispatch, loadCategoriesToRedux]);
+  }, [checkInternetBeforeSync, dispatch, loadCategoriesToRedux, loadLocalData]);
 
   useEffect(() => {
     if (shouldRetrySyncWhenOnline && isOnline) {
