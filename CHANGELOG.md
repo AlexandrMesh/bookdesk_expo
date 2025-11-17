@@ -1,135 +1,358 @@
-# Changelog - EAS Build Configuration
+# Changelog
 
-## [2025-10-10] - Pure Managed Workflow с Expo Go
+## bookdesk
 
-### ✅ Добавлено
+## 6.0.0
+###### 2025-11-17
+- [New] New project platform (removed backend API and use SQL Lite)
 
-#### Условная загрузка нативных модулей (новое!)
-- Настроена динамическая загрузка Google Sign In через `import()` в `App.tsx`
-- Настроена динамическая загрузка Yandex Mobile Ads через `import()` в `App.tsx`
-- Добавлена проверка окружения через `Constants.appOwnership`
-- Нативные модули загружаются только в production build, не в Expo Go
-- Приложение теперь полностью совместимо с Expo Go для локальной разработки
+## 4.9.4
 
-#### EAS Build с удаленным Prebuild
-- Создан `eas.json` с тремя профилями сборки:
-  - `development` - для dev client с `prebuildCommand`
-  - `preview` - APK для тестирования с `prebuildCommand`
-  - `production` - AAB для Google Play с `prebuildCommand`
-- Создан `.easignore` для исключения локальных папок ios/android
-- Добавлены npm скрипты для удобной сборки:
-  - `build:android:preview`
-  - `build:android:production`
-  - `build:ios:preview`
-  - `build:ios:production`
-- Добавлен `eas-cli@^15.0.0` в devDependencies
-- Добавлен плагин `@react-native-google-signin/google-signin` в `app.json`
-- Настроена автоматическая подпись через EAS credentials
+###### 2025-10-08
+- [New] Added Yandex Ads
 
-#### Документация
-- `EAS_BUILD_SETUP.md` - подробная документация по EAS Build
-- `QUICK_START.md` - быстрое руководство по началу работы
-- `README_EXPO_GO.md` - краткая сводка настройки
-- `ANDROID_SIGNING.md` - полная документация по подписи Android приложений
-- `SIGNING_CHEATSHEET.md` - шпаргалка с командами управления ключами
-- `CHANGELOG.md` - этот файл
+## 4.9.3
 
-### 🔧 Техническая информация
+###### 2025-10-06
+- [Fix] SDK version
 
-#### Pure Managed Workflow
-Проект настроен на **pure managed workflow**:
-- Папки `/ios` и `/android` находятся в `.gitignore` (не коммитятся)
-- Папки `/ios` и `/android` находятся в `.easignore` (не загружаются на EAS)
-- При EAS Build **удаленно** выполняется `expo prebuild --clean`
-- Все нативные SDK (Google Sign In, Yandex Mobile Ads) конфигурируются автоматически
-- Локально работаете с Expo Go без prebuild
-- Production build создается на серверах Expo с полной нативной поддержкой
+## 4.9.2
 
-#### Условная загрузка модулей
-```typescript
-// App.tsx
-const initializeNativeModules = async () => {
-  const isExpoGo = Constants.appOwnership === 'expo';
-  
-  if (!isExpoGo) {
-    // Динамический импорт только в production
-    const { GoogleSignin } = await import('@react-native-google-signin/google-signin');
-    GoogleSignin.configure({...});
-  }
-};
-```
+###### 2025-05-26
+- [New] Added displaying information in the footer of goal items with Stat button
 
-**Окружения:**
-- `Constants.appOwnership === 'expo'` → Expo Go (модули не загружаются)
-- `Constants.appOwnership === 'standalone'` → Production build (модули загружаются)
+## 4.9.1
 
-#### Плагины в app.json
-```json
-"plugins": [
-  "./plugins/remove-adid-permission",
-  ["expo-splash-screen", {...}],
-  "@react-native-google-signin/google-signin"  // Новый
-]
-```
+###### 2025-01-26
+- [Fix] Fix displaying monthly goal progress value
 
-### 📝 Примечания
+## 4.9.0
 
-#### Локальная разработка
-- Используйте `npm start` для Expo Go разработки
-- Нативные модули НЕ работают в Expo Go - это нормально!
-- В консоли увидите: "Running in Expo Go - native modules disabled"
-- Быстрый hot reload, отличная developer experience
+###### 2025-01-26
+- [New] Added `monthly` and `daily` goal types
 
-#### Production Build
-- Используйте `npm run build:android:preview` для EAS Build
-- Prebuild происходит ТОЛЬКО на удаленном сервере Expo
-- Нативные модули работают полностью
-- В консоли увидите: "Google Sign In initialized", "Yandex Mobile Ads initialized"
+## 4.8.0
 
-#### Конфигурация
-- webClientId для Google Sign In: `798541911751-2bfmd87u0b4tlua24hs8k57r5pmag36e.apps.googleusercontent.com`
-- Автоматическое управление keystore через EAS (рекомендуется)
-- Получить SHA: `eas credentials -p android`
-- Не забудьте добавить SHA-1/SHA-256 сертификатов в Google Cloud Console
-- Предупреждения линтера о нативных модулях - это нормально для managed workflow
+###### 2025-01-17
+- [New] Added search to the all boards
 
-### 🚀 Как использовать
+## 4.7.0
 
-#### Локальная разработка
-```bash
-npm start
-# Сканируйте QR-код в Expo Go
-```
+###### 2025-01-15
+- [New] Added displaying User Custom Book List and ability to edit user custom book
 
-#### Production build
-```bash
-# Установка зависимостей
-npm install
+## 4.6.0
 
-# Логин в Expo (первый раз)
-eas login
+###### 2025-01-06
+- [New] Separated statistic views (Books, Pages, Rating)
+- [Fix] Added limit to display user goal items (max 300 items)
 
-# Первая сборка
-npm run build:android:preview
-```
+## 4.5.0
 
-См. `QUICK_START.md` для подробной инструкции.
+###### 2024-12-30
+- [New] Added `Similar books` block into BookDetails component
 
-### 📦 Файлы
+## 4.4.3
 
-#### Новые файлы
-- `eas.json` - конфигурация EAS Build с prebuildCommand и AAB для production
-- `.easignore` - исключает ios/android из загрузки на EAS
-- `EAS_BUILD_SETUP.md` - подробная документация
-- `QUICK_START.md` - быстрое руководство
-- `README_EXPO_GO.md` - краткая сводка
-- `ANDROID_SIGNING.md` - подробная документация по подписи приложений
-- `SIGNING_CHEATSHEET.md` - шпаргалка с командами для управления ключами
-- `CHANGELOG.md` - этот файл
+###### 2024-12-26
+- [Fix] Removed validator for checking existing book for adding custom book
 
-#### Измененные файлы
-- `App.tsx` - условная загрузка нативных модулей
-- `app.json` - добавлен плагин Google Sign In
-- `package.json` - добавлены скрипты для EAS Build и eas-cli
-- `.gitignore` - добавлены *.keystore, credentials.json, service-account-key.json
+## 4.4.2
 
+###### 2024-10-14
+- [Fix] Back button functionality on the Add custom book view
+- [Fix] Added autoFocus on the add custom book text input
+- [Fix] Fixes for book details view
+
+## 4.4.1
+
+###### 2024-08-29
+- [New] Added confirmation alert for deleting goal items and book notes
+- [Fix] Small UI fixes
+
+## 4.4.0
+
+###### 2024-08-26
+- [Fix] Reworked `BookNote` component
+
+## 4.3.0
+
+###### 2024-08-20
+- [Fix] Reworked `SlideMenu` to screen or Modal
+- [Fix] Fixed `estimatedItemSize` in FlashList
+- [Fix] Autofocus for Search book input
+
+## 4.2.0
+
+###### 2024-08-16
+- [Fix] Wrap components to `memo`
+- [Fix] Use lazy-loading for components
+- [Fix] Rework `BookSectionList` for boards to `FlashList`
+
+## 4.1.0
+
+###### 2024-08-13
+- [Fix] Fix redux actions, selectors, reducers for using `pending`, `fulfilled` and `rejected` statuses
+- [Fix] mmeo for `Like`, `Status`, `Rating`, `ModifiedDate` components
+
+## 4.0.0
+
+###### 2024-08-08
+- [BREAKING] Reworked to use TypeScript
+- [BREAKING] Reworked to use redux toolkit
+
+## 3.2.0
+
+###### 2024-08-01
+- [Fix] Performance optimization
+- [Fix] UI improvements
+
+## 3.1.1
+
+###### 2024-07-30
+- [New] UI improvements for Statistic view
+
+## 3.1.0
+
+###### 2024-07-23
+- [New] Support App Modal
+
+## 3.0.0
+
+###### 2024-07-18
+- [New] Performance improvements
+- [BREAKING] Update react native to `0.74.3`
+
+## 2.20.0
+
+###### 2024-07-16
+- [New] interface improvements
+
+## 2.19.0
+
+###### 2024-07-15
+- [New] Reworked change book status control
+
+## 2.18.1
+
+###### 2024-07-12
+- [New] Performance improvements for book boards
+
+## 2.18.0
+
+###### 2024-07-11
+- [New] Rating in the book item
+- [New] Performance improvements for book boards
+
+## 2.17.0
+
+###### 2024-07-09
+- [New] UI improvements
+- [New] Added NoConnection View for the case with no internet
+
+## 2.16.0
+
+###### 2024-07-05
+- [New] UI improvements
+- [Fix] Expanded limit of characters for user comments (1000 -> 10000)
+
+## 2.15.0
+
+###### 2024-06-21
+- [New] New top 100 readers statistic and rating
+
+## 2.14.0
+
+###### 2024-06-19
+- [New] New statistic view
+- [Fix] UI improvements
+
+## 2.13.1
+
+###### 2024-06-16
+- [Fix] Performance improvements
+
+## 2.13.0
+
+###### 2024-06-14
+- [Fix] Performance improvements
+
+## 2.12.0
+
+###### 2024-06-12
+- [Fix] Performance improvements
+- [Fix] UI improvements
+
+## 2.11.0
+
+###### 2024-06-09
+- [Fix] Performance improvements
+
+## 2.10.1
+
+###### 2024-06-08
+- [Fix] Improved performance of opening the slide menu with book status
+
+## 2.10.0
+
+###### 2024-06-07
+- [Fix] Small fixes
+
+## 2.9.0
+
+###### 2024-06-06
+- [New] New view and mechanism to force application update
+
+## 2.8.0
+
+###### 2024-06-04
+- [New] New mechanism for switching API url
+
+## 2.7.0
+
+###### 2024-04-26
+- [New] Delete goal item feature
+
+## 2.6.2
+
+###### 2024-04-26
+- [Fix] Performance improvements
+
+## 2.6.1
+
+###### 2024-04-22
+- [Fix] UI improvements
+
+## 2.6.0
+
+###### 2024-04-18
+- [New] Goals feature
+
+## 2.5.1
+
+###### 2024-03-27
+- [Fix] Changed to current date after switching book status
+- [Fix] Small fixes in the translations
+
+## 2.5.0
+
+###### 2024-03-22
+- [New] Rating system for user books
+
+## 2.4.1
+
+###### 2024-01-18
+- [Fix] Small UI fixes
+
+## 2.4.0
+
+###### 2024-01-17
+- [New] Added ability to add book comments
+
+## 2.3.0
+
+###### 2024-01-10
+- [New] Added ability to change date added book in book status slide menu
+
+## 2.2.3
+
+###### 2024-01-09
+
+- [Fix] Performance improvements
+
+## 2.2.2
+
+###### 2024-01-09
+
+- [Fix] Performance improvements for loading data
+
+## 2.2.1
+
+###### 2024-01-08
+
+- [Fix] Fix count books by year
+
+## 2.2.0
+
+###### 2024-01-08
+
+- [New] Added sectioned book lists by year
+
+## 2.1.0
+
+###### 2024-01-04
+
+- [New] Added updatable date for added books
+
+## 2.0.2
+
+###### 2023-11-24
+
+- [Fix] Fixed translations and displaying validation API errors in SignIn and SignUp screens
+
+## 2.0.1
+
+###### 2023-11-24
+
+- [Fix] Fix add custom book validation
+
+## 2.0.0
+
+###### 2023-11-24
+
+- [New] Added add custom book feature
+
+## 1.7.0
+
+###### 2023-11-11
+
+- [New] Added english version
+- [Fix] Optimization the performance
+
+## 1.6.0
+
+###### 2023-10-30
+
+- [Новое] Добавлен специальный экран для информирования пользователей при проведении технических работ
+
+## 1.5.0
+
+###### 2023-10-26
+
+- [Новое] Закрытие модальных окон Фильтрации и Изменения статуса книг по кнопке Назад
+- [Улучшение] Название книги теперь отображается в шапке модального окна с изменением статуса
+- [Улучшение] Динамические размеры для модальных окон в зависимости от размера экрана
+- [Улучшение] Улучшение экрана подробной информации о книге
+- [Улучшение] Улучшение отображения интерфейса на планшетах
+
+## 1.4.0
+
+###### 2023-10-26
+
+- [Новое] Добавлена возможность просмотра детальной информации о книге
+- [Улучшение] Оптимизация размера приложения
+- [Улучшение] Некоторые улучшения интерфейса
+
+## 1.3.0
+
+###### 2023-10-24
+
+- [Новое] Добавлена функция оповещения о новой версии приложения
+- [Улучшение] Оптимизация размера приложения
+- [Улучшение] Некоторые улучшения интерфейса
+
+## 1.2.0
+
+###### 2023-10-22
+
+- [Новое] Добавлен изменяемый рейтинг для книг
+- [Исправление] Исправлена логика скрытия модального окна фильтрации после нажатия кнопки Сохранить (теперь оно плавно закрывается)
+- [Исправление] Исправлено отображение количества актинвых категорий на кнопке Категории после применения фильтрации
+
+## 1.1.0
+
+###### 2023-10-17
+
+- [Новое] Добавлена возможность поиска по авторам
+- [Исправление] Исправлено появление экрана авторизации на секнуду перед запуском проверки авторизации
+- [Исправление] Внесены правки в логику поиска, теперь поиск не запускается если добавлен пробел в запрос, или если предыдущий запрос равен текущему
