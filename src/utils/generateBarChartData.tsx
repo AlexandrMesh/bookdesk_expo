@@ -10,6 +10,7 @@ import { getT } from '~translations/i18n';
 
 const getYearItem = (label: number) => ({
   label,
+  year: label,
   labelTextStyle: { color: colors.gold, fontSize: 15, fontWeight: 600 },
   value: 0,
   isYear: true,
@@ -40,6 +41,7 @@ export default (data: { year: number; month: number; count: number }[], maxValue
       const value = findByYears.find(({ month }) => month === itemMonth.month)?.count || 0;
       return {
         label: getT('statistic')(MAPPED_MONTHS[itemMonth.month]),
+        year: item.year,
         value,
         frontColor: colors.success,
         topLabelComponent: () => <DataPointLabel value={value} />,
@@ -50,16 +52,37 @@ export default (data: { year: number; month: number; count: number }[], maxValue
   // logic for slice array to get rid from start and end values with 0
   const flattedResult = result.flat();
   const findTheFirstIndexWithValue = flattedResult.findIndex(({ value }) => value > 0);
-  const slicedStartResult = flattedResult.slice(findTheFirstIndexWithValue);
-  const findTheFirstIndexWithValueInReversedResult = slicedStartResult.reverse().findIndex(({ value }) => value > 0);
+
+  if (findTheFirstIndexWithValue === -1) {
+    return {
+      data: [],
+      totalCount: 0,
+      averageReadingSpeed: 0,
+      maxValue: 10,
+    };
+  }
+
+  // Всегда сохраняем маркер года перед первой ненулевой точкой
+  let startIndex = findTheFirstIndexWithValue;
+  for (let i = findTheFirstIndexWithValue - 1; i >= 0; i -= 1) {
+    if (flattedResult[i].isYear) {
+      startIndex = i;
+      break;
+    }
+  }
+
+  const slicedStartResult = flattedResult.slice(startIndex);
+  const reversedSlicedResult = [...slicedStartResult].reverse();
+  const findTheFirstIndexWithValueInReversedResult = reversedSlicedResult.findIndex(({ value }) => value > 0);
   const finalResult = {
     data: [],
-  } as { data: { value: number; isYear: boolean; label: number }[] };
-  finalResult.data = slicedStartResult.slice(findTheFirstIndexWithValueInReversedResult).reverse() as any;
+  } as { data: { value: number; isYear: boolean; label: number | string; year?: number }[] };
+  finalResult.data = reversedSlicedResult.slice(findTheFirstIndexWithValueInReversedResult).reverse() as any;
 
   if (!finalResult.data[0].isYear) {
     const firstYearLabel =
-      finalResult.data.find(({ isYear }) => isYear)?.label ||
+      finalResult.data[0]?.year ||
+      finalResult.data.find(({ isYear }) => isYear)?.year ||
       flattedResult.find(({ isYear }) => isYear)?.label ||
       data[0]?.year ||
       new Date().getFullYear();
