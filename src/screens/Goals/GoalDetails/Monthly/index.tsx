@@ -183,7 +183,7 @@ const Monthly = () => {
         <View style={styles.countColumn}>
           <Text style={styles.countItem}>{t('common:count', { count: item.pages })}</Text>
           <Pressable style={styles.removeIcon} onPress={() => !loadingGoalItemsId && onDelete(item._id)}>
-            {loadingGoalItemsId === item._id ? <Spinner size='small' /> : <RemoveIcon fill={colors.neutral_medium} width={20} height={20} />}
+            {loadingGoalItemsId === item._id ? <Spinner size='small' variant='inline' /> : <RemoveIcon fill={colors.neutral_medium} width={20} height={20} />}
           </Pressable>
         </View>
       </View>
@@ -322,7 +322,7 @@ const Monthly = () => {
                 <Button
                   disabled={disabledControls}
                   iconPosition='right'
-                  icon={isLoading ? <Spinner size='small' /> : undefined}
+                icon={isLoading ? <Spinner size='small' variant='inline' /> : undefined}
                   style={styles.button}
                   onPress={submitForm}
                   title={t('goals:add')}

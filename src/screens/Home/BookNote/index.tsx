@@ -138,7 +138,7 @@ const BookNote: FC = () => {
           style={styles.primaryButton}
           onPress={handleSaveComment}
           disabled={isEditing}
-          icon={isEditing ? <Spinner size='small' /> : undefined}
+          icon={isEditing ? <Spinner size='small' variant='inline' /> : undefined}
           title={t('common:save')}
         />
         <Button theme={SECONDARY} style={styles.cancelButton} disabled={isEditing} onPress={toggleEditableMode} title={t('common:cancel')} />

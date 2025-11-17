@@ -96,7 +96,7 @@ const SignUp = () => {
               disabled={pendingSignUp}
             />
             <Button
-              icon={pendingSignUp ? <Spinner size='small' /> : undefined}
+              icon={pendingSignUp ? <Spinner size='small' variant='inline' /> : undefined}
               onPress={handleSubmitSignIn}
               title={t('signUp')}
               disabled={pendingSignUp || isEmpty(email) || isEmpty(password)}

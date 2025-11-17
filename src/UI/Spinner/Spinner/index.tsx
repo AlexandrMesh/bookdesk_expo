@@ -12,6 +12,7 @@ export type Props = {
   size?: number | 'small' | 'large' | undefined;
   backgroundColor?: string;
   labelColor?: string;
+  variant?: 'overlay' | 'inline';
 };
 
 const Spinner: FC<Props> = ({
@@ -20,16 +21,12 @@ const Spinner: FC<Props> = ({
   labelColor = colors.neutral_light,
   size = 'large',
   label,
+  variant = 'overlay',
 }) => {
+  const isOverlay = variant === 'overlay';
+
   return (
-    <View
-      style={[
-        styles.overlay,
-        {
-          backgroundColor,
-        },
-      ]}
-    >
+    <View style={[isOverlay ? styles.overlay : styles.inline, isOverlay && { backgroundColor }]}>
       <ActivityIndicator color={color} size={size} />
       {label && <Text style={[{ color: labelColor }, styles.label]}>{label}</Text>}
     </View>

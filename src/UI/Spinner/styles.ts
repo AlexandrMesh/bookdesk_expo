@@ -9,6 +9,15 @@ export default StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  inline: {
+    position: 'relative',
+    width: 'auto',
+    height: 'auto',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
   label: {
     marginTop: 10,
     fontSize: 18,

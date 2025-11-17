@@ -603,7 +603,6 @@ const EditCustomBook = () => {
               title={t('common:delete', { defaultValue: 'Удалить' })}
             />
             <Button
-              icon={isSaving ? <Spinner size='small' /> : undefined}
               style={styles.footerButton}
               disabled={!isValidForm || isSaving || isDeleting}
               onPress={handleEditBook}
@@ -612,6 +611,7 @@ const EditCustomBook = () => {
           </View>
         </View>
       </View>
+      {isSaving && <Spinner backgroundColor='rgba(0, 0, 0, 0.5)' />}
     </View>
   );
 };
