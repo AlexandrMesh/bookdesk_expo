@@ -58,9 +58,13 @@ export default (data: { year: number; month: number; count: number }[], maxValue
   finalResult.data = slicedStartResult.slice(findTheFirstIndexWithValueInReversedResult).reverse() as any;
 
   if (!finalResult.data[0].isYear) {
-    const findFirstItemWithYear = finalResult.data.find(({ isYear }) => isYear)?.label || 0;
-    const yearLabel = findFirstItemWithYear - 1 || flattedResult[0].label;
-    finalResult.data = [getYearItem(yearLabel as number), ...finalResult.data];
+    const firstYearLabel =
+      finalResult.data.find(({ isYear }) => isYear)?.label ||
+      flattedResult.find(({ isYear }) => isYear)?.label ||
+      data[0]?.year ||
+      new Date().getFullYear();
+
+    finalResult.data = [getYearItem(Number(firstYearLabel)), ...finalResult.data];
   }
   const totalCount = sumBy(finalResult.data, 'value') || 0;
   const averageReadingSpeed = Math.round((totalCount / finalResult.data.filter(({ isYear }) => !isYear).length) * 10) / 10 || 0;
