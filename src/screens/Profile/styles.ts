@@ -37,6 +37,9 @@ export default StyleSheet.create({
   marginBottom: {
     marginBottom: 15,
   },
+  profileButton: {
+    height: 40,
+  },
   updateLabel: {
     fontSize: 18,
     textAlign: 'center',
@@ -53,5 +56,8 @@ export default StyleSheet.create({
   },
   titleStyle: {
     fontSize: 14,
+  },
+  profileButtonTitle: {
+    fontSize: 16,
   },
 });

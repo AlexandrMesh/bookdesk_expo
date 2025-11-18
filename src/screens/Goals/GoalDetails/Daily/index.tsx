@@ -38,8 +38,10 @@ const Daily = () => {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [visibleCount, setVisibleCount] = useState<number>(PAGE_SIZE);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState<boolean>(false);
   const deletedId = useRef<string>('');
   const [loadingGoalItemsId, setLoadingGoalItemsId] = useState<string | null>(null);
+  const isFetchingRef = useRef(false);
 
   const dispatch = useAppDispatch();
   const _getGoalItems = useCallback(() => dispatch(getGoalItems()), [dispatch]);
@@ -132,14 +134,31 @@ const Daily = () => {
     [deletedId, displayConfirmationAlert],
   );
 
-  // Загружаем данные в фоне только если их нет в Redux state
   useEffect(() => {
-    if (goalsData.length === 0) {
-      // Загружаем в фоне, не блокируя UI
-      _getGoalItems().catch((error) => {
-        console.error('Error loading goal items:', error);
-      });
+    let isMounted = true;
+
+    if (goalsData.length === 0 && !isFetchingRef.current) {
+      isFetchingRef.current = true;
+      setIsInitialLoading(true);
+      _getGoalItems()
+        .catch((error) => {
+          console.error('Error loading goal items:', error);
+        })
+        .finally(() => {
+          if (isMounted) {
+            setIsInitialLoading(false);
+          }
+          isFetchingRef.current = false;
+        });
     }
+
+    if (goalsData.length > 0) {
+      setIsInitialLoading(false);
+    }
+
+    return () => {
+      isMounted = false;
+    };
   }, [goalsData.length, _getGoalItems]);
 
   const renderReadingHistoryItem = useCallback(
@@ -229,7 +248,16 @@ const Daily = () => {
 
   const disabledControls = isLoading || !!loadingGoalItemsId;
 
-  const emptyListComponent = useCallback(() => (goalsData.length === 0 ? <ItemPlaceholder /> : null), [goalsData.length]);
+  const emptyListComponent = useCallback(() => {
+    if (isInitialLoading) {
+      return (
+        <View style={styles.listSpinnerWrapper}>
+          <Spinner variant='inline' />
+        </View>
+      );
+    }
+    return goalsData.length === 0 ? <ItemPlaceholder /> : null;
+  }, [goalsData.length, isInitialLoading]);
 
   const canLoadMore = goalsDataLength > visibleCount;
 

@@ -93,19 +93,33 @@ const Profile: FC<Props> = ({ isUpdateAvailable, googlePlayUrl }) => {
                 <Text style={[styles.updateLabel]}>{t('newVersionAvailable')}</Text>
                 <Button
                   disabled={isDownloading}
+                  style={styles.profileButton}
+                  titleStyle={styles.profileButtonTitle}
                   onPress={downloadAndInstallUpdate}
                   title={isDownloading ? t('common:downloading', { defaultValue: 'Загрузка...' }) : t('common:update')}
                 />
               </View>
             )}
-            <Button theme={SECONDARY} style={styles.marginBottom} onPress={() => navigation.navigate(ABOUT_ROUTE)} title={t('aboutApp')} />
+            <Button
+              theme={SECONDARY}
+              style={[styles.marginBottom, styles.profileButton]}
+              titleStyle={styles.profileButtonTitle}
+              onPress={() => navigation.navigate(ABOUT_ROUTE)}
+              title={t('aboutApp')}
+            />
             {/* <Button
               theme={SECONDARY}
               style={styles.marginBottom}
               onPress={() => navigation.navigate(SIGN_IN_ROUTE)}
               title={t('openAuthTest')}
             /> */}
-            <Button theme={SECONDARY} onPress={_resetData} title={t('resetData')} />
+            <Button
+              theme={SECONDARY}
+              style={styles.profileButton}
+              titleStyle={styles.profileButtonTitle}
+              onPress={_resetData}
+              title={t('resetData')}
+            />
           </ScrollView>
         </View>
       </View>

@@ -200,4 +200,9 @@ export default StyleSheet.create({
     paddingHorizontal: 10,
     alignItems: 'center',
   },
+  listSpinnerWrapper: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
