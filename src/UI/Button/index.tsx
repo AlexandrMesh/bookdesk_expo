@@ -55,11 +55,7 @@ const Button: FC<Props> = ({
     >
       <View style={styles.titleWrapper}>
         {isLoading ? (
-          <Spinner
-            size='small'
-            color={theme === PRIMARY ? colors.neutral_light : colors.neutral_light}
-            variant='inline'
-          />
+          <Spinner size='small' color={theme === PRIMARY ? colors.neutral_light : colors.neutral_light} variant='inline' />
         ) : (
           <>
             {icon && iconPosition === 'left' && <View style={[styles.icon, styles.iconLeft, iconClassName]}>{icon}</View>}
