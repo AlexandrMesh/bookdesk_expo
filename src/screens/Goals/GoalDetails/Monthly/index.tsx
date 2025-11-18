@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
-import { View, Text, SectionList, Pressable } from 'react-native';
+import { View, Text, SectionList, Pressable, InteractionManager } from 'react-native';
 
 import { FlashList } from '@shopify/flash-list';
 import { useTranslation } from 'react-i18next';
@@ -41,7 +41,9 @@ const Monthly = () => {
   const [isInitialLoading, setIsInitialLoading] = useState(false);
   const deletedId = useRef<string>('');
   const [loadingGoalItemsId, setLoadingGoalItemsId] = useState<string | null>(null);
+  const [isLoadMoreLoading, setIsLoadMoreLoading] = useState(false);
   const isFetchingRef = useRef(false);
+  const loadMoreTaskRef = useRef<ReturnType<typeof InteractionManager.runAfterInteractions> | null>(null);
 
   const dispatch = useAppDispatch();
   const _getGoalItems = useCallback(() => dispatch(getGoalItems()), [dispatch]);
@@ -261,17 +263,34 @@ const Monthly = () => {
   const canLoadMore = goalsDataLength > visibleCount;
 
   const handleLoadMore = useCallback(() => {
-    setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, goalsDataLength));
-  }, [goalsDataLength]);
+    if (isLoadMoreLoading) {
+      return;
+    }
+
+    setIsLoadMoreLoading(true);
+
+    loadMoreTaskRef.current?.cancel?.();
+    loadMoreTaskRef.current = InteractionManager.runAfterInteractions(() => {
+      setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, goalsDataLength));
+      setIsLoadMoreLoading(false);
+    });
+  }, [goalsDataLength, isLoadMoreLoading]);
+
+  useEffect(
+    () => () => {
+      loadMoreTaskRef.current?.cancel?.();
+    },
+    [],
+  );
 
   const footerComponent = useMemo(
     () =>
       canLoadMore ? (
         <View style={styles.loadMoreWrapper}>
-          <Button style={styles.loadMoreButton} onPress={handleLoadMore} title={t('goals:loadMore')} />
+          <Button style={styles.loadMoreButton} onPress={handleLoadMore} title={t('goals:loadMore')} isLoading={isLoadMoreLoading} />
         </View>
       ) : null,
-    [canLoadMore, handleLoadMore, t],
+    [canLoadMore, handleLoadMore, isLoadMoreLoading, t],
   );
 
   const renderSectionHeader = useCallback(

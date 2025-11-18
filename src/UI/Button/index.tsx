@@ -3,6 +3,8 @@ import React, { memo, FC, JSX } from 'react';
 import { TouchableHighlight, View, Text, StyleProp, ViewStyle, TextStyle } from 'react-native';
 
 import { PRIMARY, SECONDARY } from '~constants/themes';
+import colors from '~styles/colors';
+import { Spinner } from '~UI/Spinner';
 
 import styles from './styles';
 
@@ -16,6 +18,7 @@ export type Props = {
   style?: StyleProp<ViewStyle>;
   iconClassName?: StyleProp<ViewStyle>;
   disabled?: boolean | undefined;
+  isLoading?: boolean;
 };
 
 const colorTheme: Record<string, StyleProp<ViewStyle>> = {
@@ -23,9 +26,20 @@ const colorTheme: Record<string, StyleProp<ViewStyle>> = {
   [SECONDARY]: styles.secondary,
 };
 
-const Button: FC<Props> = ({ icon, iconPosition = 'left', title, titleStyle, onPress, theme = PRIMARY, style, iconClassName, disabled }) => {
+const Button: FC<Props> = ({
+  icon,
+  iconPosition = 'left',
+  title,
+  titleStyle,
+  onPress,
+  theme = PRIMARY,
+  style,
+  iconClassName,
+  disabled,
+  isLoading = false,
+}) => {
   const handlePress = () => {
-    if (!disabled) {
+    if (!disabled && !isLoading) {
       onPress();
     } else {
       return undefined;
@@ -34,11 +48,25 @@ const Button: FC<Props> = ({ icon, iconPosition = 'left', title, titleStyle, onP
   };
 
   return (
-    <TouchableHighlight disabled={disabled} style={[styles.button, colorTheme[theme], disabled ? styles.disabled : {}, style]} onPress={handlePress}>
+    <TouchableHighlight
+      disabled={disabled || isLoading}
+      style={[styles.button, colorTheme[theme], disabled || isLoading ? styles.disabled : {}, style]}
+      onPress={handlePress}
+    >
       <View style={styles.titleWrapper}>
-        {icon && iconPosition === 'left' && <View style={[styles.icon, styles.iconLeft, iconClassName]}>{icon}</View>}
-        <Text style={[styles.title, titleStyle]}>{title}</Text>
-        {icon && iconPosition === 'right' && <View style={[styles.icon, styles.iconRight, iconClassName]}>{icon}</View>}
+        {isLoading ? (
+          <Spinner
+            size='small'
+            color={theme === PRIMARY ? colors.neutral_light : colors.neutral_light}
+            variant='inline'
+          />
+        ) : (
+          <>
+            {icon && iconPosition === 'left' && <View style={[styles.icon, styles.iconLeft, iconClassName]}>{icon}</View>}
+            <Text style={[styles.title, titleStyle]}>{title}</Text>
+            {icon && iconPosition === 'right' && <View style={[styles.icon, styles.iconRight, iconClassName]}>{icon}</View>}
+          </>
+        )}
       </View>
     </TouchableHighlight>
   );

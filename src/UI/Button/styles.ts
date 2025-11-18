@@ -34,6 +34,9 @@ export default StyleSheet.create({
   iconRight: {
     marginLeft: 15,
   },
+  spinner: {
+    marginRight: 10,
+  },
   primary: {
     backgroundColor: colors.primary_medium,
   },
