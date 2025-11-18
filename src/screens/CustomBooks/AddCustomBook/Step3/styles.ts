@@ -68,6 +68,8 @@ export default StyleSheet.create({
   },
   addAuthorButton: {
     marginTop: 10,
+    height: 36,
+    maxWidth: 180,
   },
   authorsNameInputWrapper: {
     flex: 1,
@@ -116,5 +118,8 @@ export default StyleSheet.create({
   footerButton: {
     maxWidth: 160,
     marginHorizontal: 10,
+  },
+  addAuthorButtonTitle: {
+    fontSize: 16,
   },
 });

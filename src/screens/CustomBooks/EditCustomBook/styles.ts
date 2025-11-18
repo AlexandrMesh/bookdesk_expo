@@ -123,6 +123,8 @@ export default StyleSheet.create({
   },
   addAuthorButton: {
     marginTop: 10,
+    height: 36,
+    maxWidth: 180,
   },
   authorsNameInputWrapper: {
     flex: 1,
@@ -177,6 +179,7 @@ export default StyleSheet.create({
   footerButton: {
     flex: 1,
     marginHorizontal: 5,
+    height: 40,
   },
   deleteButton: {
     borderColor: colors.error,
@@ -247,5 +250,8 @@ export default StyleSheet.create({
   buttonTitle: {
     textAlign: 'center',
     fontSize: 14,
+  },
+  footerButtonTitle: {
+    fontSize: 16,
   },
 });

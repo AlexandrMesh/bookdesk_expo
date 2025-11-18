@@ -134,6 +134,7 @@ const Step3 = () => {
           <Button
             disabled={authorsList.length > 2}
             style={[styles.button, styles.addAuthorButton]}
+            titleStyle={styles.addAuthorButtonTitle}
             onPress={handleAddAuthor}
             title={t(authorsList.length > 0 ? 'customBook:addAnotherAuthor' : 'customBook:addAuthor')}
           />

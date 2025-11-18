@@ -1,10 +1,8 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 import { View, Text, SectionList, Pressable } from 'react-native';
 
 import { FlashList } from '@shopify/flash-list';
-
-import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 
 import { useAppDispatch, useAppSelector } from '~hooks';
@@ -12,9 +10,6 @@ import { useAppDispatch, useAppSelector } from '~hooks';
 import ArrowDown from '~assets/arrow-down.svg';
 import MedalIcon from '~assets/medal-star.svg';
 import RemoveIcon from '~assets/remove.svg';
-import { MAX_DISPLAYING_RECORDS } from '~constants/goals';
-import { IDLE, PENDING, SUCCEEDED, FAILED } from '~constants/loadingStatuses';
-import { STAT_NAVIGATOR_ROUTE, PAGES_STATISTIC_ROUTE, STAT_ROUTE } from '~constants/routes';
 import useDisplayAlert from '~hooks/useDisplayAlert';
 import { addGoalItem, getGoalItems, deleteUserGoalItem } from '~redux/actions/goalsActions';
 import {
@@ -34,18 +29,17 @@ import ItemPlaceholder from '../ItemPlaceholder';
 import styles from './styles';
 
 const READING_HISTORY_ITEM_HEIGHT = 72;
+const PAGE_SIZE = 100;
 
 const Monthly = () => {
   const { i18n, t } = useTranslation(['goals', 'errors', 'common', 'statistic']);
   const [pages, setPages] = useState<string>('');
   const [errorForPage, setErrorForPages] = useState('');
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
-  const [loadingStatus, setLoadingStatus] = useState(IDLE);
+  const [visibleCount, setVisibleCount] = useState<number>(PAGE_SIZE);
   const [isLoading, setIsLoading] = useState(false);
   const deletedId = useRef<string>('');
   const [loadingGoalItemsId, setLoadingGoalItemsId] = useState<string | null>(null);
-
-  const navigation = useNavigation<any>();
 
   const dispatch = useAppDispatch();
   const _getGoalItems = useCallback(() => dispatch(getGoalItems()), [dispatch]);
@@ -53,10 +47,11 @@ const Monthly = () => {
   const _deleteUserGoalItem = useCallback((id: string) => dispatch(deleteUserGoalItem(id)), [dispatch]);
 
   const goalsDataLength = useAppSelector(deriveGoalsDataLength);
-  const sectionedPagesDone = useAppSelector(deriveSectionedPagesDone);
+  const sectionedPagesDone = useAppSelector((state) => deriveSectionedPagesDone(state, visibleCount));
   const goalNumberOfPages = useAppSelector(getGoalNumberOfPages) as number;
   const numberOfPagesDone = useAppSelector(deriveNumberOfPagesDoneMonthly);
   const progress = useAppSelector(deriveMonthlyProgress);
+  const goalsData = useAppSelector((state) => state.goals.goal.data);
 
   const { language } = i18n;
 
@@ -137,19 +132,15 @@ const Monthly = () => {
     [deletedId, displayConfirmationAlert],
   );
 
+  // Загружаем данные в фоне только если их нет в Redux state
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoadingStatus(PENDING);
-        await _getGoalItems();
-        setLoadingStatus(SUCCEEDED);
-      } catch (error) {
-        setLoadingStatus(FAILED);
-        console.error(error);
-      }
-    };
-    loadData();
-  }, [_getGoalItems, i18n.language]);
+    if (goalsData.length === 0) {
+      // Загружаем в фоне, не блокируя UI
+      _getGoalItems().catch((error) => {
+        console.error('Error loading goal items:', error);
+      });
+    }
+  }, [goalsData.length, _getGoalItems]);
 
   const renderReadingHistoryItem = useCallback(
     (item: any) => (
@@ -222,31 +213,37 @@ const Monthly = () => {
     return colors.neutral_light;
   };
 
-  const disabledControls = loadingStatus === IDLE || loadingStatus === PENDING || isLoading || !!loadingGoalItemsId;
+  useEffect(() => {
+    if (goalsDataLength === 0) {
+      setVisibleCount(PAGE_SIZE);
+      return;
+    }
+    setVisibleCount((prev) => {
+      if (prev > goalsDataLength) {
+        return Math.max(PAGE_SIZE, goalsDataLength);
+      }
+      return prev;
+    });
+  }, [goalsDataLength]);
 
-  const emptyListComponent = useCallback(() => (loadingStatus === IDLE || loadingStatus === PENDING ? <ItemPlaceholder /> : null), [loadingStatus]);
+  const disabledControls = isLoading || !!loadingGoalItemsId;
 
-  const footerComponent = useCallback(
+  const emptyListComponent = useCallback(() => (goalsData.length === 0 ? <ItemPlaceholder /> : null), [goalsData.length]);
+
+  const canLoadMore = goalsDataLength > visibleCount;
+
+  const handleLoadMore = useCallback(() => {
+    setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, goalsDataLength));
+  }, [goalsDataLength]);
+
+  const footerComponent = useMemo(
     () =>
-      goalsDataLength > MAX_DISPLAYING_RECORDS ? (
-        <View>
-          <Text style={styles.readingHistoryItem}>{t('displayingRecords', { count: MAX_DISPLAYING_RECORDS })}</Text>
-          <Text style={styles.readingHistoryItem}>{t('detailsInTheStat')}</Text>
-          <Button
-            style={styles.statButton}
-            onPress={() =>
-              navigation.navigate(STAT_NAVIGATOR_ROUTE, {
-                screen: STAT_ROUTE,
-                params: {
-                  screen: PAGES_STATISTIC_ROUTE,
-                },
-              })
-            }
-            title={t('statistic:statistic')}
-          />
+      canLoadMore ? (
+        <View style={styles.loadMoreWrapper}>
+          <Button style={styles.loadMoreButton} onPress={handleLoadMore} title={t('goals:loadMore')} />
         </View>
       ) : null,
-    [t, navigation, goalsDataLength],
+    [canLoadMore, handleLoadMore, t],
   );
 
   const renderSectionHeader = useCallback(

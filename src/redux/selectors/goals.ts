@@ -43,38 +43,33 @@ export const deriveSortedgetGoalsData = createSelector([getGoalsData], (data) =>
 
 export const deriveGoalsDataLength = createSelector([getGoalsData], (data) => data.length);
 
-export const deriveSectionedPagesDone = createSelector([getGoalsData], (pages) =>
-  map(
-    groupBy(
-      [...pages]
-        .sort((a, b) => Number(b.added_at) - Number(a.added_at))
-        .map((item) => ({
+const getLimit = (_state: StateWithGoals, limit?: number) => (typeof limit === 'number' ? limit : null);
+
+export const deriveSectionedPagesDone = createSelector([getGoalsData, getLimit], (pages, limit) => {
+  const sortedPages = [...pages].sort((a, b) => Number(b.added_at) - Number(a.added_at));
+  const limitedPages = typeof limit === 'number' ? sortedPages.slice(0, limit) : sortedPages;
+
+  const pagesWithMonth = limitedPages.map((item) => ({
+    ...item,
+    monthAndYear: new Date(item?.added_at)?.toLocaleString(i18n.language, { month: 'long', year: 'numeric' }),
+  }));
+
+  return map(groupBy(pagesWithMonth, 'monthAndYear'), (value, key) => ({
+    title: key,
+    count: sum(value.map(({ pages }) => Number(pages))),
+    data: map(
+      groupBy(
+        (value || []).map((item) => ({
           ...item,
-          monthAndYear: new Date(item?.added_at)?.toLocaleString(i18n.language, { month: 'long', year: 'numeric' }),
+          dayMonthAndYear: new Date(item?.added_at)?.toLocaleString(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' }),
         })),
-      'monthAndYear',
+        'dayMonthAndYear',
+      ),
+      (innerValue, innerKey) => ({
+        title: innerKey,
+        count: sum(innerValue.map(({ pages }) => Number(pages))),
+        data: innerValue.sort((a, b) => Number(b.added_at) - Number(a.added_at)),
+      }),
     ),
-    (value, key) => {
-      return {
-        title: key,
-        count: sum(value.map(({ pages }) => Number(pages))),
-        data: map(
-          groupBy(
-            (value || []).map((item) => ({
-              ...item,
-              dayMonthAndYear: new Date(item?.added_at)?.toLocaleString(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' }),
-            })),
-            'dayMonthAndYear',
-          ),
-          (value, key) => {
-            return {
-              title: key,
-              count: sum(value.map(({ pages }) => Number(pages))),
-              data: value.sort((a, b) => Number(b.added_at) - Number(a.added_at)),
-            };
-          },
-        ),
-      };
-    },
-  ),
-);
+  }));
+});

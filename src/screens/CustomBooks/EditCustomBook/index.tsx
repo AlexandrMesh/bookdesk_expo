@@ -583,6 +583,7 @@ const EditCustomBook = () => {
             <Button
               disabled={authors.length > 2 || isSaving}
               style={[styles.button, styles.addAuthorButton]}
+              titleStyle={styles.footerButtonTitle}
               onPress={handleAddAuthor}
               title={t(authors.length > 0 ? 'customBook:addAnotherAuthor' : 'customBook:addAuthor')}
             />
@@ -596,6 +597,7 @@ const EditCustomBook = () => {
               disabled={isSaving || isDeleting}
               theme={SECONDARY}
               style={styles.footerButton}
+              titleStyle={styles.footerButtonTitle}
               onPress={() => navigation.goBack()}
               title={t('common:back')}
             />
@@ -603,10 +605,17 @@ const EditCustomBook = () => {
               disabled={isSaving || isDeleting}
               theme={SECONDARY}
               style={[styles.footerButton, styles.deleteButton]}
+              titleStyle={styles.footerButtonTitle}
               onPress={displayDeleteConfirmation}
               title={t('common:delete', { defaultValue: 'Удалить' })}
             />
-            <Button style={styles.footerButton} disabled={!isValidForm || isSaving || isDeleting} onPress={handleEditBook} title={t('common:save')} />
+            <Button
+              style={styles.footerButton}
+              titleStyle={styles.footerButtonTitle}
+              disabled={!isValidForm || isSaving || isDeleting}
+              onPress={handleEditBook}
+              title={t('common:save')}
+            />
           </View>
         </View>
       </View>

@@ -17,5 +17,6 @@
   "monthly": "Monthly",
   "goalType": "Goal type",
   "displayingRecords": "Showing the last {{count}} entries.",
-  "detailsInTheStat": "Go to the statistics to see more details."
+  "detailsInTheStat": "Go to the statistics to see more details.",
+  "loadMore": "Load more"
 }

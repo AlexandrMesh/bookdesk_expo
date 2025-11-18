@@ -109,10 +109,10 @@ export default StyleSheet.create({
   button: {
     width: 140,
   },
-  statButton: {
+  loadMoreButton: {
     marginVertical: 10,
-    width: 120,
-    height: 40,
+    width: 160,
+    height: 44,
   },
   stickyHeader: {
     marginVertical: 10,
@@ -194,5 +194,10 @@ export default StyleSheet.create({
   },
   listFooterComponent: {
     height: 80,
+  },
+  loadMoreWrapper: {
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+    alignItems: 'center',
   },
 });
