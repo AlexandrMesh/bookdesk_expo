@@ -136,76 +136,180 @@ export const initDatabase = async (): Promise<void> => {
 
       // Миграция: переносим данные из старых таблиц в новую единую таблицу books
       try {
-        // Проверяем, есть ли данные в старых таблицах, но нет в новой
-        const existingBooks = await db.getFirstAsync<{ count: number }>(`SELECT COUNT(*) as count FROM books`);
-        const hasOldData = await db.getFirstAsync<{ count: number }>(`
-          SELECT COUNT(*) as count FROM (
-            SELECT book_id FROM book_dates
-            UNION
-            SELECT book_id FROM book_ratings
-            UNION
-            SELECT book_id FROM book_votes
-            UNION
-            SELECT book_id FROM book_notes
-          )
-        `);
+        if (!db) {
+          throw new Error('Database not initialized');
+        }
 
-        if (hasOldData && hasOldData.count > 0 && (!existingBooks || existingBooks.count === 0)) {
-          // eslint-disable-next-line no-console
-          console.log('🔄 [Migration] Начинаем миграцию данных из старых таблиц в единую таблицу books...');
-
-          // Получаем все уникальные book_id из старых таблиц
-          const allBookIds = await db.getAllAsync<{ book_id: string }>(`
-            SELECT DISTINCT book_id FROM (
-              SELECT book_id FROM book_dates
-              UNION
-              SELECT book_id FROM book_ratings
-              UNION
-              SELECT book_id FROM book_votes
-              UNION
-              SELECT book_id FROM book_notes
-            )
-          `);
-
-          // Для каждого book_id собираем данные из всех таблиц
-          for (const { book_id } of allBookIds) {
-            const dateData = await db.getFirstAsync<{ added: number; book_status: string | null }>(
-              `SELECT added, book_status FROM book_dates WHERE book_id = ?`,
-              [book_id],
+        // Проверяем существование таблиц и наличие колонки book_id перед миграцией
+        const checkTableAndColumn = async (tableName: string): Promise<boolean> => {
+          try {
+            if (!db) return false;
+            // Проверяем существование таблицы
+            const tableResult = await db.getFirstAsync<{ count: number }>(
+              `SELECT COUNT(*) as count FROM sqlite_master WHERE type='table' AND name=?`,
+              [tableName],
             );
-            const ratingData = await db.getFirstAsync<{ rating: number }>(`SELECT rating FROM book_ratings WHERE book_id = ?`, [book_id]);
-            const votesData = await db.getFirstAsync<{ votes_count: number }>(`SELECT votes_count FROM book_votes WHERE book_id = ?`, [book_id]);
-            const noteData = await db.getFirstAsync<{ comment: string; added: number }>(`SELECT comment, added FROM book_notes WHERE book_id = ?`, [
-              book_id,
-            ]);
-
-            // Вставляем или обновляем запись в единой таблице
-            await db.runAsync(
-              `
-              INSERT OR REPLACE INTO books (
-                book_id, added, book_status, rating, votes_count, comment, comment_added, timestamp
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            `,
-              [
-                book_id,
-                dateData?.added || null,
-                dateData?.book_status || null,
-                ratingData?.rating || null,
-                votesData?.votes_count || null,
-                noteData?.comment || null,
-                noteData?.added || null,
-                Date.now(),
-              ],
+            if (!tableResult || tableResult.count === 0) {
+              return false;
+            }
+            // Проверяем наличие колонки book_id через pragma_table_info
+            // Используем прямой запрос, так как pragma_table_info не поддерживает параметры
+            const columnResult = await db.getFirstAsync<{ count: number }>(
+              `SELECT COUNT(*) as count FROM pragma_table_info('${tableName}') WHERE name='book_id'`,
             );
+            return columnResult !== null && columnResult.count > 0;
+          } catch {
+            return false;
           }
+        };
 
+        const bookDatesExists = await checkTableAndColumn('book_dates');
+        const bookRatingsExists = await checkTableAndColumn('book_ratings');
+        const bookVotesExists = await checkTableAndColumn('book_votes');
+        const bookNotesExists = await checkTableAndColumn('book_notes');
+
+        // Если ни одна из старых таблиц не существует, пропускаем миграцию
+        if (!bookDatesExists && !bookRatingsExists && !bookVotesExists && !bookNotesExists) {
           // eslint-disable-next-line no-console
-          console.log(`✅ [Migration] Мигрировано ${allBookIds.length} книг из старых таблиц в единую таблицу books`);
+          console.log('✅ [Migration] Старые таблицы не найдены, миграция не требуется');
+        } else {
+          // Проверяем, есть ли данные в старых таблицах, но нет в новой
+          const existingBooks = await db.getFirstAsync<{ count: number }>(`SELECT COUNT(*) as count FROM books`);
+
+          // Формируем UNION запрос только для существующих таблиц
+          const unionParts: string[] = [];
+          if (bookDatesExists) unionParts.push('SELECT book_id FROM book_dates');
+          if (bookRatingsExists) unionParts.push('SELECT book_id FROM book_ratings');
+          if (bookVotesExists) unionParts.push('SELECT book_id FROM book_votes');
+          if (bookNotesExists) unionParts.push('SELECT book_id FROM book_notes');
+
+          if (unionParts.length > 0) {
+            const hasOldData = await db.getFirstAsync<{ count: number }>(`
+              SELECT COUNT(*) as count FROM (
+                ${unionParts.join(' UNION ')}
+              )
+            `);
+
+            if (hasOldData && hasOldData.count > 0 && (!existingBooks || existingBooks.count === 0)) {
+              // eslint-disable-next-line no-console
+              console.log('🔄 [Migration] Начинаем миграцию данных из старых таблиц в единую таблицу books...');
+
+              // Получаем все уникальные book_id из старых таблиц
+              const allBookIds = await db.getAllAsync<{ book_id: string }>(`
+                SELECT DISTINCT book_id FROM (
+                  ${unionParts.join(' UNION ')}
+                )
+              `);
+
+              // Для каждого book_id собираем данные из всех таблиц
+              for (const { book_id } of allBookIds) {
+                const dateData = bookDatesExists
+                  ? await db.getFirstAsync<{ added: number; book_status: string | null }>(
+                      `SELECT added, book_status FROM book_dates WHERE book_id = ?`,
+                      [book_id],
+                    )
+                  : null;
+                const ratingData = bookRatingsExists
+                  ? await db.getFirstAsync<{ rating: number }>(`SELECT rating FROM book_ratings WHERE book_id = ?`, [book_id])
+                  : null;
+                const votesData = bookVotesExists
+                  ? await db.getFirstAsync<{ votes_count: number }>(`SELECT votes_count FROM book_votes WHERE book_id = ?`, [book_id])
+                  : null;
+                const noteData = bookNotesExists
+                  ? await db.getFirstAsync<{ comment: string; added: number }>(`SELECT comment, added FROM book_notes WHERE book_id = ?`, [book_id])
+                  : null;
+
+                // Вставляем или обновляем запись в единой таблице
+                await db.runAsync(
+                  `
+                  INSERT OR REPLACE INTO books (
+                    book_id, added, book_status, rating, votes_count, comment, comment_added, timestamp
+                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                `,
+                  [
+                    book_id,
+                    dateData?.added || null,
+                    dateData?.book_status || null,
+                    ratingData?.rating || null,
+                    votesData?.votes_count || null,
+                    noteData?.comment || null,
+                    noteData?.added || null,
+                    Date.now(),
+                  ],
+                );
+              }
+
+              // eslint-disable-next-line no-console
+              console.log(`✅ [Migration] Мигрировано ${allBookIds.length} книг из старых таблиц в единую таблицу books`);
+            }
+          }
         }
       } catch (error: any) {
         // Игнорируем ошибки миграции, но логируем их
-        if (!error?.message?.includes('no such table')) {
+        const errorMessage = error?.message || String(error);
+        if (!errorMessage.includes('no such table') && !errorMessage.includes('no such column')) {
           console.warn('Migration warning (books table migration):', error);
+        }
+      }
+
+      // Миграция: проверяем и исправляем структуру таблицы books
+      try {
+        if (!db) {
+          throw new Error('Database not initialized');
+        }
+
+        // Проверяем, существует ли таблица books
+        const booksTableExists = await db.getFirstAsync<{ count: number }>(
+          `SELECT COUNT(*) as count FROM sqlite_master WHERE type='table' AND name='books'`,
+        );
+
+        if (booksTableExists && booksTableExists.count > 0) {
+          // Проверяем наличие колонки book_id
+          const bookIdColumnExists = await db.getFirstAsync<{ count: number }>(
+            `SELECT COUNT(*) as count FROM pragma_table_info('books') WHERE name='book_id'`,
+          );
+
+          if (!bookIdColumnExists || bookIdColumnExists.count === 0) {
+            // Таблица существует, но без колонки book_id - пересоздаем её
+            // eslint-disable-next-line no-console
+            console.log('🔄 [Migration] Таблица books существует без колонки book_id, пересоздаем таблицу...');
+
+            // Удаляем старую таблицу
+            await db.execAsync(`DROP TABLE IF EXISTS books`);
+
+            // Создаем таблицу заново с правильной структурой
+            await db.execAsync(`
+              CREATE TABLE books (
+                book_id TEXT PRIMARY KEY,
+                title TEXT,
+                cover_path TEXT,
+                authors TEXT,
+                pages INTEGER,
+                category_value TEXT,
+                category_path TEXT,
+                book_status TEXT,
+                added INTEGER,
+                rating INTEGER,
+                votes_count INTEGER,
+                comment TEXT,
+                comment_added INTEGER,
+                annotation TEXT,
+                timestamp INTEGER NOT NULL
+              );
+              CREATE INDEX IF NOT EXISTS idx_books_book_id ON books(book_id);
+              CREATE INDEX IF NOT EXISTS idx_books_book_status ON books(book_status);
+              CREATE INDEX IF NOT EXISTS idx_books_added ON books(added);
+              CREATE INDEX IF NOT EXISTS idx_books_timestamp ON books(timestamp);
+            `);
+
+            // eslint-disable-next-line no-console
+            console.log('✅ [Migration] Таблица books пересоздана с правильной структурой');
+          }
+        }
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (!errorMessage.includes('no such table')) {
+          console.warn('Migration warning (books table structure):', error);
         }
       }
 
@@ -238,14 +342,24 @@ export const initDatabase = async (): Promise<void> => {
       }
 
       try {
-        await db.execAsync(`
-          ALTER TABLE user_profile ADD COLUMN sync_database_completed INTEGER NOT NULL DEFAULT 0;
-        `);
-        // eslint-disable-next-line no-console
-        console.log('✅ [Migration] Added sync_database_completed column');
+        // Проверяем, существует ли колонка перед добавлением
+        const checkColumn = await db.getFirstAsync<{ count: number }>(
+          `SELECT COUNT(*) as count FROM pragma_table_info('user_profile') WHERE name='sync_database_completed'`,
+        );
+        if (checkColumn && checkColumn.count === 0) {
+          await db.execAsync(`
+            ALTER TABLE user_profile ADD COLUMN sync_database_completed INTEGER NOT NULL DEFAULT 0;
+          `);
+          // eslint-disable-next-line no-console
+          console.log('✅ [Migration] Added sync_database_completed column');
+        } else {
+          // eslint-disable-next-line no-console
+          console.log('✅ [Migration] sync_database_completed column already exists');
+        }
       } catch (error: any) {
         // Игнорируем ошибку если колонка уже существует
-        if (!error?.message?.includes('duplicate column') && !error?.message?.includes('already exists')) {
+        const errorMessage = error?.message || String(error);
+        if (!errorMessage.includes('duplicate column') && !errorMessage.includes('already exists') && !errorMessage.includes('no such column')) {
           console.warn('Migration warning (sync_database_completed):', error);
         }
       }

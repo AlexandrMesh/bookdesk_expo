@@ -49,21 +49,59 @@ export const saveProfile = async (profile: {
       `👤 [SQLite Cache] Сохраняем профиль: userId=${profile._id}, email=${profile.email}, registered=${profile.registered}, syncDatabaseCompleted=${syncDatabaseCompletedValue}`,
     );
 
-    await database.runAsync(
-      `INSERT OR REPLACE INTO user_profile (user_id, email, registered, updated, support_app_confirmed, support_app_viewed_at, sync_with_local_database_completed, sync_database_completed, is_new_user, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        profile._id,
-        profile.email,
-        profile.registered,
-        profile.updated,
-        profile.supportApp.confirmed ? 1 : 0,
-        profile.supportApp.viewedAt,
-        syncCompleted ? 1 : 0,
-        syncDatabaseCompletedValue ? 1 : 0,
-        isNewUser ? 1 : 0,
-        timestamp,
-      ],
+    // Проверяем, существует ли колонка sync_database_completed
+    const checkColumn = await database.getFirstAsync<{ count: number }>(
+      `SELECT COUNT(*) as count FROM pragma_table_info('user_profile') WHERE name='sync_database_completed'`
     );
+    const hasSyncDatabaseCompleted = checkColumn && checkColumn.count > 0;
+    
+    if (hasSyncDatabaseCompleted) {
+      await database.runAsync(
+        `INSERT OR REPLACE INTO user_profile (user_id, email, registered, updated, support_app_confirmed, support_app_viewed_at, sync_with_local_database_completed, sync_database_completed, is_new_user, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          profile._id,
+          profile.email,
+          profile.registered,
+          profile.updated,
+          profile.supportApp.confirmed ? 1 : 0,
+          profile.supportApp.viewedAt,
+          syncCompleted ? 1 : 0,
+          syncDatabaseCompletedValue ? 1 : 0,
+          isNewUser ? 1 : 0,
+          timestamp,
+        ],
+      );
+    } else {
+      // Если колонки нет, сохраняем без неё (миграция добавит её позже)
+      await database.runAsync(
+        `INSERT OR REPLACE INTO user_profile (user_id, email, registered, updated, support_app_confirmed, support_app_viewed_at, sync_with_local_database_completed, is_new_user, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          profile._id,
+          profile.email,
+          profile.registered,
+          profile.updated,
+          profile.supportApp.confirmed ? 1 : 0,
+          profile.supportApp.viewedAt,
+          syncCompleted ? 1 : 0,
+          isNewUser ? 1 : 0,
+          timestamp,
+        ],
+      );
+      // Пытаемся добавить колонку после сохранения
+      try {
+        await database.execAsync(`ALTER TABLE user_profile ADD COLUMN sync_database_completed INTEGER NOT NULL DEFAULT 0;`);
+        // Обновляем запись с правильным значением
+        await database.runAsync(`UPDATE user_profile SET sync_database_completed = ? WHERE user_id = ?`, [
+          syncDatabaseCompletedValue ? 1 : 0,
+          profile._id,
+        ]);
+      } catch (migrationError: any) {
+        const errorMessage = migrationError?.message || String(migrationError);
+        if (!errorMessage.includes('duplicate column') && !errorMessage.includes('already exists')) {
+          console.warn('Warning: Could not add sync_database_completed column:', migrationError);
+        }
+      }
+    }
 
     // Проверяем, что профиль действительно сохранился
     const savedProfile = await loadProfile();
@@ -96,6 +134,18 @@ export const loadProfile = async (): Promise<{
 } | null> => {
   try {
     const database = await getDatabase();
+    
+    // Проверяем, существует ли колонка sync_database_completed
+    const checkColumn = await database.getFirstAsync<{ count: number }>(
+      `SELECT COUNT(*) as count FROM pragma_table_info('user_profile') WHERE name='sync_database_completed'`
+    );
+    const hasSyncDatabaseCompleted = checkColumn && checkColumn.count > 0;
+    
+    // Формируем запрос в зависимости от наличия колонки
+    const selectQuery = hasSyncDatabaseCompleted
+      ? `SELECT user_id, email, registered, updated, support_app_confirmed, support_app_viewed_at, sync_with_local_database_completed, sync_database_completed, is_new_user, timestamp FROM user_profile LIMIT 1`
+      : `SELECT user_id, email, registered, updated, support_app_confirmed, support_app_viewed_at, sync_with_local_database_completed, 0 as sync_database_completed, is_new_user, timestamp FROM user_profile LIMIT 1`;
+    
     const result = await database.getFirstAsync<{
       user_id: string;
       email: string;
@@ -107,9 +157,7 @@ export const loadProfile = async (): Promise<{
       sync_database_completed: number;
       is_new_user: number;
       timestamp: number;
-    }>(
-      `SELECT user_id, email, registered, updated, support_app_confirmed, support_app_viewed_at, sync_with_local_database_completed, sync_database_completed, is_new_user, timestamp FROM user_profile LIMIT 1`,
-    );
+    }>(selectQuery);
 
     if (!result) {
       return null;
@@ -205,10 +253,35 @@ export const saveGuestProfile = async (forceCreate: boolean = false): Promise<vo
     const timestamp = Date.now();
 
     const database = await getDatabase();
-    await database.runAsync(
-      `INSERT OR REPLACE INTO user_profile (user_id, email, registered, updated, support_app_confirmed, support_app_viewed_at, sync_with_local_database_completed, sync_database_completed, is_new_user, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [guestId, '', timestamp, null, 0, null, 0, 0, 1, timestamp], // is_new_user = 1 (true) для новых пользователей, sync_database_completed = 0 (false)
+    
+    // Проверяем, существует ли колонка sync_database_completed
+    const checkColumn = await database.getFirstAsync<{ count: number }>(
+      `SELECT COUNT(*) as count FROM pragma_table_info('user_profile') WHERE name='sync_database_completed'`
     );
+    const hasSyncDatabaseCompleted = checkColumn && checkColumn.count > 0;
+    
+    if (hasSyncDatabaseCompleted) {
+      await database.runAsync(
+        `INSERT OR REPLACE INTO user_profile (user_id, email, registered, updated, support_app_confirmed, support_app_viewed_at, sync_with_local_database_completed, sync_database_completed, is_new_user, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [guestId, '', timestamp, null, 0, null, 0, 0, 1, timestamp], // is_new_user = 1 (true) для новых пользователей, sync_database_completed = 0 (false)
+      );
+    } else {
+      // Если колонки нет, сохраняем без неё
+      await database.runAsync(
+        `INSERT OR REPLACE INTO user_profile (user_id, email, registered, updated, support_app_confirmed, support_app_viewed_at, sync_with_local_database_completed, is_new_user, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [guestId, '', timestamp, null, 0, null, 0, 1, timestamp],
+      );
+      // Пытаемся добавить колонку после сохранения
+      try {
+        await database.execAsync(`ALTER TABLE user_profile ADD COLUMN sync_database_completed INTEGER NOT NULL DEFAULT 0;`);
+        await database.runAsync(`UPDATE user_profile SET sync_database_completed = 0 WHERE user_id = ?`, [guestId]);
+      } catch (migrationError: any) {
+        const errorMessage = migrationError?.message || String(migrationError);
+        if (!errorMessage.includes('duplicate column') && !errorMessage.includes('already exists')) {
+          console.warn('Warning: Could not add sync_database_completed column:', migrationError);
+        }
+      }
+    }
 
     // eslint-disable-next-line no-console
     console.log(`👤 [SQLite Cache] Гостевой профиль сохранен: userId=${guestId}, registered=${new Date(timestamp).toISOString()}, isNewUser=true`);
@@ -241,6 +314,26 @@ export const setSyncWithLocalDatabaseCompleted = async (completed: boolean): Pro
 export const setSyncDatabaseCompleted = async (completed: boolean): Promise<void> => {
   try {
     const database = await getDatabase();
+    
+    // Проверяем, существует ли колонка sync_database_completed
+    const checkColumn = await database.getFirstAsync<{ count: number }>(
+      `SELECT COUNT(*) as count FROM pragma_table_info('user_profile') WHERE name='sync_database_completed'`
+    );
+    const hasSyncDatabaseCompleted = checkColumn && checkColumn.count > 0;
+    
+    if (!hasSyncDatabaseCompleted) {
+      // Если колонки нет, пытаемся добавить её
+      try {
+        await database.execAsync(`ALTER TABLE user_profile ADD COLUMN sync_database_completed INTEGER NOT NULL DEFAULT 0;`);
+      } catch (migrationError: any) {
+        const errorMessage = migrationError?.message || String(migrationError);
+        if (!errorMessage.includes('duplicate column') && !errorMessage.includes('already exists')) {
+          console.warn('Warning: Could not add sync_database_completed column:', migrationError);
+          return; // Выходим, если не удалось добавить колонку
+        }
+      }
+    }
+    
     // Обновляем все записи профиля (должна быть только одна)
     const result = await database.runAsync(`UPDATE user_profile SET sync_database_completed = ?`, [completed ? 1 : 0]);
     // eslint-disable-next-line no-console

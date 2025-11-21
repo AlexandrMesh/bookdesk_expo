@@ -1,6 +1,6 @@
-import React, { FC } from 'react';
+import React, { FC, useState, useRef } from 'react';
 
-import { Alert, ScrollView, Text, View } from 'react-native';
+import { Alert, ScrollView, Text, View, Pressable } from 'react-native';
 
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -64,12 +64,39 @@ const Profile: FC<Props> = ({ isUpdateAvailable, googlePlayUrl }) => {
   // Проверяем, является ли пользователь гостевым (нет email)
   const isGuestUser = !email || email.trim() === '';
 
+  // Triple-click handler for user ID
+  const [clickCount, setClickCount] = useState(0);
+  const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleUserIdPress = () => {
+    const newCount = clickCount + 1;
+    setClickCount(newCount);
+
+    // Clear existing timeout
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+    }
+
+    // If triple click, navigate to SignIn
+    if (newCount === 3) {
+      setClickCount(0);
+      navigation.navigate(SIGN_IN_ROUTE);
+    } else {
+      // Reset count after 500ms if no more clicks
+      clickTimeoutRef.current = setTimeout(() => {
+        setClickCount(0);
+      }, 500);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.profile}>
-        <Text style={styles.label}>
-          {t('userId')} <Text style={styles.value}>{userId}</Text>
-        </Text>
+        <Pressable onPress={handleUserIdPress}>
+          <Text style={styles.label}>
+            {t('userId')} <Text style={styles.value}>{userId || '—'}</Text>
+          </Text>
+        </Pressable>
         {!isGuestUser && (
           <Text style={styles.label}>
             {t('email')} <Text style={styles.value}>{email}</Text>

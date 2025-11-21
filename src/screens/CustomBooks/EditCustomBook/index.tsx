@@ -591,7 +591,6 @@ const EditCustomBook = () => {
         </ScrollView>
 
         <View style={[styles.footerContainer, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-          <Text style={styles.tip}>{t('common:requiredFields')}</Text>
           <View style={styles.footerButtonsWrapper}>
             <Button
               disabled={isSaving || isDeleting}

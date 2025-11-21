@@ -29,10 +29,14 @@ const Step3 = () => {
   const navigation = useNavigation<any>();
   const onPressBack = () => dispatch(setCurrentStep(2));
   const showCategoryChooser = () => navigation.navigate(CUSTOM_CATEGORY_CHOOSER_ROUTE);
-  const _setPages = (pages: string | null, error?: string | null) => dispatch(setPages({ pages, error }));
+  const _setPages = (pages: string | null, error: string | null = null) => {
+    dispatch(setPages({ pages, error }));
+  };
   const _addAuthor = (id: string) => dispatch(addAuthor(id));
   const _removeAuthor = (id: string) => dispatch(removeAuthor(id));
-  const _updateAuthor = (id: string, name: string, error?: string | null) => dispatch(updateAuthor({ id, name, error }));
+  const _updateAuthor = (id: string, name: string, error: string | null = null) => {
+    dispatch(updateAuthor({ id, name, error }));
+  };
   const _addCustomBook = () => dispatch(addCustomBook());
 
   const selectedCategoryLabel = useAppSelector(getSelectedCategoryLabel);
@@ -50,7 +54,7 @@ const Step3 = () => {
       maxLength: 64,
     };
     const error = value ? getValidationFailure(value, [validationTypes.mustContainOnlyLetters, validationTypes.isTooLong], params) : null;
-    _updateAuthor(id, value, error ? t(`errors:${error}`, params) : null);
+    _updateAuthor(id, value || '', error ? t(`errors:${error}`, params) : null);
   };
 
   const handleChangePages = (value: string) => {
@@ -60,7 +64,7 @@ const Step3 = () => {
       maxLength: 5,
     };
     const error = value ? getValidationFailure(value, [validationTypes.mustContainOnlyNumbers, validationTypes.isTooLong], params) : null;
-    _setPages(value, error ? t(`errors:${error}`, params) : null);
+    _setPages(value || null, error ? t(`errors:${error}`, params) : null);
   };
 
   const handleAddBook = () => {
@@ -78,14 +82,11 @@ const Step3 = () => {
     <View style={styles.container}>
       <ScrollView style={styles.inputWrapper} keyboardShouldPersistTaps='handled'>
         <View style={styles.block}>
-          <Text style={styles.subTitle}>
-            {t('customBook:category')}
-            {t('common:required')}
-          </Text>
+          <Text style={styles.subTitle}>{t('customBook:genre')}</Text>
           <View style={styles.blockWrapper}>
             <Pressable style={[styles.inputBlockWrapper, selectedCategoryLabel ? styles.activeInputWrapper : {}]} onPress={showCategoryChooser}>
               <Text numberOfLines={1} style={[styles.inputLabel, selectedCategoryLabel ? styles.activeInputLabel : {}]}>
-                {selectedCategoryLabel ? t(`categories:${selectedCategoryLabel}`) : t(`customBook:noCategory`)}
+                {selectedCategoryLabel ? t(`categories:${selectedCategoryLabel}`) : t('customBook:noGenre')}
               </Text>
             </Pressable>
             <Button style={styles.mainButton} onPress={showCategoryChooser} title={t('common:choose')} />
@@ -142,10 +143,9 @@ const Step3 = () => {
       </ScrollView>
 
       <View>
-        <Text style={styles.tip}>{t('common:requiredFields')}</Text>
         <View style={styles.footerButtonsWrapper}>
           <Button theme={SECONDARY} style={styles.footerButton} onPress={onPressBack} title={t('common:back')} />
-          <Button disabled={isAddDisabled || !selectedCategoryLabel} style={styles.footerButton} onPress={handleAddBook} title={t('common:add')} />
+          <Button disabled={isAddDisabled} style={styles.footerButton} onPress={handleAddBook} title={t('common:add')} />
         </View>
       </View>
     </View>

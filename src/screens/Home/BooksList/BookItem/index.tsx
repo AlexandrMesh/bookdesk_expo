@@ -130,7 +130,9 @@ const BookItem: FC<Props> = memo(
                   ),
               )}
             <View style={styles.info}>
-              <Text style={[styles.lightColor]}>{t(`categories:${categoryValue}`)}</Text>
+              {categoryValue && (
+                <Text style={[styles.lightColor]}>{t(`categories:${categoryValue}`)}</Text>
+              )}
               {!!pages && (
                 <Text style={[styles.pagesBlock, styles.item, styles.mediumColor]}>
                   {t('pages')}
