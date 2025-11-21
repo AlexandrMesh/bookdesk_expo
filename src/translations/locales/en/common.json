@@ -16,6 +16,7 @@
   "clear": "Clear",
   "reset": "Reset",
   "categoriesTitle": "Categories",
+  "genresTitle": "Genres",
   "categoriesCount": "Categories ({{count}})",
   "searchCategory": "Enter name of category",
   "noCategories": "No categories",

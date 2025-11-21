@@ -16,6 +16,7 @@
   "clear": "Очистить",
   "reset": "Сбросить",
   "categoriesTitle": "Категории",
+  "genresTitle": "Жанры",
   "categoriesCount": "Категории ({{count}})",
   "searchCategory": "Введите название категории",
   "noCategories": "Категорий не найдено",

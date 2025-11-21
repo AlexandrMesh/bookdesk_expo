@@ -273,7 +273,7 @@ const AddCustomBookNavigator: FC = () => {
         name={CUSTOM_CATEGORY_CHOOSER_ROUTE}
         options={{
           presentation: 'modal',
-          title: t('common:categoriesTitle'),
+          title: t('common:genresTitle'),
           headerShown: true,
           headerStyle: {
             backgroundColor: colors.primary_dark,
