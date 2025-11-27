@@ -1,9 +1,10 @@
 import { StyleSheet } from 'react-native';
 
-import colors from '~styles/colors';
+import { ThemeColors } from '~theme/types';
 
-export default StyleSheet.create({
-  wrapper: {
+export default (colors: ThemeColors) =>
+  StyleSheet.create({
+    wrapper: {
     padding: 15,
     borderWidth: 1,
     borderTopWidth: 0,
@@ -135,4 +136,4 @@ export default StyleSheet.create({
   editButton: {
     marginTop: 10,
   },
-});
+  });

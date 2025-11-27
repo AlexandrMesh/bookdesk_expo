@@ -9,6 +9,7 @@ import configureStore from './src/redux/store/configureStore';
 import Main from './src/screens/Main';
 import i18n from './src/translations/i18n';
 import { initDatabase } from './src/utils/boardStorage';
+import ThemeObserver from './src/theme/ThemeObserver';
 
 // Условная инициализация нативных модулей
 // Работает только в production build, не в Expo Go
@@ -54,7 +55,9 @@ const App = () => {
   return (
     <I18nextProvider i18n={i18n}>
       <Provider store={configureStore}>
-        <Main />
+        <ThemeObserver>
+          <Main />
+        </ThemeObserver>
       </Provider>
     </I18nextProvider>
   );

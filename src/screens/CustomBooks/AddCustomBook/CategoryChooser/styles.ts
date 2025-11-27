@@ -1,9 +1,10 @@
 import { StyleSheet } from 'react-native';
 
-import colors from '~styles/colors';
+import { ThemeColors } from '~theme/types';
 
-export default StyleSheet.create({
-  container: {
+export default (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
     backgroundColor: colors.primary_dark,
     display: 'flex',
     flex: 1,
@@ -169,4 +170,4 @@ export default StyleSheet.create({
   modalButtonText: {
     fontSize: 14,
   },
-});
+  });

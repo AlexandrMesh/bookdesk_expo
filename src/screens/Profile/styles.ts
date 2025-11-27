@@ -60,4 +60,31 @@ export default StyleSheet.create({
   profileButtonTitle: {
     fontSize: 16,
   },
+  themeSettings: {
+    marginTop: 20,
+  },
+  themeSegment: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  themeOption: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.neutral_medium,
+    marginRight: 10,
+  },
+  themeOptionActive: {
+    backgroundColor: colors.primary_medium,
+    borderColor: colors.primary_medium,
+  },
+  themeOptionText: {
+    color: colors.neutral_medium,
+    fontSize: 14,
+  },
+  themeOptionTextActive: {
+    color: colors.neutral_white,
+  },
 });

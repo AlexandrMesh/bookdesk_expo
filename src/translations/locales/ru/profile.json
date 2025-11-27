@@ -12,5 +12,9 @@
   "resetDataError": "Ошибка при сбросе данных",
   "about": "О приложении",
   "newVersionAvailable": "Доступна новая версия приложения",
-  "openAuthTest": "Открыть экран авторизации (тест)"
+  "openAuthTest": "Открыть экран авторизации (тест)",
+  "themeTitle": "Тема",
+  "themeAuto": "Авто",
+  "themeLight": "Светлая",
+  "themeDark": "Темная"
 }

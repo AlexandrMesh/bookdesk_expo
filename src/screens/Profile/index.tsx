@@ -15,6 +15,7 @@ import { getRegistered, getUserId, getUserEmail } from '~redux/selectors/auth';
 import Button from '~UI/Button';
 
 import LanguageSettings from './LanguageSettings';
+import ThemeSettings from './ThemeSettings';
 import styles from './styles';
 
 type Props = {
@@ -84,6 +85,7 @@ const Profile: FC<Props> = ({ isUpdateAvailable, googlePlayUrl }) => {
           <Text style={[styles.label, styles.mTop]}>{t('app:appLanguage')}</Text>
           <LanguageSettings />
         </View>
+        <ThemeSettings />
       </View>
       <View style={styles.buttonsWrapper}>
         <View style={styles.buttons}>

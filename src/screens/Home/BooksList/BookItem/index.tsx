@@ -21,10 +21,11 @@ import BookStatusDropdown from '~screens/Home/BookStatusDropdown';
 import Like from '~screens/Home/Like';
 import Rating from '~screens/Home/Rating';
 import colors from '~styles/colors';
+import { useThemedStyles } from '~theme/useThemedStyles';
 import { BookStatus, IBook } from '~types/books';
 import Button from '~UI/Button';
 
-import styles from './styles';
+import createStyles from './styles';
 import ModifiedDate from '../../ModifiedDate';
 
 export type Props = {
@@ -40,6 +41,7 @@ const BookItem: FC<Props> = memo(
     const { t } = useTranslation(['books', 'categories', 'common']);
     const navigation = useNavigation<any>();
     const dispatch = useAppDispatch();
+    const styles = useThemedStyles(createStyles);
     const bookRating = useSelector(deriveUserBookRating(bookId))?.rating;
     const categories = useSelector(getCategoriesData);
 

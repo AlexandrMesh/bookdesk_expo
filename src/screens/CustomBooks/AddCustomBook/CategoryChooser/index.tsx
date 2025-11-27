@@ -16,12 +16,13 @@ import { addCustomGenre, deleteCustomGenre, updateCustomGenre } from '~redux/act
 import { selectCategory, setSearchQuery, submitCategory, toggleExpandedCategoryCustomBooks } from '~redux/actions/customBookActions';
 import { deriveCategories } from '~redux/selectors/books';
 import { deriveCategoriesSearchResult, getCategorySearchQuery, getEditableSelectedCategoryPath } from '~redux/selectors/customBook';
-import colors from '~styles/colors';
+import { useThemeColors } from '~theme/hooks';
+import { useThemedStyles } from '~theme/useThemedStyles';
 import Button from '~UI/Button';
 import RadioButton from '~UI/RadioButton';
 import Input from '~UI/TextInput';
 
-import styles from './styles';
+import createStyles from './styles';
 
 const MY_GENRES_GROUP_PATH = 'myGenres';
 
@@ -34,6 +35,8 @@ const CategoryChooser = ({ variant = 'screen', onClose }: CategoryChooserProps) 
   const { t } = useTranslation(['common', 'categories']);
   const navigation = useNavigation();
   const isEmbedded = variant === 'embedded';
+  const themeColors = useThemeColors();
+  const styles = useThemedStyles(createStyles);
 
   const dispatch = useAppDispatch();
   const _toggleExpandedCategory = useCallback((path: string) => dispatch(toggleExpandedCategoryCustomBooks(path)), [dispatch]);
@@ -223,7 +226,7 @@ const CategoryChooser = ({ variant = 'screen', onClose }: CategoryChooserProps) 
                     openEditCustomGenreModal(item);
                   }}
                 >
-                  <MaterialCommunityIcons name='pencil-outline' size={18} color={colors.neutral_light} />
+                  <MaterialCommunityIcons name='pencil-outline' size={18} color={themeColors.neutral_light} />
                 </Pressable>
               )}
             </View>
