@@ -53,5 +53,6 @@
   "genreNameRequired": "Please enter a genre name",
   "noCustomGenres": "You haven't added any genres yet",
   "deleteGenre": "Delete genre",
-  "deleteGenreConfirmation": "Delete the selected genre?"
+  "deleteGenreConfirmation": "Delete the selected genre?",
+  "genreAddedToast": "Genre \"{{genre}}\" added"
 }

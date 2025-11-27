@@ -450,8 +450,9 @@ export const deleteUserBookRating = createAsyncThunk(`${PREFIX}/deleteUserBookRa
 });
 
 export const addCustomGenre = createAsyncThunk(`${PREFIX}/addCustomGenre`, async (title: string, { dispatch }) => {
-  await addCustomGenreToDb(title, i18n.language);
+  const record = await addCustomGenreToDb(title, i18n.language);
   await dispatch(loadCategories(true));
+  return record;
 });
 
 export const updateCustomGenre = createAsyncThunk(

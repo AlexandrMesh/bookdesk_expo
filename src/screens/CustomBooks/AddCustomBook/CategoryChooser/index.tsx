@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { Alert, FlatList, Modal, Pressable, SectionList, Text, View } from 'react-native';
+import { Alert, FlatList, Modal, Pressable, SectionList, Text, View, ToastAndroid, Platform } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -23,6 +23,8 @@ import Input from '~UI/TextInput';
 
 import styles from './styles';
 
+const MY_GENRES_GROUP_PATH = 'myGenres';
+
 interface CategoryChooserProps {
   variant?: 'screen' | 'embedded';
   onClose?: () => void;
@@ -44,6 +46,7 @@ const CategoryChooser = ({ variant = 'screen', onClose }: CategoryChooserProps) 
   const searchQuery = useAppSelector(getCategorySearchQuery);
   const categoriesSearchResult = useAppSelector(deriveCategoriesSearchResult);
   const selectedCategoryPath = useAppSelector(getEditableSelectedCategoryPath);
+  const [pendingGenre, setPendingGenre] = useState<{ path: string; label: string } | null>(null);
 
   const [isCustomGenreModalVisible, setCustomGenreModalVisible] = useState(false);
   const [customGenreName, setCustomGenreName] = useState('');
@@ -94,6 +97,18 @@ const CategoryChooser = ({ variant = 'screen', onClose }: CategoryChooserProps) 
     setCustomGenreModalVisible(true);
   }, []);
 
+  const showGenreAddedToast = useCallback(
+    (name: string) => {
+      const message = t('categories:genreAddedToast', { genre: name });
+      if (Platform.OS === 'android') {
+        ToastAndroid.showWithGravity(message, ToastAndroid.SHORT, ToastAndroid.BOTTOM);
+      } else {
+        Alert.alert('', message);
+      }
+    },
+    [t],
+  );
+
   const handleSaveCustomGenre = useCallback(async () => {
     const trimmedName = customGenreName.trim();
     if (!trimmedName) {
@@ -105,7 +120,12 @@ const CategoryChooser = ({ variant = 'screen', onClose }: CategoryChooserProps) 
       if (editingCustomGenre?.id) {
         await dispatch(updateCustomGenre({ id: editingCustomGenre.id, title: trimmedName })).unwrap();
       } else {
-        await dispatch(addCustomGenre(trimmedName)).unwrap();
+        const newGenre = await dispatch(addCustomGenre(trimmedName)).unwrap();
+        if (newGenre?.id) {
+          const newPath = `${MY_GENRES_GROUP_PATH}.${newGenre.id}`;
+          setPendingGenre({ path: newPath, label: trimmedName });
+          showGenreAddedToast(trimmedName);
+        }
       }
       closeCustomGenreModal();
     } catch (error) {
@@ -113,7 +133,7 @@ const CategoryChooser = ({ variant = 'screen', onClose }: CategoryChooserProps) 
     } finally {
       setIsSavingCustomGenre(false);
     }
-  }, [closeCustomGenreModal, customGenreName, dispatch, editingCustomGenre, t]);
+  }, [closeCustomGenreModal, customGenreName, dispatch, editingCustomGenre, showGenreAddedToast, t]);
 
   const handleDeleteCustomGenre = useCallback(() => {
     if (!editingCustomGenre?.id) {
@@ -281,6 +301,27 @@ const CategoryChooser = ({ variant = 'screen', onClose }: CategoryChooserProps) 
 
   const containerStyle = useMemo(() => (isEmbedded ? styles.embeddedContainer : styles.container), [isEmbedded]);
   const listWrapperStyle = useMemo(() => (isEmbedded ? styles.embeddedWrapper : styles.wrapper), [isEmbedded]);
+
+  useEffect(() => {
+    if (!pendingGenre) {
+      return;
+    }
+    const myGenresSection = categories.find((section: any) => section?.isMyGenresGroup);
+    if (!myGenresSection) {
+      return;
+    }
+    const hasGenre =
+      myGenresSection.path === pendingGenre.path ||
+      myGenresSection.data?.some((item: any) => item?.path === pendingGenre.path) ||
+      myGenresSection.data?.some((item: any) => item?.data?.some((child: any) => child?.path === pendingGenre.path));
+    if (hasGenre) {
+      if (!myGenresSection.isExpanded) {
+        _toggleExpandedCategory(myGenresSection.path);
+      }
+      _selectCategory({ path: pendingGenre.path, label: pendingGenre.label });
+      setPendingGenre(null);
+    }
+  }, [categories, pendingGenre, _selectCategory, _toggleExpandedCategory]);
 
   return (
     <View style={containerStyle}>

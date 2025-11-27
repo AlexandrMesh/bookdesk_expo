@@ -219,5 +219,6 @@
   "genreNameRequired": "Пожалуйста, введите название жанра",
   "noCustomGenres": "Вы еще не добавили жанры",
   "deleteGenre": "Удалить жанр",
-  "deleteGenreConfirmation": "Удалить выбранный жанр?"
+  "deleteGenreConfirmation": "Удалить выбранный жанр?",
+  "genreAddedToast": "Жанр «{{genre}}» добавлен"
 }
