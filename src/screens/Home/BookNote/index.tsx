@@ -16,6 +16,7 @@ import useDisplayAlert from '~hooks/useDisplayAlert';
 import { deleteUserComment, updateUserComment } from '~redux/actions/booksActions';
 import { deriveBookNote } from '~redux/selectors/books';
 import colors from '~styles/colors';
+import { useThemeColors } from '~theme/hooks';
 import Button from '~UI/Button';
 import { Spinner } from '~UI/Spinner';
 import Input from '~UI/TextInput';
@@ -46,6 +47,7 @@ const BookNote: FC = () => {
   const [isEditing, setIsEditing] = useState(false);
 
   const dispatch = useAppDispatch();
+  const themeColors = useThemeColors();
 
   const deleteComment = async () => {
     try {
@@ -169,10 +171,19 @@ const BookNote: FC = () => {
                 <Text style={[styles.lightColor, styles.content]}>{bookNoteAdded}</Text>
               </View>
               <View style={styles.actions}>
-                <TouchableHighlight disabled={isEditing} style={styles.editIcon} onPress={toggleEditableMode}>
+                <TouchableHighlight
+                  disabled={isEditing}
+                  style={styles.editIcon}
+                  onPress={toggleEditableMode}
+                  underlayColor={themeColors.primary_dark}
+                >
                   <EditIcon width={26} height={26} stroke={colors.neutral_medium} />
                 </TouchableHighlight>
-                <TouchableHighlight disabled={isEditing} onPress={displayConfirmationAlert}>
+                <TouchableHighlight
+                  disabled={isEditing}
+                  onPress={displayConfirmationAlert}
+                  underlayColor={themeColors.primary_dark}
+                >
                   <RemoveIcon fill={colors.neutral_medium} width={26} height={26} />
                 </TouchableHighlight>
               </View>

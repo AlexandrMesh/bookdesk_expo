@@ -11,6 +11,7 @@ import { useAppSelector } from '~hooks';
 import ArrowDown from '~assets/arrow-down.svg';
 import { BOOK_NOTE_ROUTE } from '~constants/routes';
 import { deriveBookNote } from '~redux/selectors/books';
+import { useThemeColors } from '~theme/hooks';
 import { useThemedStyles } from '~theme/useThemedStyles';
 
 import createStyles from './styles';
@@ -27,6 +28,7 @@ const BookNotePreview: FC<Props> = ({ bookId, bookTitle, numberOfLines = 2, font
   const navigation = useNavigation<any>();
   const { language } = i18n;
   const styles = useThemedStyles(createStyles);
+  const themeColors = useThemeColors();
   const bookNote = useAppSelector(deriveBookNote(bookId));
   const bookNoteContent = bookNote?.comment;
   const truncatedContent = useMemo(() => {
@@ -45,6 +47,7 @@ const BookNotePreview: FC<Props> = ({ bookId, bookTitle, numberOfLines = 2, font
     <TouchableHighlight
       style={styles.info}
       onPress={() => navigation.navigate(BOOK_NOTE_ROUTE, { bookTitle, bookId, shouldOpenEditableMode: isEmpty(bookNote) })}
+      underlayColor={themeColors.primary_dark}
     >
       {bookNoteContent ? (
         <View>

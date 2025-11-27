@@ -57,7 +57,11 @@ const ActionBar: FC<Props> = ({ filterParams, totalItems, activeFiltersCount, sh
         </View>
         <View style={styles.rightSide}>
           <TotalCount count={totalItems} />
-          <TouchableHighlight style={styles.searchIconWrapper} onPress={() => navigation.navigate(SEARCH_ROUTE, { boardType })}>
+          <TouchableHighlight
+            style={styles.searchIconWrapper}
+            onPress={() => navigation.navigate(SEARCH_ROUTE, { boardType })}
+            underlayColor={themeColors.primary_darkest}
+          >
             <SearchIcon width={24} height={24} fill={themeColors.neutral_light} />
           </TouchableHighlight>
         </View>
