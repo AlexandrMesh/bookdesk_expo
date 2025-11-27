@@ -13,10 +13,11 @@ import { useAppUpdates } from '~hooks/useAppUpdates';
 import { resetData } from '~redux/actions/authActions';
 import { getRegistered, getUserId, getUserEmail } from '~redux/selectors/auth';
 import Button from '~UI/Button';
+import { useThemedStyles } from '~theme/useThemedStyles';
 
 import LanguageSettings from './LanguageSettings';
 import ThemeSettings from './ThemeSettings';
-import styles from './styles';
+import createStyles from './styles';
 
 type Props = {
   isUpdateAvailable?: boolean;
@@ -26,6 +27,7 @@ type Props = {
 const Profile: FC<Props> = ({ isUpdateAvailable, googlePlayUrl }) => {
   const { t, i18n } = useTranslation(['profile', 'common', 'app']);
   const navigation = useNavigation<any>();
+  const styles = useThemedStyles(createStyles);
 
   const { language } = i18n;
 

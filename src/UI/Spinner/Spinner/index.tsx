@@ -2,9 +2,10 @@ import React, { memo, FC } from 'react';
 
 import { ActivityIndicator, View, Text } from 'react-native';
 
-import colors from '~styles/colors';
+import { useThemeColors } from '~theme/hooks';
+import { useThemedStyles } from '~theme/useThemedStyles';
 
-import styles from '../styles';
+import createStyles from '../styles';
 
 export type Props = {
   color?: string;
@@ -16,19 +17,21 @@ export type Props = {
 };
 
 const Spinner: FC<Props> = ({
-  backgroundColor = colors.primary_dark,
-  color = colors.neutral_light,
-  labelColor = colors.neutral_light,
+  backgroundColor,
+  color,
+  labelColor,
   size = 'large',
   label,
   variant = 'overlay',
 }) => {
+  const themeColors = useThemeColors();
+  const styles = useThemedStyles(createStyles);
   const isOverlay = variant === 'overlay';
 
   return (
-    <View style={[isOverlay ? styles.overlay : styles.inline, isOverlay && { backgroundColor }]}>
-      <ActivityIndicator color={color} size={size} />
-      {label && <Text style={[{ color: labelColor }, styles.label]}>{label}</Text>}
+    <View style={[isOverlay ? styles.overlay : styles.inline, isOverlay && { backgroundColor: backgroundColor || themeColors.primary_dark }]}>
+      <ActivityIndicator color={color || themeColors.neutral_light} size={size} />
+      {label && <Text style={[{ color: labelColor || themeColors.neutral_light }, styles.label]}>{label}</Text>}
     </View>
   );
 };

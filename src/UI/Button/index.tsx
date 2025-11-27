@@ -3,10 +3,11 @@ import React, { memo, FC, JSX } from 'react';
 import { TouchableHighlight, View, Text, StyleProp, ViewStyle, TextStyle } from 'react-native';
 
 import { PRIMARY, SECONDARY } from '~constants/themes';
-import colors from '~styles/colors';
 import { Spinner } from '~UI/Spinner';
+import { useThemeColors } from '~theme/hooks';
+import { useThemedStyles } from '~theme/useThemedStyles';
 
-import styles from './styles';
+import createStyles from './styles';
 
 export type Props = {
   icon?: JSX.Element | undefined;
@@ -21,11 +22,6 @@ export type Props = {
   isLoading?: boolean;
 };
 
-const colorTheme: Record<string, StyleProp<ViewStyle>> = {
-  [PRIMARY]: styles.primary,
-  [SECONDARY]: styles.secondary,
-};
-
 const Button: FC<Props> = ({
   icon,
   iconPosition = 'left',
@@ -38,6 +34,13 @@ const Button: FC<Props> = ({
   disabled,
   isLoading = false,
 }) => {
+  const themeColors = useThemeColors();
+  const styles = useThemedStyles(createStyles);
+  const colorTheme: Record<string, StyleProp<ViewStyle>> = {
+    [PRIMARY]: styles.primary,
+    [SECONDARY]: styles.secondary,
+  };
+
   const handlePress = () => {
     if (!disabled && !isLoading) {
       onPress();
@@ -55,7 +58,7 @@ const Button: FC<Props> = ({
     >
       <View style={styles.titleWrapper}>
         {isLoading ? (
-          <Spinner size='small' color={theme === PRIMARY ? colors.neutral_light : colors.neutral_light} variant='inline' />
+          <Spinner size='small' color={theme === PRIMARY ? themeColors.neutral_light : themeColors.neutral_light} variant='inline' />
         ) : (
           <>
             {icon && iconPosition === 'left' && <View style={[styles.icon, styles.iconLeft, iconClassName]}>{icon}</View>}

@@ -17,17 +17,19 @@ import { setPages, addAuthor, removeAuthor, updateAuthor, setCurrentStep, addCus
 import { getCategoriesData } from '~redux/selectors/common';
 import { getSelectedCategory, getSelectedCategoryLabel, getPages, getAuthorsList, getSelectedCategoryPath } from '~redux/selectors/customBook';
 import colors from '~styles/colors';
+import { useThemedStyles } from '~theme/useThemedStyles';
 import Button from '~UI/Button';
 import Input from '~UI/TextInput';
 import { getValidationFailure, validationTypes } from '~utils/validation';
 
 import CustomBookStatusDropdown from '../CustomBookStatusDropdown';
-import styles from './styles';
+import createStyles from './styles';
 
 const Step3 = () => {
   const { t } = useTranslation(['customBook, common, books, categories, errors']);
   const dispatch = useAppDispatch();
   const navigation = useNavigation<any>();
+  const styles = useThemedStyles(createStyles);
   const onPressBack = () => dispatch(setCurrentStep(2));
   const showCategoryChooser = () => navigation.navigate(CUSTOM_CATEGORY_CHOOSER_ROUTE);
   const _setPages = (pages: string | null, error: string | null = null) => {

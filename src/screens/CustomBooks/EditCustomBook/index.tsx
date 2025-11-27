@@ -30,7 +30,8 @@ import Input from '~UI/TextInput';
 import { loadSuggestedCovers } from '~utils/coversLoader';
 import { getValidationFailure, validationTypes } from '~utils/validation';
 
-import styles from './styles';
+import createStyles from './styles';
+import { useThemedStyles } from '~theme/useThemedStyles';
 
 type ParamList = {
   EditCustomBook: {
@@ -57,6 +58,7 @@ const EditCustomBook = () => {
 
   const navigation = useNavigation();
   const dispatch = useAppDispatch();
+  const styles = useThemedStyles(createStyles);
   const imgUrl = useGetImgUrl();
   const isOnline = useNetworkStatus();
   const insets = useSafeAreaInsets();

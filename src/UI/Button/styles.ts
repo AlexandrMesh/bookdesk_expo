@@ -1,9 +1,10 @@
 import { StyleSheet } from 'react-native';
 
-import colors from '~styles/colors';
+import { ThemeColors } from '~theme/types';
 
-export default StyleSheet.create({
-  button: {
+export default (colors: ThemeColors) =>
+  StyleSheet.create({
+    button: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -48,4 +49,4 @@ export default StyleSheet.create({
   disabled: {
     opacity: 0.5,
   },
-});
+  });

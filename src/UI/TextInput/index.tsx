@@ -6,9 +6,10 @@ import isEmpty from 'lodash/isEmpty';
 
 import CloseIcon from '~assets/close.svg';
 import { CLOSE_ICON } from '~constants/dimensions';
-import colors from '~styles/colors';
+import { useThemeColors } from '~theme/hooks';
+import { useThemedStyles } from '~theme/useThemedStyles';
 
-import styles from './styles';
+import createStyles from './styles';
 
 export type Props = {
   className?: StyleProp<TextStyle>;
@@ -49,6 +50,8 @@ const Input: FC<Props> = ({
   autoFocus,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
+  const themeColors = useThemeColors();
+  const styles = useThemedStyles(createStyles);
 
   const onFocus = () => {
     if (!disabled) {
@@ -76,7 +79,7 @@ const Input: FC<Props> = ({
           onFocus={onFocus}
           onBlur={onBlur}
           placeholder={placeholder}
-          placeholderTextColor={colors.neutral_medium}
+          placeholderTextColor={themeColors.neutral_medium}
           style={[
             styles.input,
             shouldDisplayClearButton && styles.inputWithClearButton,
@@ -96,7 +99,11 @@ const Input: FC<Props> = ({
         />
         {shouldDisplayClearButton && (
           <Pressable onPress={onClear} style={styles.clearButtonWrapper}>
-            <CloseIcon width={CLOSE_ICON.width} height={CLOSE_ICON.height} fill={isFocused ? colors.neutral_light : colors.neutral_medium} />
+            <CloseIcon
+              width={CLOSE_ICON.width}
+              height={CLOSE_ICON.height}
+              fill={isFocused ? themeColors.neutral_light : themeColors.neutral_medium}
+            />
           </Pressable>
         )}
       </View>

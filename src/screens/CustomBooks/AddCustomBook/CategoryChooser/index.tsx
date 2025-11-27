@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
-import { Alert, FlatList, Modal, Pressable, SectionList, Text, View, ToastAndroid, Platform } from 'react-native';
+import { Alert, FlatList, Modal, Pressable, SectionList, SectionListRenderItemInfo, Text, View, ToastAndroid, Platform } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -31,6 +31,17 @@ interface CategoryChooserProps {
   onClose?: () => void;
 }
 
+type CategoryNode = {
+  path: string;
+  title: string;
+  isExpanded?: boolean;
+  data?: CategoryNode[];
+  isMyGenresGroup?: boolean;
+  isCustom?: boolean;
+  customTitle?: string;
+  customId?: string;
+};
+
 const CategoryChooser = ({ variant = 'screen', onClose }: CategoryChooserProps) => {
   const { t } = useTranslation(['common', 'categories']);
   const navigation = useNavigation();
@@ -45,9 +56,11 @@ const CategoryChooser = ({ variant = 'screen', onClose }: CategoryChooserProps) 
   const clearSearchQueryForCategory = () => dispatch(setSearchQuery(''));
   const _submitCategory = () => dispatch(submitCategory());
 
-  const categories = useAppSelector(deriveCategories(ALL, true));
+  type CategorySection = CategoryNode & { data: CategoryNode[] };
+
+  const categories = useAppSelector(deriveCategories(ALL, true)) as CategorySection[];
   const searchQuery = useAppSelector(getCategorySearchQuery);
-  const categoriesSearchResult = useAppSelector(deriveCategoriesSearchResult);
+  const categoriesSearchResult = useAppSelector(deriveCategoriesSearchResult) as CategoryNode[];
   const selectedCategoryPath = useAppSelector(getEditableSelectedCategoryPath);
   const [pendingGenre, setPendingGenre] = useState<{ path: string; label: string } | null>(null);
 
@@ -160,7 +173,7 @@ const CategoryChooser = ({ variant = 'screen', onClose }: CategoryChooserProps) 
   }, [closeCustomGenreModal, dispatch, editingCustomGenre, t]);
 
   const renderCategoryItem = useCallback(
-    ({ item, isSearchResult }: { item: any; isSearchResult?: boolean }) => {
+    ({ item, isSearchResult }: { item: CategoryNode; isSearchResult?: boolean }) => {
       if (!item) {
         return null;
       }
@@ -234,15 +247,24 @@ const CategoryChooser = ({ variant = 'screen', onClose }: CategoryChooserProps) 
         </View>
       );
     },
-    [_selectCategory, _toggleExpandedCategory, openAddCustomGenreModal, openEditCustomGenreModal, selectedCategoryPath, t],
+    [
+      _selectCategory,
+      _toggleExpandedCategory,
+      openAddCustomGenreModal,
+      openEditCustomGenreModal,
+      selectedCategoryPath,
+      styles,
+      t,
+      themeColors.neutral_light,
+    ],
   );
 
-  const getKeyExtractorForCategory = useCallback((item: any) => item.path, []);
+  const getKeyExtractorForCategory = useCallback((item: CategoryNode) => item.path, []);
 
-  const renderItemForCategory = useCallback(({ item }: any) => renderCategoryItem({ item }), [renderCategoryItem]);
+  const renderItemForCategory = useCallback(({ item }: { item: CategoryNode }) => renderCategoryItem({ item }), [renderCategoryItem]);
 
   const renderCategory = useCallback(
-    (item: any) => {
+    (item: CategoryNode) => {
       if (!item) {
         return null;
       }
@@ -262,17 +284,20 @@ const CategoryChooser = ({ variant = 'screen', onClose }: CategoryChooserProps) 
         </>
       );
     },
-    [getKeyExtractorForCategory, openAddCustomGenreModal, renderCategoryItem, renderItemForCategory, t],
+    [getKeyExtractorForCategory, openAddCustomGenreModal, renderCategoryItem, renderItemForCategory, styles, t],
   );
 
-  const getKeyExtractorForSearch = useCallback((item: any) => item.path, []);
+  const getKeyExtractorForSearch = useCallback((item: CategoryNode) => item.path, []);
 
-  const renderItemForSearch = useCallback(({ item }: any) => renderCategoryItem({ item, isSearchResult: true }), [renderCategoryItem]);
+  const renderItemForSearch = useCallback(
+    ({ item }: { item: CategoryNode }) => renderCategoryItem({ item, isSearchResult: true }),
+    [renderCategoryItem],
+  );
 
   const renderSearchResults = () => {
     if (shouldDisplaySearchResults) {
       return (
-        <FlatList
+        <FlatList<CategoryNode>
           keyboardShouldPersistTaps='handled'
           data={categoriesSearchResult}
           renderItem={renderItemForSearch}
@@ -284,10 +309,10 @@ const CategoryChooser = ({ variant = 'screen', onClose }: CategoryChooserProps) 
     return null;
   };
 
-  const getKeyExtractor = useCallback((item: any) => item.path, []);
+  const getKeyExtractor = useCallback((item: CategoryNode) => item.path, []);
 
   const renderItem = useCallback(
-    ({ item, section }: any) => {
+    ({ item, section }: SectionListRenderItemInfo<CategoryNode, CategorySection>) => {
       if (!section.isExpanded) {
         return null;
       }
@@ -296,27 +321,27 @@ const CategoryChooser = ({ variant = 'screen', onClose }: CategoryChooserProps) 
     [renderCategory],
   );
 
-  const renderSectionHeader = useCallback(({ section }: any) => renderCategoryItem({ item: section }), [renderCategoryItem]);
+  const renderSectionHeader = useCallback(({ section }: { section: CategorySection }) => renderCategoryItem({ item: section }), [renderCategoryItem]);
 
   useEffect(() => {
     dispatch(setSearchQuery(''));
   }, [dispatch]);
 
-  const containerStyle = useMemo(() => (isEmbedded ? styles.embeddedContainer : styles.container), [isEmbedded]);
-  const listWrapperStyle = useMemo(() => (isEmbedded ? styles.embeddedWrapper : styles.wrapper), [isEmbedded]);
+  const containerStyle = isEmbedded ? styles.embeddedContainer : styles.container;
+  const listWrapperStyle = isEmbedded ? styles.embeddedWrapper : styles.wrapper;
 
   useEffect(() => {
     if (!pendingGenre) {
       return;
     }
-    const myGenresSection = categories.find((section: any) => section?.isMyGenresGroup);
+    const myGenresSection = categories.find((section) => section?.isMyGenresGroup);
     if (!myGenresSection) {
       return;
     }
     const hasGenre =
       myGenresSection.path === pendingGenre.path ||
-      myGenresSection.data?.some((item: any) => item?.path === pendingGenre.path) ||
-      myGenresSection.data?.some((item: any) => item?.data?.some((child: any) => child?.path === pendingGenre.path));
+      myGenresSection.data?.some((item: CategoryNode) => item?.path === pendingGenre.path) ||
+      myGenresSection.data?.some((item: CategoryNode) => item?.data?.some((child: CategoryNode) => child?.path === pendingGenre.path));
     if (hasGenre) {
       if (!myGenresSection.isExpanded) {
         _toggleExpandedCategory(myGenresSection.path);
@@ -339,7 +364,7 @@ const CategoryChooser = ({ variant = 'screen', onClose }: CategoryChooserProps) 
       <View style={listWrapperStyle}>
         {renderSearchResults()}
         {!searchQuery && (
-          <SectionList
+          <SectionList<CategoryNode, CategorySection>
             keyboardShouldPersistTaps='handled'
             sections={categories}
             keyExtractor={getKeyExtractor}

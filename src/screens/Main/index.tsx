@@ -1,5 +1,5 @@
 /* eslint-disable import/order */
-import React, { FC, lazy, useCallback, useEffect, useState } from 'react';
+import React, { FC, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { BottomTabBar, BottomTabBarProps, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -53,7 +53,6 @@ import { getCheckingStatus } from '~redux/selectors/auth';
 import { getGoalNumberOfPages, getGoalType } from '~redux/selectors/goals';
 import Home from '~screens/Home';
 import Splash from '~screens/Splash';
-import colors from '~styles/colors';
 import i18n from '~translations/i18n';
 import { GoalType } from '~types/goals';
 import BannerAd from '~UI/BannerAd';
@@ -69,6 +68,8 @@ import {
   hydrateBooksTableFromCache,
 } from '~utils/boardStorage';
 import { maybeAskForReview, recordAppOpen } from '~utils/reviewPrompt';
+import { useThemeColors } from '~theme/hooks';
+import { selectThemeScheme } from '~redux/selectors/theme';
 
 import ClearFilters from './ClearFilters';
 import CloseComponent from './CloseComponent';
@@ -110,17 +111,18 @@ const TabBarWithBanner = (props: BottomTabBarProps) => (
 
 const StatNavigator = () => {
   const { t } = useTranslation('statistic');
+  const themeColors = useThemeColors();
 
   return (
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: colors.primary_dark,
+          backgroundColor: themeColors.primary_dark,
           shadowColor: 'transparent',
           borderBottomWidth: 1,
-          borderBottomColor: colors.neutral_medium,
+          borderBottomColor: themeColors.neutral_medium,
         },
-        headerTintColor: colors.neutral_light,
+        headerTintColor: themeColors.neutral_light,
       }}
     >
       <Stack.Screen name={STAT_ROUTE} options={{ title: t('statistic') }}>
@@ -141,18 +143,19 @@ type GoalsNavigatorProps = {
 
 const GoalsNavigator: FC<GoalsNavigatorProps> = ({ hasGoal, goalType }) => {
   const { t } = useTranslation('goals');
+  const themeColors = useThemeColors();
 
   return (
     <Stack.Navigator
       initialRouteName={hasGoal ? GOAL_DETAILS : GOALS_ROUTE}
       screenOptions={{
         headerStyle: {
-          backgroundColor: colors.primary_dark,
+          backgroundColor: themeColors.primary_dark,
           shadowColor: 'transparent',
           borderBottomWidth: 1,
-          borderBottomColor: colors.neutral_medium,
+          borderBottomColor: themeColors.neutral_medium,
         },
-        headerTintColor: colors.neutral_light,
+        headerTintColor: themeColors.neutral_light,
       }}
     >
       <Stack.Screen
@@ -206,18 +209,19 @@ const GoalsNavigator: FC<GoalsNavigatorProps> = ({ hasGoal, goalType }) => {
 
 const HomeNavigator = () => {
   const { t } = useTranslation(['search', 'common']);
+  const themeColors = useThemeColors();
 
   return (
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: colors.primary_dark,
+          backgroundColor: themeColors.primary_dark,
           shadowColor: 'transparent',
           borderBottomWidth: 1,
-          borderBottomColor: colors.neutral_medium,
+          borderBottomColor: themeColors.neutral_medium,
         },
         presentation: 'modal',
-        headerTintColor: colors.neutral_light,
+        headerTintColor: themeColors.neutral_light,
       }}
     >
       <Stack.Screen name={HOME_ROUTE} component={Home} options={{ headerShown: false }} />
@@ -247,6 +251,7 @@ const HomeNavigator = () => {
 
 const AddCustomBookNavigator: FC = () => {
   const { t } = useTranslation(['customBook', 'common']);
+  const themeColors = useThemeColors();
 
   return (
     <Stack.Navigator
@@ -254,12 +259,12 @@ const AddCustomBookNavigator: FC = () => {
       screenOptions={{
         headerShown: true,
         headerStyle: {
-          backgroundColor: colors.primary_dark,
+          backgroundColor: themeColors.primary_dark,
           shadowColor: 'transparent',
           borderBottomWidth: 1,
-          borderBottomColor: colors.neutral_medium,
+          borderBottomColor: themeColors.neutral_medium,
         },
-        headerTintColor: colors.neutral_light,
+        headerTintColor: themeColors.neutral_light,
       }}
     >
       <Stack.Screen name={CUSTOM_BOOKS_ROUTE} options={{ title: t('addCustomBook') }}>
@@ -276,12 +281,12 @@ const AddCustomBookNavigator: FC = () => {
           title: t('common:genresTitle'),
           headerShown: true,
           headerStyle: {
-            backgroundColor: colors.primary_dark,
+            backgroundColor: themeColors.primary_dark,
             shadowColor: 'transparent',
             borderBottomWidth: 1,
-            borderBottomColor: colors.neutral_medium,
+            borderBottomColor: themeColors.neutral_medium,
           },
-          headerTintColor: colors.neutral_light,
+          headerTintColor: themeColors.neutral_light,
         }}
       >
         {() => (
@@ -301,17 +306,18 @@ type ProfileNavigatorProps = {
 
 const ProfileNavigator: FC<ProfileNavigatorProps> = ({ isUpdateAvailable, googlePlayUrl }) => {
   const { t } = useTranslation(['profile', 'auth']);
+  const themeColors = useThemeColors();
 
   return (
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: colors.primary_dark,
+          backgroundColor: themeColors.primary_dark,
           shadowColor: 'transparent',
           borderBottomWidth: 1,
-          borderBottomColor: colors.neutral_medium,
+          borderBottomColor: themeColors.neutral_medium,
         },
-        headerTintColor: colors.neutral_light,
+        headerTintColor: themeColors.neutral_light,
       }}
     >
       <Stack.Screen name={PROFILE_ROUTE} options={{ title: t('profile') }}>
@@ -346,46 +352,64 @@ type TabNavigatorProps = {
   goalType: GoalType | null;
 };
 
-const getIcon = (focused: boolean, route: RouteProp<ParamListBase, string>) => {
-  const icon = {
-    HomeNavigator: (
-      <HomeIcon width={BOTTOM_BAR_ICON.width} height={BOTTOM_BAR_ICON.height} fill={focused ? colors.neutral_light : colors.neutral_medium} />
-    ),
-    StatNavigator: (
-      <StatIcon width={BOTTOM_BAR_ICON.width} height={BOTTOM_BAR_ICON.height} fill={focused ? colors.neutral_light : colors.neutral_medium} />
-    ),
-    AddCustomBookNavigator: (
-      <AddCustomBookIcon
-        width={BOTTOM_BAR_ADD_ICON.width}
-        height={BOTTOM_BAR_ADD_ICON.height}
-        strokeWidth={1.5}
-        stroke={focused ? colors.neutral_light : colors.neutral_medium}
-      />
-    ),
-    GoalsNavigator: (
-      <GoalIcon width={BOTTOM_BAR_ICON.width} height={BOTTOM_BAR_ICON.height} fill={focused ? colors.neutral_light : colors.neutral_medium} />
-    ),
-    ProfileNavigator: (
-      <ProfileIcon width={BOTTOM_BAR_ICON.width} height={BOTTOM_BAR_ICON.height} fill={focused ? colors.neutral_light : colors.neutral_medium} />
-    ),
-  } as Record<BottomTabRouteName, React.ReactElement>;
-
-  const routeName = route.name as BottomTabRouteName;
-  return icon[routeName] ?? null;
-};
-
 const TabNavigator: FC<TabNavigatorProps> = ({ isUpdateAvailable, googlePlayUrl, hasGoal, goalType }) => {
   const { t } = useTranslation(['common']);
+  const themeColors = useThemeColors();
 
   return (
     <Tab.Navigator
       initialRouteName={HOME_NAVIGATOR_ROUTE}
       backBehavior='history'
       screenOptions={({ route }) => ({
-        tabBarStyle: { backgroundColor: colors.primary_dark, elevation: 0, borderTopWidth: 1, borderTopColor: colors.neutral_medium },
+        tabBarStyle: {
+          backgroundColor: themeColors.primary_dark,
+          elevation: 0,
+          borderTopWidth: 1,
+          borderTopColor: themeColors.neutral_medium,
+        },
         tabBarShowLabel: false,
         headerShown: false,
-        tabBarIcon: ({ focused }) => getIcon(focused, route),
+        tabBarIcon: ({ focused }) => {
+          const icons: Record<BottomTabRouteName, React.ReactElement> = {
+            HomeNavigator: (
+              <HomeIcon
+                width={BOTTOM_BAR_ICON.width}
+                height={BOTTOM_BAR_ICON.height}
+                fill={focused ? themeColors.neutral_light : themeColors.neutral_medium}
+              />
+            ),
+            StatNavigator: (
+              <StatIcon
+                width={BOTTOM_BAR_ICON.width}
+                height={BOTTOM_BAR_ICON.height}
+                fill={focused ? themeColors.neutral_light : themeColors.neutral_medium}
+              />
+            ),
+            AddCustomBookNavigator: (
+              <AddCustomBookIcon
+                width={BOTTOM_BAR_ADD_ICON.width}
+                height={BOTTOM_BAR_ADD_ICON.height}
+                strokeWidth={1.5}
+                stroke={focused ? themeColors.neutral_light : themeColors.neutral_medium}
+              />
+            ),
+            GoalsNavigator: (
+              <GoalIcon
+                width={BOTTOM_BAR_ICON.width}
+                height={BOTTOM_BAR_ICON.height}
+                fill={focused ? themeColors.neutral_light : themeColors.neutral_medium}
+              />
+            ),
+            ProfileNavigator: (
+              <ProfileIcon
+                width={BOTTOM_BAR_ICON.width}
+                height={BOTTOM_BAR_ICON.height}
+                fill={focused ? themeColors.neutral_light : themeColors.neutral_medium}
+              />
+            ),
+          };
+          return icons[route.name as BottomTabRouteName] ?? null;
+        },
       })}
       tabBar={TabBarWithBanner}
     >
@@ -397,7 +421,7 @@ const TabNavigator: FC<TabNavigatorProps> = ({ isUpdateAvailable, googlePlayUrl,
         name={PROFILE_NAVIGATOR_ROUTE}
         options={{
           tabBarBadge: isUpdateAvailable ? t('common:alert') : undefined,
-          tabBarBadgeStyle: { backgroundColor: colors.success, color: colors.primary_dark },
+          tabBarBadgeStyle: { backgroundColor: themeColors.success, color: themeColors.primary_darkest },
         }}
       >
         {() => <ProfileNavigator isUpdateAvailable={isUpdateAvailable} googlePlayUrl={googlePlayUrl} />}
@@ -408,17 +432,18 @@ const TabNavigator: FC<TabNavigatorProps> = ({ isUpdateAvailable, googlePlayUrl,
 
 const MainNavigator: FC<MainNavigatorProps> = ({ isUpdateAvailable, googlePlayUrl, hasGoal, goalType }) => {
   const { t } = useTranslation(['books', 'customBook']);
+  const themeColors = useThemeColors();
 
   return (
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: colors.primary_dark,
+          backgroundColor: themeColors.primary_dark,
           shadowColor: 'transparent',
           borderBottomWidth: 1,
-          borderBottomColor: colors.neutral_medium,
+          borderBottomColor: themeColors.neutral_medium,
         },
-        headerTintColor: colors.neutral_light,
+        headerTintColor: themeColors.neutral_light,
         presentation: 'modal',
       }}
     >
@@ -443,12 +468,12 @@ const MainNavigator: FC<MainNavigatorProps> = ({ isUpdateAvailable, googlePlayUr
         options={{
           headerShown: true,
           headerStyle: {
-            backgroundColor: colors.primary_dark,
+            backgroundColor: themeColors.primary_dark,
             shadowColor: 'transparent',
             borderBottomWidth: 1,
-            borderBottomColor: colors.neutral_medium,
+            borderBottomColor: themeColors.neutral_medium,
           },
-          headerTintColor: colors.neutral_light,
+          headerTintColor: themeColors.neutral_light,
           presentation: 'modal',
           title: t('customBook:editCustomBookTitle'),
         }}
@@ -469,6 +494,40 @@ const Main = () => {
   const [googlePlayUrl, setGooglePlayUrl] = useState('');
 
   const dispatch = useAppDispatch();
+  const themeColors = useThemeColors();
+  const themeScheme = useAppSelector(selectThemeScheme);
+  const navigationTheme = useMemo(
+    () => ({
+      dark: themeScheme === 'dark',
+      colors: {
+        background: themeColors.primary_dark,
+        card: themeColors.primary_dark,
+        text: themeColors.neutral_light,
+        border: themeColors.neutral_medium,
+        primary: themeColors.primary_medium,
+        notification: themeColors.success,
+      },
+      fonts: {
+        regular: {
+          fontFamily: 'System',
+          fontWeight: '400' as const,
+        },
+        medium: {
+          fontFamily: 'System',
+          fontWeight: '500' as const,
+        },
+        bold: {
+          fontFamily: 'System',
+          fontWeight: '700' as const,
+        },
+        heavy: {
+          fontFamily: 'System',
+          fontWeight: '800' as const,
+        },
+      },
+    }),
+    [themeColors, themeScheme],
+  );
   // Хук для проверки EAS Updates
   const { checkAndInstallUpdate, isUpdateAvailable } = useAppUpdates();
 
@@ -630,7 +689,7 @@ const Main = () => {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
+      <NavigationContainer theme={navigationTheme}>
         <MainNavigator isUpdateAvailable={isUpdateAvailable} googlePlayUrl={googlePlayUrl} goalType={goalType} hasGoal={hasGoal} />
         <InSuspense>
           <>

@@ -5,10 +5,11 @@ import { Animated, FlatList, Modal, StyleProp, Text, TextStyle, TouchableOpacity
 import DropdownIcon from '~assets/dropdown.svg';
 import { DROPDOWN_ICON } from '~constants/dimensions';
 import useGetAnimatedPlaceholderStyle from '~hooks/useGetAnimatedPlaceholderStyle';
-import colors from '~styles/colors';
 import { BookStatus } from '~types/books';
+import { useThemeColors } from '~theme/hooks';
+import { useThemedStyles } from '~theme/useThemedStyles';
 
-import styles from './styles';
+import createStyles from './styles';
 
 export type Props = {
   items: { title: string; value: any }[];
@@ -45,6 +46,8 @@ const Dropdown: FC<Props> = ({
   const dropdownLeft = useRef<number | null>(0);
   const [maxDropdownHeight, setMaxDropdownHeight] = useState<number | undefined>(undefined);
   const animatedStyle = useGetAnimatedPlaceholderStyle(isLoading as boolean);
+  const themeColors = useThemeColors();
+  const styles = useThemedStyles(createStyles);
 
   const handleChange = useCallback(
     (value: string) => {
@@ -111,7 +114,7 @@ const Dropdown: FC<Props> = ({
         onPress={() => handleChange(item.value)}
         style={{
           ...styles.dropdownItemStyle,
-          ...(item.value === selectedItem && { backgroundColor: colors.primary_medium }),
+          ...(item.value === selectedItem && { backgroundColor: themeColors.primary_medium }),
         }}
       >
         <Text style={styles.dropdownItemTextStyle}>{item.title}</Text>

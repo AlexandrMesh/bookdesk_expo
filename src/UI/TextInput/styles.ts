@@ -1,9 +1,10 @@
 import { StyleSheet } from 'react-native';
 
-import colors from '~styles/colors';
+import { ThemeColors } from '~theme/types';
 
-export default StyleSheet.create({
-  validateableWrapper: {
+export default (colors: ThemeColors) =>
+  StyleSheet.create({
+    validateableWrapper: {
     height: 80,
   },
   wrapper: {

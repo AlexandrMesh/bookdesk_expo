@@ -8,13 +8,15 @@ import { useAppDispatch, useAppSelector } from '~hooks';
 
 import { setThemeMode } from '~redux/actions/themeActions';
 import { getThemeMode } from '~redux/selectors/theme';
+import { useThemedStyles } from '~theme/useThemedStyles';
 
-import styles from './styles';
+import createStyles from './styles';
 
 const ThemeSettings = () => {
   const { t } = useTranslation(['profile']);
   const dispatch = useAppDispatch();
   const mode = useAppSelector(getThemeMode);
+  const styles = useThemedStyles(createStyles);
 
   const options: Array<{ value: 'auto' | 'light' | 'dark'; label: string }> = [
     { value: 'auto', label: t('themeAuto') },
