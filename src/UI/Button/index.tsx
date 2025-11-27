@@ -2,7 +2,10 @@ import React, { memo, FC, JSX } from 'react';
 
 import { TouchableHighlight, View, Text, StyleProp, ViewStyle, TextStyle } from 'react-native';
 
+import { useAppSelector } from '~hooks';
+
 import { PRIMARY, SECONDARY } from '~constants/themes';
+import { selectThemeScheme } from '~redux/selectors/theme';
 import { Spinner } from '~UI/Spinner';
 import { useThemeColors } from '~theme/hooks';
 import { useThemedStyles } from '~theme/useThemedStyles';
@@ -36,6 +39,7 @@ const Button: FC<Props> = ({
 }) => {
   const themeColors = useThemeColors();
   const styles = useThemedStyles(createStyles);
+  const themeScheme = useAppSelector(selectThemeScheme);
   const colorTheme: Record<string, StyleProp<ViewStyle>> = {
     [PRIMARY]: styles.primary,
     [SECONDARY]: styles.secondary,
@@ -50,11 +54,28 @@ const Button: FC<Props> = ({
     return true;
   };
 
+  // Определяем цвет нажатия в зависимости от темы
+  const getUnderlayColor = () => {
+    // Для светлой темы используем более светлый оттенок для эффекта нажатия
+    if (themeScheme === 'light') {
+      if (theme === PRIMARY) {
+        // Для синей кнопки используем более светлый синий
+        return '#6ba3f0';
+      } else {
+        // Для вторичной кнопки используем более светлый серый
+        return '#e2e8f0';
+      }
+    }
+    // Для темной темы используем стандартный темный цвет
+    return themeColors.primary_dark;
+  };
+
   return (
     <TouchableHighlight
       disabled={disabled || isLoading}
       style={[styles.button, colorTheme[theme], disabled || isLoading ? styles.disabled : {}, style]}
       onPress={handlePress}
+      underlayColor={getUnderlayColor()}
     >
       <View style={styles.titleWrapper}>
         {isLoading ? (

@@ -10,9 +10,7 @@ export default (colors: ThemeColors) =>
       flexDirection: 'row',
       justifyContent: 'center',
       alignItems: 'center',
-      padding: 8,
-      backgroundColor: colors.primary_darkest,
-      borderRadius: 4,
+      padding: 2,
     },
     lightColor: {
       color: colors.neutral_light,

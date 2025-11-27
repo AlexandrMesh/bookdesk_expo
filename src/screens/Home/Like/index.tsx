@@ -2,10 +2,10 @@ import React, { useState, useCallback, FC, memo } from 'react';
 
 import { Animated, Pressable, Vibration } from 'react-native';
 
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
 import { useAppDispatch, useAppSelector } from '~hooks';
 
-import LikeIcon from '~assets/like.svg';
-import LikeFillIcon from '~assets/like_fill.svg';
 import { LIKE_ICON } from '~constants/dimensions';
 import useGetAnimatedPlaceholderStyle from '~hooks/useGetAnimatedPlaceholderStyle';
 import { updateBookVotes } from '~redux/actions/booksActions';
@@ -46,17 +46,17 @@ const Like: FC<Props> = ({ bookId, bookStatus }) => {
   }, [bookId, bookStatus, bookWithVote, dispatch, isLoading]);
 
   const iconSize = Number(LIKE_ICON.width);
-  const activeColor = themeColors.gold;
-  const inactiveColor = themeColors.neutral_light;
+  const activeColor = themeColors.error;
+  const inactiveColor = themeColors.neutral_medium;
 
   return (
     <Animated.View style={isLoading ? { opacity: animatedStyle } : {}}>
       <Pressable style={styles.votesWrapper} disabled={isLoading} onPress={handleLike}>
-        {bookWithVote ? (
-          <LikeFillIcon width={iconSize} height={iconSize} fill={activeColor} stroke={activeColor} />
-        ) : (
-          <LikeIcon width={iconSize} height={iconSize} fill="transparent" stroke={inactiveColor} />
-        )}
+        <MaterialCommunityIcons
+          name={bookWithVote ? 'heart' : 'heart-outline'}
+          size={iconSize}
+          color={bookWithVote ? activeColor : inactiveColor}
+        />
       </Pressable>
     </Animated.View>
   );
