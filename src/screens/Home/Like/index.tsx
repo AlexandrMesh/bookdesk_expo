@@ -12,8 +12,9 @@ import { updateBookVotes } from '~redux/actions/booksActions';
 import { deriveBookVotes } from '~redux/selectors/books';
 import { BookStatus } from '~types/books';
 import { useThemeColors } from '~theme/hooks';
+import { useThemedStyles } from '~theme/useThemedStyles';
 
-import styles from './styles';
+import createStyles from './styles';
 
 export type Props = {
   bookId: string;
@@ -25,6 +26,7 @@ const Like: FC<Props> = ({ bookId, bookStatus }) => {
   const bookWithVote = useAppSelector(deriveBookVotes(bookId));
   const dispatch = useAppDispatch();
   const themeColors = useThemeColors();
+  const styles = useThemedStyles(createStyles);
 
   const animatedStyle = useGetAnimatedPlaceholderStyle(isLoading);
 
@@ -43,13 +45,17 @@ const Like: FC<Props> = ({ bookId, bookStatus }) => {
     }
   }, [bookId, bookStatus, bookWithVote, dispatch, isLoading]);
 
+  const iconSize = Number(LIKE_ICON.width);
+  const activeColor = themeColors.gold;
+  const inactiveColor = themeColors.neutral_light;
+
   return (
     <Animated.View style={isLoading ? { opacity: animatedStyle } : {}}>
       <Pressable style={styles.votesWrapper} disabled={isLoading} onPress={handleLike}>
         {bookWithVote ? (
-          <LikeFillIcon width={LIKE_ICON.width} height={LIKE_ICON.width} fill={themeColors.error} stroke={themeColors.error} />
+          <LikeFillIcon width={iconSize} height={iconSize} fill={activeColor} stroke={activeColor} />
         ) : (
-          <LikeIcon width={LIKE_ICON.width} height={LIKE_ICON.width} fill="transparent" stroke={themeColors.neutral_black} />
+          <LikeIcon width={iconSize} height={iconSize} fill="transparent" stroke={inactiveColor} />
         )}
       </Pressable>
     </Animated.View>

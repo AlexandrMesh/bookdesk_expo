@@ -1,20 +1,23 @@
 import { StyleSheet } from 'react-native';
 
-import colors from '~styles/colors';
+import { ThemeColors } from '~theme/types';
 
-export default StyleSheet.create({
-  votesWrapper: {
-    height: 30,
-    display: 'flex',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 2,
-  },
-  lightColor: {
-    color: colors.neutral_light,
-  },
-  votesCount: {
-    marginLeft: 3,
-  },
-});
+export default (colors: ThemeColors) =>
+  StyleSheet.create({
+    votesWrapper: {
+      height: 30,
+      display: 'flex',
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 8,
+      backgroundColor: colors.primary_darkest,
+      borderRadius: 4,
+    },
+    lightColor: {
+      color: colors.neutral_light,
+    },
+    votesCount: {
+      marginLeft: 3,
+    },
+  });
