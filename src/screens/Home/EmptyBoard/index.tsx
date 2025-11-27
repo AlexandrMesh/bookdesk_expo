@@ -6,9 +6,10 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 
 import { ADD_CUSTOM_BOOK_NAVIGATOR_ROUTE, ADD_CUSTOM_BOOK_ROUTE, CUSTOM_BOOKS_ROUTE } from '~constants/routes';
+import { useThemedStyles } from '~theme/useThemedStyles';
 import Button from '~UI/Button';
 
-import styles from './styles';
+import createStyles from './styles';
 
 export type Props = {
   shouldNotDisplayContent?: boolean;
@@ -19,6 +20,7 @@ const EmptyBoard: FC<Props> = ({ shouldNotDisplayContent = false, onAddPress }) 
   const { t } = useTranslation(['books', 'common']);
   const navigation = useNavigation<any>();
   const route = useRoute();
+  const styles = useThemedStyles(createStyles);
 
   return (
     <View style={styles.wrapper}>

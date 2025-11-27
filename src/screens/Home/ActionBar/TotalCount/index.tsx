@@ -4,9 +4,10 @@ import { View, Text } from 'react-native';
 
 import { useTranslation } from 'react-i18next';
 
+import { useThemedStyles } from '~theme/useThemedStyles';
 import numberFormat from '~utils/numberFormat';
 
-import styles from './styles';
+import createStyles from './styles';
 
 export type Props = {
   count: number;
@@ -14,6 +15,7 @@ export type Props = {
 
 const TotalCount: FC<Props> = ({ count }) => {
   const { t } = useTranslation(['books', 'common']);
+  const styles = useThemedStyles(createStyles);
 
   return (
     <View style={styles.wrapper}>

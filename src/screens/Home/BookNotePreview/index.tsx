@@ -11,8 +11,9 @@ import { useAppSelector } from '~hooks';
 import ArrowDown from '~assets/arrow-down.svg';
 import { BOOK_NOTE_ROUTE } from '~constants/routes';
 import { deriveBookNote } from '~redux/selectors/books';
+import { useThemedStyles } from '~theme/useThemedStyles';
 
-import styles from './styles';
+import createStyles from './styles';
 
 export type Props = {
   bookId: string;
@@ -25,6 +26,7 @@ const BookNotePreview: FC<Props> = ({ bookId, bookTitle, numberOfLines = 2, font
   const { t, i18n } = useTranslation(['books', 'common']);
   const navigation = useNavigation<any>();
   const { language } = i18n;
+  const styles = useThemedStyles(createStyles);
   const bookNote = useAppSelector(deriveBookNote(bookId));
   const bookNoteContent = bookNote?.comment;
   const truncatedContent = useMemo(() => {

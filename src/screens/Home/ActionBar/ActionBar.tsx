@@ -10,11 +10,12 @@ import SearchIcon from '~assets/search.svg';
 import { FILTER_ICON } from '~constants/dimensions';
 import { SEARCH_ROUTE, FITLERING_ROUTE } from '~constants/routes';
 import { SECONDARY } from '~constants/themes';
-import colors from '~styles/colors';
+import { useThemeColors } from '~theme/hooks';
+import { useThemedStyles } from '~theme/useThemedStyles';
 import { BookStatus } from '~types/books';
 import Button from '~UI/Button';
 
-import styles from './styles';
+import createStyles from './styles';
 import TotalCount from './TotalCount';
 
 export type Props = {
@@ -30,6 +31,8 @@ export type Props = {
 const ActionBar: FC<Props> = ({ filterParams, totalItems, activeFiltersCount, shouldRenderFilterButton = true, boardType }) => {
   const { t } = useTranslation('common');
   const navigation = useNavigation<any>();
+  const themeColors = useThemeColors();
+  const styles = useThemedStyles(createStyles);
 
   const categoriesLength = filterParams?.categoryPaths?.length || 0;
   const isActiveFilter = categoriesLength > 0;
@@ -41,11 +44,11 @@ const ActionBar: FC<Props> = ({ filterParams, totalItems, activeFiltersCount, sh
           {shouldRenderFilterButton ? (
             <Button
               theme={SECONDARY}
-              style={[styles.button, isActiveFilter && { borderColor: colors.success }]}
-              titleStyle={[styles.titleStyle, isActiveFilter && { color: colors.success }]}
+              style={[styles.button, isActiveFilter && { borderColor: themeColors.success }]}
+              titleStyle={[styles.titleStyle, isActiveFilter && { color: themeColors.success }]}
               iconClassName={styles.icon}
               icon={
-                <FilterIcon width={FILTER_ICON.width} height={FILTER_ICON.height} fill={isActiveFilter ? colors.success : colors.neutral_light} />
+                <FilterIcon width={FILTER_ICON.width} height={FILTER_ICON.height} fill={isActiveFilter ? themeColors.success : themeColors.neutral_light} />
               }
               onPress={() => navigation.navigate(FITLERING_ROUTE)}
               title={isActiveFilter ? t('categoriesCount', { count: activeFiltersCount }) : t('categoriesTitle')}
@@ -55,7 +58,7 @@ const ActionBar: FC<Props> = ({ filterParams, totalItems, activeFiltersCount, sh
         <View style={styles.rightSide}>
           <TotalCount count={totalItems} />
           <TouchableHighlight style={styles.searchIconWrapper} onPress={() => navigation.navigate(SEARCH_ROUTE, { boardType })}>
-            <SearchIcon width={24} height={24} fill={colors.neutral_light} />
+            <SearchIcon width={24} height={24} fill={themeColors.neutral_light} />
           </TouchableHighlight>
         </View>
       </View>

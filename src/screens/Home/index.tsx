@@ -6,16 +6,15 @@ import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SceneMap, TabView } from 'react-native-tab-view';
 
-import colors from '~styles/colors';
+import { useThemeColors } from '~theme/hooks';
+import { useThemedStyles } from '~theme/useThemedStyles';
 
 import CompletedBooks from './CompletedBooks';
 import InProgressBooks from './InProgressBooks';
 import PlannedBooks from './PlannedBooks';
-import styles from './styles';
+import createStyles from './styles';
 
 const { width: screenWidth } = Dimensions.get('window');
-
-const renderLazyPlaceholder = () => <View style={{ flex: 1, backgroundColor: colors.primary_dark }} />;
 
 const renderScene = SceneMap({
   planned: PlannedBooks,
@@ -30,12 +29,16 @@ type TabMeasurement = {
 
 const Home = () => {
   const { t } = useTranslation('books');
+  const themeColors = useThemeColors();
+  const styles = useThemedStyles(createStyles);
   const [index, setIndex] = useState(0);
   const [tabMeasurements, setTabMeasurements] = useState<Map<number, TabMeasurement>>(new Map());
   const [measurementsReady, setMeasurementsReady] = useState(false);
   const [indicatorVisible, setIndicatorVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const layoutTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const renderLazyPlaceholder = () => <View style={{ flex: 1, backgroundColor: themeColors.primary_dark }} />;
 
   const routes = useMemo(
     () => [
@@ -176,6 +179,37 @@ const Home = () => {
     };
   }, [measurementsReady, tabMeasurements, routes]);
 
+  const tabBarStyles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          backgroundColor: themeColors.primary_dark,
+          borderBottomWidth: 1,
+          borderColor: themeColors.neutral_medium,
+        },
+        scrollView: {
+          flexGrow: 0,
+        },
+        scrollContent: {
+          paddingHorizontal: 2,
+        },
+        tab: {
+          paddingHorizontal: 10,
+          paddingVertical: 12,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        indicator: {
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          height: 2,
+          backgroundColor: themeColors.neutral_light,
+        },
+      }),
+    [themeColors],
+  );
+
   const renderTabBar = useCallback(
     (props: { position?: Animated.AnimatedInterpolation<number> }) => {
       const { position } = props;
@@ -201,7 +235,7 @@ const Home = () => {
                     onPress={() => handleTabPress(i)}
                     style={tabBarStyles.tab}
                   >
-                    <Text style={[styles.tabBarLabel, { color: isFocused ? colors.neutral_light : colors.neutral_medium }]}>{route.title}</Text>
+                    <Text style={[styles.tabBarLabel, { color: isFocused ? themeColors.neutral_light : themeColors.neutral_medium }]}>{route.title}</Text>
                   </Pressable>
                 );
               })}
@@ -247,7 +281,7 @@ const Home = () => {
 
               return (
                 <Pressable key={route.key} onLayout={(event) => handleTabLayout(i, event)} onPress={() => handleTabPress(i)} style={tabBarStyles.tab}>
-                  <Text style={[styles.tabBarLabel, { color: isFocused ? colors.neutral_light : colors.neutral_medium }]}>{route.title}</Text>
+                  <Text style={[styles.tabBarLabel, { color: isFocused ? themeColors.neutral_light : themeColors.neutral_medium }]}>{route.title}</Text>
                 </Pressable>
               );
             })}
@@ -265,7 +299,7 @@ const Home = () => {
         </View>
       );
     },
-    [routes, index, handleTabLayout, handleTabPress, indicatorData, indicatorVisible],
+    [routes, index, handleTabLayout, handleTabPress, indicatorData, indicatorVisible, tabBarStyles, styles, themeColors],
   );
 
   return (
@@ -285,31 +319,5 @@ const Home = () => {
   );
 };
 
-const tabBarStyles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.primary_dark,
-    borderBottomWidth: 1,
-    borderColor: colors.neutral_medium,
-  },
-  scrollView: {
-    flexGrow: 0,
-  },
-  scrollContent: {
-    paddingHorizontal: 2,
-  },
-  tab: {
-    paddingHorizontal: 10,
-    paddingVertical: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  indicator: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    height: 2,
-    backgroundColor: colors.neutral_light,
-  },
-});
 
 export default Home;

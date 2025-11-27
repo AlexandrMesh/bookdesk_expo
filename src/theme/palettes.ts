@@ -18,19 +18,19 @@ export const darkPalette: ThemeColors = {
 };
 
 export const lightPalette: ThemeColors = {
-  primary_dark: '#f2f5fb',
-  primary_darkest: '#ffffff',
-  primary_medium: '#2f6fed',
-  neutral_white: '#0f172a',
+  primary_dark: '#f1f5f9',
+  primary_darkest: '#e2e8f0',
+  primary_medium: '#60a5fa',
+  neutral_white: '#ffffff',
   neutral_black: '#000000',
-  neutral_light: '#1e293b',
-  neutral_medium: '#94a3b8',
-  in_progress: '#2563eb',
-  planned: '#ea580c',
-  completed: '#0f9d58',
-  gold: '#c08401',
-  disabled: '#cbd5f5',
-  error: '#dc2626',
-  success: '#16a34a',
+  neutral_light: '#0f172a',
+  neutral_medium: '#64748b',
+  in_progress: '#3b82f6',
+  planned: '#f59e0b',
+  completed: '#10b981',
+  gold: '#d97706',
+  disabled: '#cbd5e1',
+  error: '#ef4444',
+  success: '#10b981',
 };
 

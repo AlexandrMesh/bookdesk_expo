@@ -9,12 +9,13 @@ import { PENDING, SUCCEEDED } from '~constants/loadingStatuses';
 import useGetImgUrl from '~hooks/useGetImgUrl';
 import { IBook } from '~types/books';
 import { LoadingType } from '~types/loadingTypes';
+import { useThemedStyles } from '~theme/useThemedStyles';
 import Button from '~UI/Button';
 import { Spinner } from '~UI/Spinner';
 
 import BookItem from './BookItem';
 import ItemPlaceholder from './ItemPlaceholder';
-import styles from './styles';
+import createStyles from './styles';
 
 const BOOK_ITEM_ESTIMATED_HEIGHT = 260;
 const SECTION_HEADER_HEIGHT = 64;
@@ -32,6 +33,7 @@ const VirtualizedFlashList: any = FlashList;
 const BookList: FC<Props> = ({ data = [], loadingDataStatus, horizontal, isEditable, onPressAdd }) => {
   const { t: tCommon } = useTranslation('common');
   const { t: tBooks } = useTranslation('books');
+  const styles = useThemedStyles(createStyles);
   const listRef = useRef<any>(null);
   const imgUrl = useGetImgUrl();
   // Убеждаемся что data всегда массив
