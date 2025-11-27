@@ -111,6 +111,15 @@ export const initDatabase = async (): Promise<void> => {
           UNIQUE(language)
         );
         CREATE INDEX IF NOT EXISTS idx_categories_language ON categories(language);
+        CREATE TABLE IF NOT EXISTS custom_categories (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          language TEXT NOT NULL,
+          parent_path TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_custom_categories_language ON custom_categories(language);
       `);
 
       const createBooksTable = async () => {

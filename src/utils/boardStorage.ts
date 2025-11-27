@@ -54,6 +54,8 @@ export { getBooksByYear, getGoalItemsByYear } from './database/statistics';
 
 // Категории
 export { saveCategories, loadCategories, loadCategoriesFromJson, initializeCategoriesFromJson } from './database/categories';
+export { loadCustomGenres, addCustomGenre, updateCustomGenre, deleteCustomGenre } from './database/customCategories';
+export type { ICustomGenreRecord } from './database/customCategories';
 
 // Сброс данных
 export { resetAllDatabaseData } from './database/database';

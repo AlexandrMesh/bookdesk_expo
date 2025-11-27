@@ -11,6 +11,11 @@ export interface ICategory {
   path: string;
   value: string;
   language: string;
+  parentPath?: string;
+  isCustom?: boolean;
+  customTitle?: string;
+  customId?: string;
+  isMyGenresGroup?: boolean;
 }
 
 export interface IBook {

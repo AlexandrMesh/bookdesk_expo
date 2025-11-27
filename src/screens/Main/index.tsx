@@ -41,7 +41,13 @@ import {
 } from '~constants/routes';
 import { useAppUpdates } from '~hooks/useAppUpdates';
 import { initializationComplete } from '~redux/actions/authActions';
-import { loadBookListFromLocalDB, setBookNotes, setBookVotes, userBookRatingsLoaded, setCategories } from '~redux/actions/booksActions';
+import {
+  loadBookListFromLocalDB,
+  setBookNotes,
+  setBookVotes,
+  userBookRatingsLoaded,
+  loadCategories as loadCategoriesAction,
+} from '~redux/actions/booksActions';
 import { getGoalItems, setGoal } from '~redux/actions/goalsActions';
 import { getCheckingStatus } from '~redux/selectors/auth';
 import { getGoalNumberOfPages, getGoalType } from '~redux/selectors/goals';
@@ -60,7 +66,6 @@ import {
   loadBookNotes,
   loadUserVotes,
   loadBookRatings,
-  loadCategories,
   hydrateBooksTableFromCache,
 } from '~utils/boardStorage';
 import { maybeAskForReview, recordAppOpen } from '~utils/reviewPrompt';
@@ -474,18 +479,7 @@ const Main = () => {
   // Вспомогательная функция для загрузки категорий из локальной БД
   const loadCategoriesToRedux = useCallback(async () => {
     try {
-      const { language } = i18n;
-      const categoriesFromDB = await loadCategories(language);
-      if (categoriesFromDB.length > 0) {
-        dispatch(setCategories(categoriesFromDB));
-        return;
-      }
-      // Если категорий нет, инициализируем из config/categories.ts
-      const { initializeCategoriesFromJson } = await import('~utils/boardStorage');
-      const initializedCategories = await initializeCategoriesFromJson(language);
-      if (initializedCategories.length > 0) {
-        dispatch(setCategories(initializedCategories));
-      }
+      await dispatch(loadCategoriesAction(false)).unwrap();
     } catch (error) {
       console.error('Error loading categories:', error);
     }

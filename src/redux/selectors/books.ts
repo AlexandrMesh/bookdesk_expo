@@ -118,8 +118,11 @@ export const deriveCategoriesSearchResult = (status: BookStatus) =>
     const searchQuery = query.trim().toLowerCase();
     return searchQuery
       ? categories
-          .filter(({ path }) => path.split('.').length === 3)
-          .map((item) => ({ ...item, title: item.value, label: getT('categories')(item.value) }))
+          .filter(({ path, isCustom }) => isCustom || path.split('.').length === 3)
+          .map((item) => {
+            const label = item.isCustom ? item.customTitle || item.value : getT('categories')(item.value);
+            return { ...item, title: item.value, label };
+          })
           .filter(({ label }) => label.toLowerCase().includes(searchQuery))
       : [];
   });
@@ -157,9 +160,7 @@ export const deriveSectionedBookListData = (status: BookStatus) =>
         };
       });
 
-
       const grouped = groupBy(mappedBooks, 'monthAndYear');
-
 
       // Убеждаемся что grouped это объект
       if (!grouped || typeof grouped !== 'object') {
@@ -176,7 +177,6 @@ export const deriveSectionedBookListData = (status: BookStatus) =>
         const data = [`${key}/${count}`, sortedValue].flat();
         return data;
       });
-
 
       // Убеждаемся что result это массив перед вызовом flat
       const finalResult = Array.isArray(result) ? result.flat() : [];
@@ -327,29 +327,41 @@ export const deriveCategories = (boardType: BookStatus, isForCustomBook?: boolea
     [getCategoriesData, deriveEditableExpandedCategories(boardType), getExpandedCategories],
     (categories, editableExpandedCategories, expandedCategoriesFromCustomBook) =>
       categories
-        .map(({ path, value }) => {
-          const firstLevel = path.split('.');
+        .map((category) => {
+          const firstLevel = category.path.split('.');
           if (firstLevel.length === 1) {
             const expandedCategories = isForCustomBook ? expandedCategoriesFromCustomBook : editableExpandedCategories;
             return {
-              path,
-              title: value,
-              isExpanded: expandedCategories.includes(path),
+              path: category.path,
+              title: category.value,
+              isExpanded: expandedCategories.includes(category.path),
+              isCustom: category.isCustom,
+              customId: category.customId,
+              customTitle: category.customTitle,
+              isMyGenresGroup: category.isMyGenresGroup,
               data: categories
-                .map(({ path, value }) => {
-                  const secondLevel = path.split('.');
+                .map((secondLevelCategory) => {
+                  const secondLevel = secondLevelCategory.path.split('.');
                   if (secondLevel.length === 2 && firstLevel[0] === secondLevel[0]) {
                     return {
-                      path,
-                      title: value,
-                      isExpanded: expandedCategories.includes(path),
+                      path: secondLevelCategory.path,
+                      title: secondLevelCategory.value,
+                      isExpanded: expandedCategories.includes(secondLevelCategory.path),
+                      isCustom: secondLevelCategory.isCustom,
+                      customId: secondLevelCategory.customId,
+                      customTitle: secondLevelCategory.customTitle,
+                      isMyGenresGroup: secondLevelCategory.isMyGenresGroup,
                       data: categories
-                        .map(({ path, value }) => {
-                          const thirdLevel = path.split('.');
+                        .map((thirdLevelCategory) => {
+                          const thirdLevel = thirdLevelCategory.path.split('.');
                           if (thirdLevel.length === 3 && firstLevel[0] === thirdLevel[0] && thirdLevel[1] === secondLevel[1]) {
                             return {
-                              path,
-                              title: value,
+                              path: thirdLevelCategory.path,
+                              title: thirdLevelCategory.value,
+                              isCustom: thirdLevelCategory.isCustom,
+                              customId: thirdLevelCategory.customId,
+                              customTitle: thirdLevelCategory.customTitle,
+                              isMyGenresGroup: thirdLevelCategory.isMyGenresGroup,
                             };
                           }
                           return null;

@@ -211,5 +211,13 @@
   "fantasy": "Фэнтези",
   "foreignFantasy": "Зарубежное фэнтези",
   "domesticFantasy": "Отечесственное фэнтези",
-  "epic": "Эпос"
+  "epic": "Эпос",
+  "myGenres": "Мои жанры",
+  "addGenre": "Добавить жанр",
+  "editGenre": "Редактировать жанр",
+  "genreNamePlaceholder": "Название жанра",
+  "genreNameRequired": "Пожалуйста, введите название жанра",
+  "noCustomGenres": "Вы еще не добавили жанры",
+  "deleteGenre": "Удалить жанр",
+  "deleteGenreConfirmation": "Удалить выбранный жанр?"
 }

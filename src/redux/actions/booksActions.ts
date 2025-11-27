@@ -38,20 +38,24 @@ import {
   initializeCategoriesFromJson,
   loadBoardData,
   loadCategories as loadCategoriesFromDB,
-  saveBoardData,
-  saveBookDate,
   saveBookNote,
   saveBookRating,
-  saveBookStatus,
   saveBookVotesCount,
   searchBooksInCache,
   saveUserVotes,
   updateBookDateInCache,
   updateBookStatusInCache,
   updateBookVotesInCache,
+  loadCustomGenres,
+  addCustomGenre as addCustomGenreToDb,
+  updateCustomGenre as updateCustomGenreInDb,
+  deleteCustomGenre as deleteCustomGenreFromDb,
 } from '~utils/boardStorage';
+import type { ICustomGenreRecord } from '~utils/boardStorage';
 
 const PREFIX = 'BOOKS';
+const FICTION_ROOT_PATH = '1';
+const MY_GENRES_GROUP_PATH = 'myGenres';
 
 const syncBooksTableWithCache = async (books: IBook[]) => {
   if (!books || books.length === 0) {
@@ -88,6 +92,36 @@ const calculateBooksCountByYear = (books: IBook[], language: string): Array<{ mo
       const dateB = new Date(b.monthAndYear);
       return dateB.getTime() - dateA.getTime();
     });
+};
+
+const mergeCustomGenresWithCategories = (categories: ICategory[], customGenres: ICustomGenreRecord[], language: string) => {
+  const categoriesWithoutCustom = categories.filter((category) => !category.path.startsWith(`${MY_GENRES_GROUP_PATH}`));
+  const result = [...categoriesWithoutCustom];
+  const fictionIndex = result.findIndex((category) => category.path === FICTION_ROOT_PATH);
+  const insertIndex = fictionIndex >= 0 ? fictionIndex + 1 : result.length;
+
+  const myGenresGroup: ICategory = {
+    path: MY_GENRES_GROUP_PATH,
+    value: 'myGenres',
+    language,
+    isMyGenresGroup: true,
+  };
+
+  result.splice(insertIndex, 0, myGenresGroup);
+
+  customGenres.forEach((genre, offset) => {
+    result.splice(insertIndex + 1 + offset, 0, {
+      path: `${MY_GENRES_GROUP_PATH}.${genre.id}`,
+      value: genre.title,
+      language,
+      parentPath: MY_GENRES_GROUP_PATH,
+      isCustom: true,
+      customTitle: genre.title,
+      customId: genre.id,
+    });
+  });
+
+  return result;
 };
 
 export const userBookRatingsLoaded = createAction<IRating[]>(`${PREFIX}/userBookRatingsLoaded`);
@@ -191,10 +225,8 @@ export const loadSearchResults = createAsyncThunk(
       const sortDirection = (sortParams.direction ?? '') as string;
       const searchBoardType = param.boardType || ALL;
 
-
       const foundBooks = await searchBooksInCache(searchText, searchBoardType, sortType, sortDirection, language);
       const limitedBooks = foundBooks.slice(0, SEARCH_RESULTS_LIMIT);
-
 
       return {
         boardType: ALL,
@@ -221,13 +253,11 @@ const loadBookListFromCache = async (
   { boardType, shouldLoadMoreResults }: { boardType: BookStatus; shouldLoadMoreResults: boolean },
   { getState }: AppThunkAPI,
 ) => {
-
   const state = getState();
   const pageIndex = deriveBookListPageIndex(boardType)(state);
   const filterParams = deriveFilterBookCategoryPaths(boardType)(state);
   const sortParams = deriveBookListSortParams(boardType)(state);
   const { language } = i18n;
-
 
   const targetPageIndex = shouldLoadMoreResults ? pageIndex + 1 : 0;
 
@@ -237,15 +267,12 @@ const loadBookListFromCache = async (
     console.error('Error initializing database:', error);
   }
 
-
   try {
     const sortType = (sortParams.type ?? '') as string;
     const sortDirection = (sortParams.direction ?? '') as string;
     const cachedData = await loadBoardData(boardType, targetPageIndex, filterParams, sortType, sortDirection, language);
 
     if (cachedData) {
-
-
       let booksCountByYear: any = null;
       if (boardType !== ALL && cachedData.data && cachedData.data.length > 0) {
         booksCountByYear = calculateBooksCountByYear(cachedData.data, language);
@@ -260,7 +287,6 @@ const loadBookListFromCache = async (
         booksCountByYear,
         fromCache: true,
       };
-
 
       await syncBooksTableWithCache((cachedData.data || []) as IBook[]);
 
@@ -314,38 +340,42 @@ export const loadCategories = createAsyncThunk(`${PREFIX}/loadCategories`, async
   }
 
   // Пытаемся загрузить из локальной БД, если не принудительное обновление
-  if (!shouldRewrite && !shouldReloadCategories && categories.length > 0) {
-    // Если категории уже есть в state, используем их
-    return categories;
-  }
-
-  // Всегда загружаем категории локально (из БД или из TS файла)
   try {
+    const customGenres = await loadCustomGenres(language);
+
+    if (!shouldRewrite && !shouldReloadCategories && categories.length > 0) {
+      // Используем категории из state, добавив пользовательские жанры
+      return mergeCustomGenresWithCategories(categories, customGenres, language);
+    }
+
+    // Всегда загружаем категории локально (из БД или из TS файла)
     const cachedCategories = await loadCategoriesFromDB(language);
     if (cachedCategories.length > 0) {
-      return cachedCategories;
+      return mergeCustomGenresWithCategories(cachedCategories, customGenres, language);
     }
 
     // Если категорий нет в БД, загружаем из TS файла и сохраняем в БД
     const categoriesFromTs = await initializeCategoriesFromJson(language);
     if (categoriesFromTs.length > 0) {
-      return categoriesFromTs;
+      return mergeCustomGenresWithCategories(categoriesFromTs, customGenres, language);
     }
 
-    // Если и из TS файла не удалось загрузить, возвращаем пустой массив
-    return [];
+    // Если и из TS файла не удалось загрузить, возвращаем только пользовательские жанры
+    return mergeCustomGenresWithCategories([], customGenres, language);
   } catch (error) {
     console.error('Error loading categories:', error);
-    // В случае ошибки пытаемся загрузить из TS файла
     try {
       const categoriesFromTs = await initializeCategoriesFromJson(language);
+      const customGenres = await loadCustomGenres(language);
       if (categoriesFromTs.length > 0) {
-        return categoriesFromTs;
+        return mergeCustomGenresWithCategories(categoriesFromTs, customGenres, language);
       }
+      return mergeCustomGenresWithCategories([], customGenres, language);
     } catch (tsError) {
       console.error('Error loading categories from TS file:', tsError);
+      const customGenres = await loadCustomGenres(language);
+      return mergeCustomGenresWithCategories([], customGenres, language);
     }
-    return [];
   }
 });
 
@@ -369,14 +399,12 @@ export const updateUserBookAddedDate = createAsyncThunk(
     try {
       const { bookId, bookStatus } = getBookToUpdate(getState());
 
-
       // Обновляем в локальной БД
       await updateBookDateInCache(bookId, added, bookStatus);
 
       dispatch(updateSuggestedBook({ bookId, bookStatus, added }));
       dispatch(updateCustomBook({ bookId, bookStatus, added }));
       dispatch(triggerReloadStat());
-
 
       return {
         bookStatus,
@@ -393,10 +421,8 @@ export const updateUserBookAddedDate = createAsyncThunk(
 
 export const deleteUserComment = createAsyncThunk(`${PREFIX}/deleteUserComment`, async (bookId: string) => {
   try {
-
     // Удаляем из локальной БД
     await deleteBookNote(bookId);
-
 
     return bookId;
   } catch (error) {
@@ -407,7 +433,6 @@ export const deleteUserComment = createAsyncThunk(`${PREFIX}/deleteUserComment`,
 
 export const deleteUserBookRating = createAsyncThunk(`${PREFIX}/deleteUserBookRating`, async (bookId: string, { getState }: AppThunkAPI) => {
   try {
-
     // Удаляем из локальной БД
     const { deleteBookRating } = await import('~utils/boardStorage');
     await deleteBookRating(bookId);
@@ -417,12 +442,29 @@ export const deleteUserBookRating = createAsyncThunk(`${PREFIX}/deleteUserBookRa
     const currentRatings = state.books.bookRatings || [];
     const updatedRatings = currentRatings.filter((r: IRating) => r.bookId !== bookId);
 
-
     return updatedRatings;
   } catch (error) {
     console.error('Error deleting user book rating:', error);
     throw error;
   }
+});
+
+export const addCustomGenre = createAsyncThunk(`${PREFIX}/addCustomGenre`, async (title: string, { dispatch }) => {
+  await addCustomGenreToDb(title, i18n.language);
+  await dispatch(loadCategories(true));
+});
+
+export const updateCustomGenre = createAsyncThunk(
+  `${PREFIX}/updateCustomGenre`,
+  async ({ id, title }: { id: string; title: string }, { dispatch }) => {
+    await updateCustomGenreInDb(id, title);
+    await dispatch(loadCategories(true));
+  },
+);
+
+export const deleteCustomGenre = createAsyncThunk(`${PREFIX}/deleteCustomGenre`, async (id: string, { dispatch }) => {
+  await deleteCustomGenreFromDb(id);
+  await dispatch(loadCategories(true));
 });
 
 export const updateUserBook = createAsyncThunk(
@@ -433,7 +475,6 @@ export const updateUserBook = createAsyncThunk(
   ) => {
     const { bookId, bookStatus } = book;
     try {
-
       // Обновляем в локальной БД
       // updateBookStatusInCache обновляет статус книги во всех записях кэша
       // Передаем полный объект книги, чтобы сохранить все данные (название, авторы, страницы и т.д.)
@@ -458,7 +499,6 @@ export const updateUserBook = createAsyncThunk(
 
       dispatch(triggerReloadStat());
 
-
       return {
         boardType,
         currentBookStatus: bookStatus as BookStatus,
@@ -479,19 +519,11 @@ export const updateUserComment = createAsyncThunk(
   `${PREFIX}/updateUserComment`,
   async ({ bookId, comment, added }: { bookId: string; comment: string; added: number }, { getState }: AppThunkAPI) => {
     try {
-
       // Сохраняем в локальную БД
       await saveBookNote(bookId, comment, added);
 
       // Redux state обновится через reducer на основе возвращаемых данных
-      const state = getState();
-      const currentNotes = state.books.bookNotes || [];
-      const existingNoteIndex = currentNotes.findIndex((note: IBookNote) => note.bookId === bookId);
-
-      if (existingNoteIndex !== -1) {
-      } else {
-      }
-
+      getState();
 
       return {
         bookId,
@@ -507,9 +539,8 @@ export const updateUserComment = createAsyncThunk(
 
 export const updateUserBookRating = createAsyncThunk(
   `${PREFIX}/updateUserBookRating`,
-  async ({ bookId, rating, added }: { bookId: string; rating: number; added: number }, { getState }: AppThunkAPI) => {
+  async ({ bookId, rating, added: _added }: { bookId: string; rating: number; added: number }, { getState }: AppThunkAPI) => {
     try {
-
       // Получаем текущие рейтинги из state
       const state = getState();
       const currentRatings = state.books.bookRatings || [];
@@ -530,7 +561,6 @@ export const updateUserBookRating = createAsyncThunk(
       await initDatabase();
       await saveBookRating(bookId, rating);
 
-
       // Возвращаем обновленный массив рейтингов (reducer ожидает IRating[])
       return updatedRatings;
     } catch (error) {
@@ -544,7 +574,6 @@ export const updateBookVotes = createAsyncThunk(
   `${PREFIX}/updateBookVotes`,
   async ({ bookId, shouldAdd, bookStatus }: { bookId: string; shouldAdd: boolean; bookStatus: BookStatus }, { dispatch, getState }: AppThunkAPI) => {
     try {
-
       // Получаем текущее количество лайков из state
       const state = getState();
       const currentBook = state.books.board[bookStatus]?.data?.find((book: IBook) => book.bookId === bookId);
@@ -591,7 +620,6 @@ export const updateBookVotes = createAsyncThunk(
       // Обновляем в Redux state
       dispatch(updateBookVotesInSuggestedBook({ bookId, votesCount: newVotesCount }));
       dispatch(updateBookVotesInCustomBook({ bookId, votesCount: newVotesCount }));
-
 
       return {
         userVotes: updatedUserVotes,

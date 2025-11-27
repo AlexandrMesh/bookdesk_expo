@@ -45,5 +45,13 @@
   "adventures": "Adventures",
   "westerns": "Westerns",
   "mystery": "Mystery",
-  "womensFiction": "Womens fiction"
+  "womensFiction": "Womens fiction",
+  "myGenres": "My genres",
+  "addGenre": "Add genre",
+  "editGenre": "Edit genre",
+  "genreNamePlaceholder": "Genre name",
+  "genreNameRequired": "Please enter a genre name",
+  "noCustomGenres": "You haven't added any genres yet",
+  "deleteGenre": "Delete genre",
+  "deleteGenreConfirmation": "Delete the selected genre?"
 }

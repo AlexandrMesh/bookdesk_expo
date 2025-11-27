@@ -73,8 +73,11 @@ export const deriveCategoriesSearchResult = createSelector([getCategoriesData, g
   const searchQuery = query.trim().toLowerCase();
   return searchQuery
     ? categories
-        .filter(({ path }) => path.split('.').length === 3)
-        .map((item) => ({ ...item, title: item.value, label: getT('categories')(item.value) }))
+        .filter(({ path, isCustom }) => isCustom || path.split('.').length === 3)
+        .map((item) => {
+          const label = item.isCustom ? item.customTitle || item.value : getT('categories')(item.value);
+          return { ...item, title: item.value, label };
+        })
         .filter(({ label }) => label.toLowerCase().includes(searchQuery))
     : [];
 });
