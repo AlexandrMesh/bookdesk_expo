@@ -1,9 +1,11 @@
 import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
 
 import i18n from '~translations/i18n';
+import { RootState } from '~redux/store/configureStore';
 import { BookStatus } from '~types/books';
 import { IStat } from '~types/stat';
 import { getBooksByYear, getGoalItemsByYear, hydrateBooksTableFromCache, initDatabase } from '~utils/boardStorage';
+import { selectThemeColors } from '~redux/selectors/theme';
 import generateBarChartData from '~utils/generateBarChartData';
 
 const PREFIX = 'STATISTIC';
@@ -12,14 +14,16 @@ export const setStat = createAction<IStat>(`${PREFIX}/setStat`);
 export const triggerReloadStat = createAction(`${PREFIX}/triggerReloadStat`);
 export const clearData = createAction(`${PREFIX}/clearData`);
 
-export const loadStat = createAsyncThunk(`${PREFIX}/loadStat`, async (boardType: BookStatus) => {
+export const loadStat = createAsyncThunk(`${PREFIX}/loadStat`, async (boardType: BookStatus, { getState }) => {
   try {
     // Загружаем и группируем книги из локальной БД
     await initDatabase();
     await hydrateBooksTableFromCache();
     const { items, booksReadPerMonth, booksReadPerYear } = await getBooksByYear();
 
-    const chartData = generateBarChartData(items);
+    const state = getState() as RootState;
+    const colors = selectThemeColors(state);
+    const chartData = generateBarChartData(items, 5, colors);
     return {
       data: chartData,
       booksReadPerMonth,
@@ -40,13 +44,15 @@ export const loadStat = createAsyncThunk(`${PREFIX}/loadStat`, async (boardType:
   }
 });
 
-export const loadPagesStat = createAsyncThunk(`${PREFIX}/loadPagesStat`, async () => {
+export const loadPagesStat = createAsyncThunk(`${PREFIX}/loadPagesStat`, async (_, { getState }) => {
   try {
     // Загружаем и группируем goal items из локальной БД
     await initDatabase();
     const { items, pagesReadPerMonth, pagesReadPerYear } = await getGoalItemsByYear();
 
-    const chartData = generateBarChartData(items, 20);
+    const state = getState() as RootState;
+    const colors = selectThemeColors(state);
+    const chartData = generateBarChartData(items, 20, colors);
     return {
       data: chartData,
       pagesReadPerMonth,

@@ -5,10 +5,10 @@ import sumBy from 'lodash/sumBy';
 
 import { MAPPED_MONTHS } from '~constants/statistic';
 import DataPointLabel from '~screens/Statistic/DataPointLabel';
-import colors from '~styles/colors';
+import { ThemeColors } from '~theme/types';
 import { getT } from '~translations/i18n';
 
-const getYearItem = (label: number) => ({
+const getYearItem = (label: number, colors: ThemeColors) => ({
   label,
   year: label,
   labelTextStyle: { color: colors.gold, fontSize: 15, fontWeight: 600 },
@@ -18,7 +18,7 @@ const getYearItem = (label: number) => ({
   topLabelComponent: () => <DataPointLabel />,
 });
 
-export default (data: { year: number; month: number; count: number }[], maxValue: number = 5) => {
+export default (data: { year: number; month: number; count: number }[], maxValue: number = 5, colors: ThemeColors) => {
   if (!data || data.length === 0) {
     return {
       data: [],
@@ -47,7 +47,7 @@ export default (data: { year: number; month: number; count: number }[], maxValue
         topLabelComponent: () => <DataPointLabel value={value} />,
       };
     });
-    return [getYearItem(item.year), ...montshArray];
+    return [getYearItem(item.year, colors), ...montshArray];
   });
   // logic for slice array to get rid from start and end values with 0
   const flattedResult = result.flat();
@@ -87,7 +87,7 @@ export default (data: { year: number; month: number; count: number }[], maxValue
       data[0]?.year ||
       new Date().getFullYear();
 
-    finalResult.data = [getYearItem(Number(firstYearLabel)), ...finalResult.data];
+    finalResult.data = [getYearItem(Number(firstYearLabel), colors), ...finalResult.data];
   }
   const totalCount = sumBy(finalResult.data, 'value') || 0;
   const averageReadingSpeed = Math.round((totalCount / finalResult.data.filter(({ isYear }) => !isYear).length) * 10) / 10 || 0;

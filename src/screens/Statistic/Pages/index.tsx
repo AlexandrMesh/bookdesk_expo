@@ -10,10 +10,11 @@ import { useAppDispatch, useAppSelector } from '~hooks';
 
 import { loadPagesStat } from '~redux/actions/statisticActions';
 import { getShouldReloadStat } from '~redux/selectors/statistic';
-import colors from '~styles/colors';
+import { useThemeColors } from '~theme/hooks';
+import { useThemedStyles } from '~theme/useThemedStyles';
 import { Spinner } from '~UI/Spinner';
 
-import styles from '../styles';
+import createStyles from '../styles';
 
 const Pages = () => {
   const { t } = useTranslation(['statistic', 'common']);
@@ -27,6 +28,8 @@ const Pages = () => {
 
   const dispatch = useAppDispatch();
   const _loadPagesStat = useCallback(() => dispatch(loadPagesStat()), [dispatch]);
+  const themeColors = useThemeColors();
+  const styles = useThemedStyles(createStyles);
 
   const shouldReloadStat = useAppSelector(getShouldReloadStat);
 
@@ -83,10 +86,10 @@ const Pages = () => {
                   scrollToEnd
                   maxValue={maxValueForPagesStat}
                   barBorderRadius={4}
-                  yAxisTextStyle={{ color: colors.neutral_light }}
-                  xAxisColor={colors.neutral_light}
-                  yAxisColor={colors.neutral_light}
-                  xAxisLabelTextStyle={{ color: colors.neutral_light }}
+                  yAxisTextStyle={{ color: themeColors.neutral_light }}
+                  xAxisColor={themeColors.neutral_light}
+                  yAxisColor={themeColors.neutral_light}
+                  xAxisLabelTextStyle={{ color: themeColors.neutral_light }}
                   data={pagesStat}
                 />
               </View>
