@@ -10,11 +10,11 @@ export const darkPalette: ThemeColors = {
   neutral_medium: '#485567',
   in_progress: '#3e9ed5',
   planned: '#d68f32',
-  completed: '#1bb572',
+  completed: '#00d084',
   gold: '#d4af37',
   disabled: '#686e74',
   error: '#f24c67',
-  success: '#1bb572',
+  success: '#00d084',
 };
 
 export const lightPalette: ThemeColors = {
@@ -27,9 +27,9 @@ export const lightPalette: ThemeColors = {
   neutral_medium: '#64748b',
   in_progress: '#3b82f6',
   planned: '#f59e0b',
-  completed: '#10b981',
+  completed: '#059669',
   gold: '#d97706',
   disabled: '#cbd5e1',
   error: '#ef4444',
-  success: '#10b981',
+  success: '#059669',
 };

@@ -91,6 +91,8 @@ const Books = () => {
                   xAxisColor={themeColors.neutral_light}
                   yAxisColor={themeColors.neutral_light}
                   xAxisLabelTextStyle={{ color: themeColors.neutral_light }}
+                  rulesColor={themeColors.neutral_medium}
+                  rulesType="dashed"
                   data={stat}
                 />
               </View>
