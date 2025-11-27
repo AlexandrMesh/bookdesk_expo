@@ -153,12 +153,44 @@ const Dropdown: FC<Props> = ({
     );
   }, [items, getKeyExtractor, renderItem, visible, isPositioned, maxDropdownHeight]);
 
+  // Извлекаем borderColor из wrapperStyle для использования как backgroundColor
+  const getBorderColor = (style: StyleProp<ViewStyle>): string | undefined => {
+    if (Array.isArray(style)) {
+      for (const s of style) {
+        if (s && typeof s === 'object' && 'borderColor' in s) {
+          return s.borderColor as string;
+        }
+      }
+    } else if (style && typeof style === 'object' && 'borderColor' in style) {
+      return (style as any).borderColor;
+    }
+    return undefined;
+  };
+
+  const statusColor = getBorderColor(wrapperStyle);
+  const backgroundColor = statusColor || styles.dropdownButtonStyle.borderColor;
+
   return (
     <Animated.View style={isLoading ? { opacity: animatedStyle } : {}}>
-      <TouchableOpacity ref={dropdownButton} style={[styles.dropdownButtonStyle, wrapperStyle]} disabled={isLoading} onPress={toggleDropdown}>
+      <TouchableOpacity
+        ref={dropdownButton}
+        style={[
+          styles.dropdownButtonStyle,
+          { backgroundColor, borderColor: backgroundColor },
+          wrapperStyle,
+        ]}
+        disabled={isLoading}
+        onPress={toggleDropdown}
+      >
         <View style={styles.status}>
-          <Text style={[styles.dropdownButtonLabelStyle, buttonLabelStyle]}>{buttonLabel}</Text>
-          <DropdownIcon width={DROPDOWN_ICON.width} height={DROPDOWN_ICON.height} style={[styles.icon, iconStyle]} />
+          <Text style={[styles.dropdownButtonLabelStyle, buttonLabelStyle, { color: themeColors.neutral_white }]}>
+            {buttonLabel}
+          </Text>
+          <DropdownIcon
+            width={DROPDOWN_ICON.width}
+            height={DROPDOWN_ICON.height}
+            style={[styles.icon, { fill: themeColors.neutral_white }, iconStyle]}
+          />
         </View>
         {renderDropdown()}
       </TouchableOpacity>
