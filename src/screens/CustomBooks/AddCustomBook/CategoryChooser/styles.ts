@@ -135,15 +135,16 @@ export default StyleSheet.create({
     marginBottom: 12,
   },
   modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
+    flexDirection: 'column',
+    alignItems: 'stretch',
     marginTop: 16,
+    width: '100%',
   },
   modalButton: {
-    width: 100,
-    height: 40,
-    marginLeft: 6,
+    width: '100%',
+    height: 44,
+    marginLeft: 0,
+    marginBottom: 10,
   },
   modalError: {
     marginTop: 6,

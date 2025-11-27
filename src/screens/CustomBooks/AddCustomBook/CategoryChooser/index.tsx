@@ -13,18 +13,15 @@ import { ALL } from '~constants/boardType';
 import { FILTER_ICON } from '~constants/dimensions';
 import { SECONDARY } from '~constants/themes';
 import { addCustomGenre, deleteCustomGenre, updateCustomGenre } from '~redux/actions/booksActions';
-import { clearCategory, selectCategory, setSearchQuery, submitCategory, toggleExpandedCategoryCustomBooks } from '~redux/actions/customBookActions';
+import { selectCategory, setSearchQuery, submitCategory, toggleExpandedCategoryCustomBooks } from '~redux/actions/customBookActions';
 import { deriveCategories } from '~redux/selectors/books';
 import { deriveCategoriesSearchResult, getCategorySearchQuery, getEditableSelectedCategoryPath } from '~redux/selectors/customBook';
 import colors from '~styles/colors';
 import Button from '~UI/Button';
 import RadioButton from '~UI/RadioButton';
 import Input from '~UI/TextInput';
-import { showTooltip } from '~utils/showTooltip';
 
 import styles from './styles';
-
-const MY_GENRES_GROUP_PATH = 'myGenres';
 
 const CategoryChooser = () => {
   const { t } = useTranslation(['common', 'categories']);
@@ -166,7 +163,7 @@ const CategoryChooser = () => {
               ) : null}
             </Pressable>
           )}
-          <Pressable style={styles.labelWrapper} onPress={handlePressLabel} onLongPress={() => showTooltip(label)}>
+          <Pressable style={styles.labelWrapper} onPress={handlePressLabel}>
             <Text style={styles.menuItemTitle} numberOfLines={1} ellipsizeMode='tail'>
               {label}
             </Text>
@@ -188,7 +185,7 @@ const CategoryChooser = () => {
                 </View>
               )}
               {isCustom && customId && !isSearchResult && (
-          <Pressable
+                <Pressable
                   style={styles.editIconButton}
                   onPress={(event) => {
                     event.stopPropagation();

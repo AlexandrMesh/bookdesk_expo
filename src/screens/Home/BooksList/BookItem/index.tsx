@@ -23,7 +23,6 @@ import Rating from '~screens/Home/Rating';
 import colors from '~styles/colors';
 import { BookStatus, IBook } from '~types/books';
 import Button from '~UI/Button';
-import { showTooltip } from '~utils/showTooltip';
 
 import styles from './styles';
 import ModifiedDate from '../../ModifiedDate';
@@ -151,11 +150,9 @@ const BookItem: FC<Props> = memo(
               )}
             <View style={styles.info}>
               {categoryLabel ? (
-                <Pressable onLongPress={() => showTooltip(categoryLabel)}>
-                  <Text style={[styles.lightColor]} numberOfLines={1} ellipsizeMode='tail'>
-                    {categoryLabel}
-                  </Text>
-                </Pressable>
+                <Text style={[styles.lightColor]} numberOfLines={1} ellipsizeMode='tail'>
+                  {categoryLabel}
+                </Text>
               ) : null}
               {!!pages && (
                 <Text style={[styles.pagesBlock, styles.item, styles.mediumColor]}>

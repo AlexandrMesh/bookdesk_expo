@@ -171,15 +171,17 @@ export default StyleSheet.create({
   },
   footerButtonsWrapper: {
     display: 'flex',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'stretch',
     paddingVertical: 10,
+    width: '100%',
   },
   footerButton: {
-    flex: 1,
-    marginHorizontal: 5,
-    height: 40,
+    width: '100%',
+    marginHorizontal: 0,
+    marginBottom: 10,
+    height: 44,
   },
   deleteButton: {
     borderColor: colors.error,

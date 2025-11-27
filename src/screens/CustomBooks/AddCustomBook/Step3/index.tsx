@@ -20,7 +20,6 @@ import colors from '~styles/colors';
 import Button from '~UI/Button';
 import Input from '~UI/TextInput';
 import { getValidationFailure, validationTypes } from '~utils/validation';
-import { showTooltip } from '~utils/showTooltip';
 
 import CustomBookStatusDropdown from '../CustomBookStatusDropdown';
 import styles from './styles';
@@ -107,11 +106,7 @@ const Step3 = () => {
         <View style={styles.block}>
           <Text style={styles.subTitle}>{t('customBook:genre')}</Text>
           <View style={styles.blockWrapper}>
-            <Pressable
-              style={[styles.inputBlockWrapper, displayedCategoryLabel ? styles.activeInputWrapper : {}]}
-              onPress={showCategoryChooser}
-              onLongPress={() => showTooltip(displayedCategoryLabel)}
-            >
+            <Pressable style={[styles.inputBlockWrapper, displayedCategoryLabel ? styles.activeInputWrapper : {}]} onPress={showCategoryChooser}>
               <Text numberOfLines={1} style={[styles.inputLabel, displayedCategoryLabel ? styles.activeInputLabel : {}]}>
                 {displayedCategoryLabel || t('customBook:noGenre')}
               </Text>
