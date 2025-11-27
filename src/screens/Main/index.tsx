@@ -52,7 +52,17 @@ import i18n from '~translations/i18n';
 import { GoalType } from '~types/goals';
 import BannerAd from '~UI/BannerAd';
 import { Spinner } from '~UI/Spinner';
-import { initDatabase, loadProfile, saveGuestProfile, loadGoal, loadBookNotes, loadUserVotes, loadBookRatings, loadCategories } from '~utils/boardStorage';
+import {
+  initDatabase,
+  loadProfile,
+  saveGuestProfile,
+  loadGoal,
+  loadBookNotes,
+  loadUserVotes,
+  loadBookRatings,
+  loadCategories,
+  hydrateBooksTableFromCache,
+} from '~utils/boardStorage';
 import { maybeAskForReview, recordAppOpen } from '~utils/reviewPrompt';
 
 import ClearFilters from './ClearFilters';
@@ -486,6 +496,14 @@ const Main = () => {
   }, [dispatch]);
 
   const loadLocalData = useCallback(async () => {
+    try {
+      const synced = await hydrateBooksTableFromCache();
+      // eslint-disable-next-line no-console
+      console.log(`📚 [loadLocalData] hydrateBooksTableFromCache synced ${synced} rows`);
+    } catch (error) {
+      console.error('Error hydrating books table from cache:', error);
+    }
+
     // Загружаем цель из локальной БД
     try {
       const localGoal = await loadGoal();

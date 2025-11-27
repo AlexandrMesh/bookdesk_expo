@@ -402,6 +402,72 @@ export const loadBoardData = async (
 };
 
 /**
+ * Гидратация таблицы books из сохраненных данных board_data
+ */
+export const hydrateBooksTableFromCache = async (): Promise<number> => {
+  try {
+    const database = await getDatabase();
+    // eslint-disable-next-line no-console
+    console.log('🔄 [hydrateBooksTableFromCache] Старт гидратации таблицы books из board_data...');
+    const records = await database.getAllAsync<{
+      data: string | null;
+    }>(`SELECT data FROM board_data`);
+
+    if (!records || records.length === 0) {
+      // eslint-disable-next-line no-console
+      console.log('🔄 [hydrateBooksTableFromCache] В board_data нет записей — гидратация не требуется');
+      return 0;
+    }
+
+    const booksMap = new Map<string, IBook>();
+
+    for (const record of records) {
+      if (!record.data) {
+        continue;
+      }
+
+      try {
+        const parsed = JSON.parse(record.data) as IBook[];
+        parsed.forEach((book) => {
+          if (!book?.bookId) {
+            return;
+          }
+
+          if (!booksMap.has(book.bookId)) {
+            booksMap.set(book.bookId, book);
+          }
+        });
+      } catch (error) {
+        console.error('Error parsing board_data row for hydrateBooksTableFromCache:', error);
+      }
+    }
+
+    if (booksMap.size === 0) {
+      // eslint-disable-next-line no-console
+      console.log('🔄 [hydrateBooksTableFromCache] После парсинга не найдено книг для гидратации');
+      return 0;
+    }
+
+    try {
+      const { saveBooks } = await import('./books');
+      await saveBooks(Array.from(booksMap.values()));
+      // eslint-disable-next-line no-console
+      console.log(`📚 [hydrateBooksTableFromCache] Синхронизировано книг: ${booksMap.size}`);
+    } catch (error) {
+      console.error('Error saving hydrated books:', error);
+      return 0;
+    }
+
+    // eslint-disable-next-line no-console
+    console.log('🔄 [hydrateBooksTableFromCache] Гидратация завершена');
+    return booksMap.size;
+  } catch (error) {
+    console.error('Error hydrating books table from cache:', error);
+    return 0;
+  }
+};
+
+/**
  * Загрузка всех данных для доски (все страницы)
  */
 export const loadAllBoardData = async (

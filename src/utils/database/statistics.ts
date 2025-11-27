@@ -12,6 +12,8 @@ export const getBooksByYear = async (): Promise<{
   try {
     const database = await getDatabase();
     // Используем единую таблицу books вместо book_dates
+    // eslint-disable-next-line no-console
+    console.log('📊 [getBooksByYear] Запрашиваем данные из таблицы books...');
     const rawResults = await database.getAllAsync<{
       added: number | null;
       book_status: string | null;
@@ -20,7 +22,12 @@ export const getBooksByYear = async (): Promise<{
 
     let results = rawResults;
 
+    // eslint-disable-next-line no-console
+    console.log(`📊 [getBooksByYear] Найдено записей в books: ${results.length}`);
+
     if (results.length === 0) {
+      // eslint-disable-next-line no-console
+      console.log('📊 [getBooksByYear] Таблица books пуста. Используем fallback из board_data...');
       try {
         const cachedBoardData = await database.getAllAsync<{
           data: string | null;
@@ -52,6 +59,9 @@ export const getBooksByYear = async (): Promise<{
             results = fallbackItems;
             // eslint-disable-next-line no-console
             console.log(`📚 [getBooksByYear] Использован fallback из board_data: ${fallbackItems.length} записей`);
+          } else {
+            // eslint-disable-next-line no-console
+            console.log('📚 [getBooksByYear] В board_data тоже нет данных для статистики');
           }
         }
       } catch (fallbackError) {

@@ -111,28 +111,91 @@ export const initDatabase = async (): Promise<void> => {
           UNIQUE(language)
         );
         CREATE INDEX IF NOT EXISTS idx_categories_language ON categories(language);
-        CREATE TABLE IF NOT EXISTS books (
-          book_id TEXT PRIMARY KEY,
-          title TEXT,
-          cover_path TEXT,
-          authors TEXT,
-          pages INTEGER,
-          category_value TEXT,
-          category_path TEXT,
-          book_status TEXT,
-          added INTEGER,
-          rating INTEGER,
-          votes_count INTEGER,
-          comment TEXT,
-          comment_added INTEGER,
-          annotation TEXT,
-          timestamp INTEGER NOT NULL
-        );
-        CREATE INDEX IF NOT EXISTS idx_books_book_id ON books(book_id);
-        CREATE INDEX IF NOT EXISTS idx_books_book_status ON books(book_status);
-        CREATE INDEX IF NOT EXISTS idx_books_added ON books(added);
-        CREATE INDEX IF NOT EXISTS idx_books_timestamp ON books(timestamp);
       `);
+
+      const createBooksTable = async () => {
+        if (!db) {
+          return;
+        }
+        await db.execAsync(`
+          CREATE TABLE IF NOT EXISTS books (
+            book_id TEXT PRIMARY KEY,
+            title TEXT,
+            cover_path TEXT,
+            authors TEXT,
+            pages INTEGER,
+            category_value TEXT,
+            category_path TEXT,
+            book_status TEXT,
+            added INTEGER,
+            rating INTEGER,
+            votes_count INTEGER,
+            comment TEXT,
+            comment_added INTEGER,
+            annotation TEXT,
+            timestamp INTEGER NOT NULL
+          );
+        `);
+        await db.execAsync(`
+          CREATE INDEX IF NOT EXISTS idx_books_book_id ON books(book_id);
+          CREATE INDEX IF NOT EXISTS idx_books_book_status ON books(book_status);
+          CREATE INDEX IF NOT EXISTS idx_books_added ON books(added);
+          CREATE INDEX IF NOT EXISTS idx_books_timestamp ON books(timestamp);
+        `);
+      };
+
+      const ensureBooksTableSchema = async () => {
+        if (!db) return;
+        const booksTableExists = await db.getFirstAsync<{ count: number }>(
+          `SELECT COUNT(*) as count FROM sqlite_master WHERE type='table' AND name='books'`,
+        );
+
+        if (!booksTableExists || booksTableExists.count === 0) {
+          await createBooksTable();
+          return;
+        }
+
+        const existingColumns = await db.getAllAsync<{ name: string }>(`PRAGMA table_info('books')`);
+        const requiredColumns = [
+          'book_id',
+          'title',
+          'cover_path',
+          'authors',
+          'pages',
+          'category_value',
+          'category_path',
+          'book_status',
+          'added',
+          'rating',
+          'votes_count',
+          'comment',
+          'comment_added',
+          'annotation',
+          'timestamp',
+        ];
+        const missingColumns = requiredColumns.filter(
+          (column) => !existingColumns.some((existing) => existing.name === column),
+        );
+
+        if (missingColumns.length > 0) {
+          console.warn(
+            `⚠️ [Migration] Таблица books не содержит столбцы: ${missingColumns.join(
+              ', ',
+            )}. Таблица будет пересоздана.`,
+          );
+          await db.execAsync(`DROP TABLE IF EXISTS books`);
+          await createBooksTable();
+        } else {
+          await db.execAsync(`
+            CREATE INDEX IF NOT EXISTS idx_books_book_id ON books(book_id);
+            CREATE INDEX IF NOT EXISTS idx_books_book_status ON books(book_status);
+            CREATE INDEX IF NOT EXISTS idx_books_added ON books(added);
+            CREATE INDEX IF NOT EXISTS idx_books_timestamp ON books(timestamp);
+          `);
+        }
+      };
+
+      await ensureBooksTableSchema();
 
       // Миграция: переносим данные из старых таблиц в новую единую таблицу books
       try {
@@ -249,67 +312,6 @@ export const initDatabase = async (): Promise<void> => {
         const errorMessage = error?.message || String(error);
         if (!errorMessage.includes('no such table') && !errorMessage.includes('no such column')) {
           console.warn('Migration warning (books table migration):', error);
-        }
-      }
-
-      // Миграция: проверяем и исправляем структуру таблицы books
-      try {
-        if (!db) {
-          throw new Error('Database not initialized');
-        }
-
-        // Проверяем, существует ли таблица books
-        const booksTableExists = await db.getFirstAsync<{ count: number }>(
-          `SELECT COUNT(*) as count FROM sqlite_master WHERE type='table' AND name='books'`,
-        );
-
-        if (booksTableExists && booksTableExists.count > 0) {
-          // Проверяем наличие колонки book_id
-          const bookIdColumnExists = await db.getFirstAsync<{ count: number }>(
-            `SELECT COUNT(*) as count FROM pragma_table_info('books') WHERE name='book_id'`,
-          );
-
-          if (!bookIdColumnExists || bookIdColumnExists.count === 0) {
-            // Таблица существует, но без колонки book_id - пересоздаем её
-            // eslint-disable-next-line no-console
-            console.log('🔄 [Migration] Таблица books существует без колонки book_id, пересоздаем таблицу...');
-
-            // Удаляем старую таблицу
-            await db.execAsync(`DROP TABLE IF EXISTS books`);
-
-            // Создаем таблицу заново с правильной структурой
-            await db.execAsync(`
-              CREATE TABLE books (
-                book_id TEXT PRIMARY KEY,
-                title TEXT,
-                cover_path TEXT,
-                authors TEXT,
-                pages INTEGER,
-                category_value TEXT,
-                category_path TEXT,
-                book_status TEXT,
-                added INTEGER,
-                rating INTEGER,
-                votes_count INTEGER,
-                comment TEXT,
-                comment_added INTEGER,
-                annotation TEXT,
-                timestamp INTEGER NOT NULL
-              );
-              CREATE INDEX IF NOT EXISTS idx_books_book_id ON books(book_id);
-              CREATE INDEX IF NOT EXISTS idx_books_book_status ON books(book_status);
-              CREATE INDEX IF NOT EXISTS idx_books_added ON books(added);
-              CREATE INDEX IF NOT EXISTS idx_books_timestamp ON books(timestamp);
-            `);
-
-            // eslint-disable-next-line no-console
-            console.log('✅ [Migration] Таблица books пересоздана с правильной структурой');
-          }
-        }
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        if (!errorMessage.includes('no such table')) {
-          console.warn('Migration warning (books table structure):', error);
         }
       }
 

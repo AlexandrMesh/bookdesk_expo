@@ -20,6 +20,7 @@ export {
   updateBookVotesInCache,
   updateBookStatusInCache,
   removeBookFromCache,
+  hydrateBooksTableFromCache,
 } from './database/boardData';
 
 // Даты книг
