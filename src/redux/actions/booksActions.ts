@@ -61,8 +61,6 @@ const syncBooksTableWithCache = async (books: IBook[]) => {
   try {
     const { saveBooks } = await import('~utils/database/books');
     await saveBooks(books);
-    // eslint-disable-next-line no-console
-    console.log(`📚 [loadBookListFromCache] Синхронизирована единая таблица книг: ${books.length}`);
   } catch (error) {
     console.error('Error syncing unified books table from cache:', error);
   }
@@ -193,14 +191,10 @@ export const loadSearchResults = createAsyncThunk(
       const sortDirection = (sortParams.direction ?? '') as string;
       const searchBoardType = param.boardType || ALL;
 
-      // eslint-disable-next-line no-console
-      console.log('🔍 [loadSearchResults] Поиск в локальной БД...');
 
       const foundBooks = await searchBooksInCache(searchText, searchBoardType, sortType, sortDirection, language);
       const limitedBooks = foundBooks.slice(0, SEARCH_RESULTS_LIMIT);
 
-      // eslint-disable-next-line no-console
-      console.log(`✅ [loadSearchResults] Найдено книг: ${foundBooks.length} (отображаем ${limitedBooks.length})`);
 
       return {
         boardType: ALL,
@@ -227,7 +221,6 @@ const loadBookListFromCache = async (
   { boardType, shouldLoadMoreResults }: { boardType: BookStatus; shouldLoadMoreResults: boolean },
   { getState }: AppThunkAPI,
 ) => {
-  console.log(`🔍 [loadBookListFromCache DEBUG] ${boardType}: Начало загрузки`);
 
   const state = getState();
   const pageIndex = deriveBookListPageIndex(boardType)(state);
@@ -235,15 +228,6 @@ const loadBookListFromCache = async (
   const sortParams = deriveBookListSortParams(boardType)(state);
   const { language } = i18n;
 
-  console.log(`🔍 [loadBookListFromCache DEBUG] ${boardType}: Параметры:`, {
-    pageIndex,
-    filterParamsIsArray: Array.isArray(filterParams),
-    filterParamsLength: Array.isArray(filterParams) ? filterParams.length : typeof filterParams,
-    sortParamsExists: !!sortParams,
-    sortParamsType: sortParams?.type,
-    sortParamsDirection: sortParams?.direction,
-    language,
-  });
 
   const targetPageIndex = shouldLoadMoreResults ? pageIndex + 1 : 0;
 
@@ -253,7 +237,6 @@ const loadBookListFromCache = async (
     console.error('Error initializing database:', error);
   }
 
-  console.log('💾 [loadBookListFromCache] Загрузка данных из локальной БД');
 
   try {
     const sortType = (sortParams.type ?? '') as string;
@@ -261,20 +244,11 @@ const loadBookListFromCache = async (
     const cachedData = await loadBoardData(boardType, targetPageIndex, filterParams, sortType, sortDirection, language);
 
     if (cachedData) {
-      console.log(`🔍 [loadBookListFromCache DEBUG] ${boardType}: cachedData получен:`, {
-        dataIsArray: Array.isArray(cachedData.data),
-        dataLength: Array.isArray(cachedData.data) ? cachedData.data.length : typeof cachedData.data,
-        filterParamsExists: !!cachedData.filterParams,
-        filterParamsIsArray: Array.isArray(cachedData.filterParams),
-        filterParamsLength: Array.isArray(cachedData.filterParams) ? cachedData.filterParams.length : typeof cachedData.filterParams,
-      });
 
-      console.log(`✅ [loadBookListFromCache] Загружено ${cachedData.data.length} книг из локальной БД`);
 
       let booksCountByYear: any = null;
       if (boardType !== ALL && cachedData.data && cachedData.data.length > 0) {
         booksCountByYear = calculateBooksCountByYear(cachedData.data, language);
-        console.log(`   Подсчитано booksCountByYear из локальной БД: ${booksCountByYear?.length || 0} месяцев`);
       }
 
       const returnPayload = {
@@ -287,19 +261,12 @@ const loadBookListFromCache = async (
         fromCache: true,
       };
 
-      console.log(`🔍 [loadBookListFromCache DEBUG] ${boardType}: Возвращаем payload:`, {
-        dataIsArray: Array.isArray(returnPayload.data),
-        dataLength: Array.isArray(returnPayload.data) ? returnPayload.data.length : typeof returnPayload.data,
-        booksCountByYearIsArray: Array.isArray(returnPayload.booksCountByYear),
-        booksCountByYearType: typeof returnPayload.booksCountByYear,
-      });
 
       await syncBooksTableWithCache((cachedData.data || []) as IBook[]);
 
       return returnPayload;
     }
 
-    console.log('⚠️ [loadBookListFromCache] Данные не найдены в локальной БД, возвращаем пустой массив');
     return {
       boardType,
       data: [],
@@ -311,7 +278,6 @@ const loadBookListFromCache = async (
     };
   } catch (error) {
     console.error('Error loading from local DB:', error);
-    console.log('⚠️ [loadBookListFromCache] Ошибка загрузки из локальной БД, возвращаем пустой массив');
     return {
       boardType,
       data: [],
@@ -357,24 +323,16 @@ export const loadCategories = createAsyncThunk(`${PREFIX}/loadCategories`, async
   try {
     const cachedCategories = await loadCategoriesFromDB(language);
     if (cachedCategories.length > 0) {
-      // eslint-disable-next-line no-console
-      console.log('✅ [loadCategories] Используются категории из локального кэша');
       return cachedCategories;
     }
 
     // Если категорий нет в БД, загружаем из TS файла и сохраняем в БД
-    // eslint-disable-next-line no-console
-    console.log('📂 [loadCategories] Категории не найдены в локальном кэше, загружаем из TS файла...');
     const categoriesFromTs = await initializeCategoriesFromJson(language);
     if (categoriesFromTs.length > 0) {
-      // eslint-disable-next-line no-console
-      console.log('✅ [loadCategories] Категории загружены из TS файла и сохранены в БД');
       return categoriesFromTs;
     }
 
     // Если и из TS файла не удалось загрузить, возвращаем пустой массив
-    // eslint-disable-next-line no-console
-    console.log('❌ [loadCategories] Не удалось загрузить категории ни из БД, ни из TS файла');
     return [];
   } catch (error) {
     console.error('Error loading categories:', error);
@@ -382,8 +340,6 @@ export const loadCategories = createAsyncThunk(`${PREFIX}/loadCategories`, async
     try {
       const categoriesFromTs = await initializeCategoriesFromJson(language);
       if (categoriesFromTs.length > 0) {
-        // eslint-disable-next-line no-console
-        console.log('✅ [loadCategories] Категории загружены из TS файла (fallback после ошибки)');
         return categoriesFromTs;
       }
     } catch (tsError) {
@@ -413,14 +369,6 @@ export const updateUserBookAddedDate = createAsyncThunk(
     try {
       const { bookId, bookStatus } = getBookToUpdate(getState());
 
-      // eslint-disable-next-line no-console
-      console.log('📅 [updateUserBookAddedDate] Обновление даты книги через локальную БД');
-      // eslint-disable-next-line no-console
-      console.log(`   bookId: ${bookId}`);
-      // eslint-disable-next-line no-console
-      console.log(`   bookStatus: ${bookStatus}`);
-      // eslint-disable-next-line no-console
-      console.log(`   новая дата: ${new Date(added).toLocaleDateString()}`);
 
       // Обновляем в локальной БД
       await updateBookDateInCache(bookId, added, bookStatus);
@@ -429,8 +377,6 @@ export const updateUserBookAddedDate = createAsyncThunk(
       dispatch(updateCustomBook({ bookId, bookStatus, added }));
       dispatch(triggerReloadStat());
 
-      // eslint-disable-next-line no-console
-      console.log('✅ [updateUserBookAddedDate] Дата успешно обновлена в локальной БД');
 
       return {
         bookStatus,
@@ -447,16 +393,10 @@ export const updateUserBookAddedDate = createAsyncThunk(
 
 export const deleteUserComment = createAsyncThunk(`${PREFIX}/deleteUserComment`, async (bookId: string) => {
   try {
-    // eslint-disable-next-line no-console
-    console.log('🗑️ [deleteUserComment] Удаление заметки через локальную БД');
-    // eslint-disable-next-line no-console
-    console.log(`   bookId: ${bookId}`);
 
     // Удаляем из локальной БД
     await deleteBookNote(bookId);
 
-    // eslint-disable-next-line no-console
-    console.log('✅ [deleteUserComment] Заметка успешно удалена из локальной БД');
 
     return bookId;
   } catch (error) {
@@ -467,10 +407,6 @@ export const deleteUserComment = createAsyncThunk(`${PREFIX}/deleteUserComment`,
 
 export const deleteUserBookRating = createAsyncThunk(`${PREFIX}/deleteUserBookRating`, async (bookId: string, { getState }: AppThunkAPI) => {
   try {
-    // eslint-disable-next-line no-console
-    console.log('🗑️ [deleteUserBookRating] Удаление рейтинга через локальную БД');
-    // eslint-disable-next-line no-console
-    console.log(`   bookId: ${bookId}`);
 
     // Удаляем из локальной БД
     const { deleteBookRating } = await import('~utils/boardStorage');
@@ -481,8 +417,6 @@ export const deleteUserBookRating = createAsyncThunk(`${PREFIX}/deleteUserBookRa
     const currentRatings = state.books.bookRatings || [];
     const updatedRatings = currentRatings.filter((r: IRating) => r.bookId !== bookId);
 
-    // eslint-disable-next-line no-console
-    console.log(`✅ [deleteUserBookRating] Рейтинг успешно удален из локальной БД (было: ${currentRatings.length}, стало: ${updatedRatings.length})`);
 
     return updatedRatings;
   } catch (error) {
@@ -499,16 +433,6 @@ export const updateUserBook = createAsyncThunk(
   ) => {
     const { bookId, bookStatus } = book;
     try {
-      // eslint-disable-next-line no-console
-      console.log('📝 [updateUserBook] Изменение статуса книги через локальную БД');
-      // eslint-disable-next-line no-console
-      console.log(`   bookId: ${bookId}`);
-      // eslint-disable-next-line no-console
-      console.log(`   старый статус: ${bookStatus}`);
-      // eslint-disable-next-line no-console
-      console.log(`   новый статус: ${newBookStatus}`);
-      // eslint-disable-next-line no-console
-      console.log(`   дата: ${new Date(added).toLocaleDateString()}`);
 
       // Обновляем в локальной БД
       // updateBookStatusInCache обновляет статус книги во всех записях кэша
@@ -526,8 +450,6 @@ export const updateUserBook = createAsyncThunk(
 
       if (newBookStatus === ALL) {
         // Удаляем комментарий и рейтинг локально
-        // eslint-disable-next-line no-console
-        console.log(`   Удаление комментария и рейтинга для книги ${bookId}`);
       }
 
       // It's because we don't want to refresh all books list to preserve scrolling
@@ -536,8 +458,6 @@ export const updateUserBook = createAsyncThunk(
 
       dispatch(triggerReloadStat());
 
-      // eslint-disable-next-line no-console
-      console.log('✅ [updateUserBook] Статус книги успешно обновлен в локальной БД');
 
       return {
         boardType,
@@ -559,14 +479,6 @@ export const updateUserComment = createAsyncThunk(
   `${PREFIX}/updateUserComment`,
   async ({ bookId, comment, added }: { bookId: string; comment: string; added: number }, { getState }: AppThunkAPI) => {
     try {
-      // eslint-disable-next-line no-console
-      console.log('📝 [updateUserComment] Обновление заметки через локальную БД');
-      // eslint-disable-next-line no-console
-      console.log(`   bookId: ${bookId}`);
-      // eslint-disable-next-line no-console
-      console.log(`   comment: ${comment.substring(0, 50)}${comment.length > 50 ? '...' : ''}`);
-      // eslint-disable-next-line no-console
-      console.log(`   дата: ${new Date(added).toLocaleDateString()}`);
 
       // Сохраняем в локальную БД
       await saveBookNote(bookId, comment, added);
@@ -577,15 +489,9 @@ export const updateUserComment = createAsyncThunk(
       const existingNoteIndex = currentNotes.findIndex((note: IBookNote) => note.bookId === bookId);
 
       if (existingNoteIndex !== -1) {
-        // eslint-disable-next-line no-console
-        console.log(`   Обновлена существующая заметка`);
       } else {
-        // eslint-disable-next-line no-console
-        console.log(`   Добавлена новая заметка`);
       }
 
-      // eslint-disable-next-line no-console
-      console.log('✅ [updateUserComment] Заметка обновлена в Redux state и сохранена в локальную БД');
 
       return {
         bookId,
@@ -603,14 +509,6 @@ export const updateUserBookRating = createAsyncThunk(
   `${PREFIX}/updateUserBookRating`,
   async ({ bookId, rating, added }: { bookId: string; rating: number; added: number }, { getState }: AppThunkAPI) => {
     try {
-      // eslint-disable-next-line no-console
-      console.log('⭐ [updateUserBookRating] Обновление рейтинга книги через локальную БД');
-      // eslint-disable-next-line no-console
-      console.log(`   bookId: ${bookId}`);
-      // eslint-disable-next-line no-console
-      console.log(`   рейтинг: ${rating}`);
-      // eslint-disable-next-line no-console
-      console.log(`   дата: ${new Date(added).toLocaleDateString()}`);
 
       // Получаем текущие рейтинги из state
       const state = getState();
@@ -623,21 +521,15 @@ export const updateUserBookRating = createAsyncThunk(
       if (existingRatingIndex !== -1) {
         // Обновляем существующий рейтинг
         updatedRatings = currentRatings.map((r: IRating, index: number) => (index === existingRatingIndex ? { ...r, rating } : r));
-        // eslint-disable-next-line no-console
-        console.log(`   Обновлен существующий рейтинг (было: ${currentRatings[existingRatingIndex].rating})`);
       } else {
         // Добавляем новый рейтинг
         updatedRatings = [...currentRatings, { bookId, rating }];
-        // eslint-disable-next-line no-console
-        console.log(`   Добавлен новый рейтинг`);
       }
 
       // Сохраняем рейтинг в локальную БД
       await initDatabase();
       await saveBookRating(bookId, rating);
 
-      // eslint-disable-next-line no-console
-      console.log('✅ [updateUserBookRating] Рейтинг обновлен в Redux state и сохранен в локальную БД');
 
       // Возвращаем обновленный массив рейтингов (reducer ожидает IRating[])
       return updatedRatings;
@@ -652,12 +544,6 @@ export const updateBookVotes = createAsyncThunk(
   `${PREFIX}/updateBookVotes`,
   async ({ bookId, shouldAdd, bookStatus }: { bookId: string; shouldAdd: boolean; bookStatus: BookStatus }, { dispatch, getState }: AppThunkAPI) => {
     try {
-      // eslint-disable-next-line no-console
-      console.log('👍 [updateBookVotes] Обновление лайков книги через локальную БД');
-      // eslint-disable-next-line no-console
-      console.log(`   bookId: ${bookId}`);
-      // eslint-disable-next-line no-console
-      console.log(`   действие: ${shouldAdd ? 'добавить лайк' : 'убрать лайк'}`);
 
       // Получаем текущее количество лайков из state
       const state = getState();
@@ -706,10 +592,6 @@ export const updateBookVotes = createAsyncThunk(
       dispatch(updateBookVotesInSuggestedBook({ bookId, votesCount: newVotesCount }));
       dispatch(updateBookVotesInCustomBook({ bookId, votesCount: newVotesCount }));
 
-      // eslint-disable-next-line no-console
-      console.log(`✅ [updateBookVotes] Лайки обновлены: ${currentVotesCount} → ${newVotesCount}`);
-      // eslint-disable-next-line no-console
-      console.log(`   UserVotes обновлены: ${currentUserVotes.length} → ${updatedUserVotes.length} записей`);
 
       return {
         userVotes: updatedUserVotes,

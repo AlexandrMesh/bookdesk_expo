@@ -20,8 +20,6 @@ export const saveBookVotesCount = async (bookId: string, votesCount: number): Pr
       console.warn(`Error updating unified books table for book ${bookId}:`, error);
     }
 
-    // eslint-disable-next-line no-console
-    console.log(`👍 [SQLite Cache] Лайки сохранены: bookId=${bookId}, votesCount=${votesCount}`);
   } catch (error) {
     console.error('Error saving book votes count:', error);
     throw error;
@@ -41,8 +39,6 @@ export const saveUserVotes = async (userVotes: IVote[]): Promise<void> => {
     await database.runAsync(`DELETE FROM user_votes`);
     await database.runAsync(`INSERT INTO user_votes (data, timestamp) VALUES (?, ?)`, [dataStr, timestamp]);
 
-    // eslint-disable-next-line no-console
-    console.log(`👍 [SQLite Cache] UserVotes сохранены: ${userVotes.length} записей`);
   } catch (error) {
     console.error('Error saving user votes:', error);
     throw error;
@@ -66,17 +62,7 @@ export const loadUserVotes = async (): Promise<IVote[]> => {
 
     const userVotes: IVote[] = JSON.parse(result.data);
 
-    // eslint-disable-next-line no-console
-    console.log(`👍 [SQLite Cache] Загружено userVotes из локальной БД: ${userVotes.length} записей`);
     if (userVotes.length > 0) {
-      // eslint-disable-next-line no-console
-      console.log(
-        `   Первые 5 лайков:`,
-        userVotes
-          .slice(0, 5)
-          .map((v) => `${v.bookId}:${v.count}`)
-          .join(', '),
-      );
     }
 
     return userVotes;

@@ -55,7 +55,6 @@ const BannerAd: React.FC = () => {
           setAdSize(size);
           setBannerViewComponent(() => BannerView);
         } catch (error) {
-          console.log('Yandex Mobile Ads not available:', error);
         }
       })();
     } else {

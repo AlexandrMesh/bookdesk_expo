@@ -53,17 +53,6 @@ const InProgressBooks = () => {
 
   // DEBUG: Логируем значения селекторов
   useEffect(() => {
-    console.log('🔍 [InProgressBooks DEBUG] Селекторы:', {
-      sectionedBookListData: sectionedBookListData
-        ? Array.isArray(sectionedBookListData)
-          ? `array[${sectionedBookListData.length}]`
-          : typeof sectionedBookListData
-        : 'null/undefined',
-      loadingDataStatus,
-      shouldReloadData,
-      totalItems,
-      isFocused,
-    });
   }, [sectionedBookListData, loadingDataStatus, shouldReloadData, totalItems, isFocused]);
 
   useEffect(() => {

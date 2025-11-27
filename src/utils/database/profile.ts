@@ -25,8 +25,6 @@ export const saveProfile = async (profile: {
     // ВАЖНО: Если сохраняем профиль с другим user_id (например, профиль с сервера вместо гостевого),
     // то удаляем все старые записи профиля, чтобы гарантировать, что будет только одна запись
     if (isDifferentUser) {
-      // eslint-disable-next-line no-console
-      console.log(`👤 [SQLite Cache] Сохраняем профиль с другим user_id (${profile._id} вместо ${existingProfile._id}), удаляем старые записи`);
       await database.runAsync(`DELETE FROM user_profile`);
     }
 
@@ -44,10 +42,6 @@ export const saveProfile = async (profile: {
           : (existingProfile?.syncDatabaseCompleted ?? false);
     const isNewUser = profile.isNewUser !== undefined ? profile.isNewUser : isDifferentUser ? false : (existingProfile?.isNewUser ?? false);
 
-    // eslint-disable-next-line no-console
-    console.log(
-      `👤 [SQLite Cache] Сохраняем профиль: userId=${profile._id}, email=${profile.email}, registered=${profile.registered}, syncDatabaseCompleted=${syncDatabaseCompletedValue}`,
-    );
 
     // Проверяем, существует ли колонка sync_database_completed
     const checkColumn = await database.getFirstAsync<{ count: number }>(
@@ -105,14 +99,6 @@ export const saveProfile = async (profile: {
 
     // Проверяем, что профиль действительно сохранился
     const savedProfile = await loadProfile();
-    // eslint-disable-next-line no-console
-    console.log(
-      `👤 [SQLite Cache] Профиль сохранен: userId=${profile._id}, email=${profile.email}, registered=${profile.registered}, syncCompleted=${syncCompleted}, syncDatabaseCompleted=${syncDatabaseCompletedValue}, isNewUser=${isNewUser}`,
-    );
-    // eslint-disable-next-line no-console
-    console.log(
-      `👤 [SQLite Cache] Проверка сохраненного профиля: userId=${savedProfile?._id || 'нет'}, email=${savedProfile?.email || 'нет'}, registered=${savedProfile?.registered || 'нет'}`,
-    );
   } catch (error) {
     console.error('Error saving profile:', error);
     throw error;
@@ -163,10 +149,6 @@ export const loadProfile = async (): Promise<{
       return null;
     }
 
-    // eslint-disable-next-line no-console
-    console.log(
-      `👤 [SQLite Cache] Загружен профиль из локальной БД: userId=${result.user_id}, email=${result.email}, registered=${result.registered}, syncCompleted=${result.sync_with_local_database_completed === 1}, syncDatabaseCompleted=${result.sync_database_completed === 1}, isNewUser=${result.is_new_user === 1}`,
-    );
 
     const loadedProfile = {
       _id: result.user_id,
@@ -182,10 +164,6 @@ export const loadProfile = async (): Promise<{
       isNewUser: result.is_new_user === 1,
     };
 
-    // eslint-disable-next-line no-console
-    console.log(
-      `👤 [SQLite Cache] Возвращаемый профиль: _id=${loadedProfile._id}, email=${loadedProfile.email}, registered=${loadedProfile.registered}`,
-    );
 
     return loadedProfile;
   } catch (error) {
@@ -201,8 +179,6 @@ export const deleteProfile = async (): Promise<void> => {
   try {
     const database = await getDatabase();
     await database.runAsync(`DELETE FROM user_profile`);
-    // eslint-disable-next-line no-console
-    console.log(`🗑️ [SQLite Cache] Профиль удален из локальной БД`);
   } catch (error) {
     console.error('Error deleting profile:', error);
     throw error;
@@ -234,17 +210,11 @@ export const saveGuestProfile = async (forceCreate: boolean = false): Promise<vo
     // ВАЖНО: Никогда не перезаписываем профиль, если syncDatabaseCompleted = true
     // Это означает, что профиль был синхронизирован с сервера и содержит реальные данные пользователя
     if (existingProfile && existingProfile.syncDatabaseCompleted === true) {
-      // eslint-disable-next-line no-console
-      console.log(
-        `👤 [saveGuestProfile] Профиль уже существует с syncDatabaseCompleted=true, НЕ перезаписываем! userId=${existingProfile._id}, email=${existingProfile.email}`,
-      );
       return;
     }
 
     // Если forceCreate = false и профиль существует (но syncDatabaseCompleted != true), пропускаем
     if (!forceCreate && existingProfile) {
-      // eslint-disable-next-line no-console
-      console.log('👤 [saveGuestProfile] Профиль уже существует, пропускаем сохранение');
       return;
     }
 
@@ -283,8 +253,6 @@ export const saveGuestProfile = async (forceCreate: boolean = false): Promise<vo
       }
     }
 
-    // eslint-disable-next-line no-console
-    console.log(`👤 [SQLite Cache] Гостевой профиль сохранен: userId=${guestId}, registered=${new Date(timestamp).toISOString()}, isNewUser=true`);
   } catch (error) {
     console.error('Error saving guest profile:', error);
     throw error;
@@ -300,8 +268,6 @@ export const setSyncWithLocalDatabaseCompleted = async (completed: boolean): Pro
     await database.runAsync(`UPDATE user_profile SET sync_with_local_database_completed = ? WHERE id IN (SELECT id FROM user_profile LIMIT 1)`, [
       completed ? 1 : 0,
     ]);
-    // eslint-disable-next-line no-console
-    console.log(`✅ [SQLite Cache] syncWithLocalDatabaseCompleted установлен: ${completed}`);
   } catch (error) {
     console.error('Error setting syncWithLocalDatabaseCompleted:', error);
     throw error;
@@ -336,14 +302,10 @@ export const setSyncDatabaseCompleted = async (completed: boolean): Promise<void
     
     // Обновляем все записи профиля (должна быть только одна)
     const result = await database.runAsync(`UPDATE user_profile SET sync_database_completed = ?`, [completed ? 1 : 0]);
-    // eslint-disable-next-line no-console
-    console.log(`✅ [SQLite Cache] syncDatabaseCompleted установлен: ${completed}, обновлено записей: ${result.changes}`);
 
     // Проверяем, что значение действительно установлено
     const updatedProfile = await loadProfile();
     if (updatedProfile) {
-      // eslint-disable-next-line no-console
-      console.log(`✅ [SQLite Cache] Проверка: syncDatabaseCompleted в профиле = ${updatedProfile.syncDatabaseCompleted} (ожидалось: ${completed})`);
     }
   } catch (error) {
     console.error('Error setting syncDatabaseCompleted:', error);

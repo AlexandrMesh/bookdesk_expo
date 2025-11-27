@@ -76,10 +76,6 @@ const EditCustomBook = () => {
   const [selectedCover, setSelectedCover] = useState<string>(initialCoverPath === DEFAULT_COVER ? '' : initialCoverPath);
 
   useEffect(() => {
-    console.log('EditCustomBook mounted - params.coverPath:', params.coverPath);
-    console.log('initialCoverPath:', initialCoverPath);
-    console.log('imgUrl:', imgUrl);
-    console.log('selectedCover:', selectedCover);
   }, []);
   const [isPickingFromDevice, setIsPickingFromDevice] = useState(false);
   const [suggestedCoversData, setSuggestedCoversData] = useState<Array<{ coverPath: string }>>([]);
@@ -277,29 +273,23 @@ const EditCustomBook = () => {
   const displayDeleteConfirmation = useDisplayAlert(handleDeleteBook);
 
   const getImageUri = (cover: string) => {
-    console.log('getImageUri called with cover:', cover, 'imgUrl:', imgUrl);
     if (!cover || cover === DEFAULT_COVER) {
       // Для дефолтной обложки всегда возвращаем URI, даже если imgUrl еще не готов
       const uri = imgUrl ? `${imgUrl}/${DEFAULT_COVER}.webp` : '';
-      console.log('Default cover URI:', uri);
       return uri;
     }
     const lower = String(cover);
     const isAbsolute = /^https?:\/\//i.test(lower) || lower.startsWith('file:') || lower.startsWith('content:') || lower.startsWith('data:');
     if (isAbsolute) {
-      console.log('Absolute URI:', cover);
       return cover;
     }
     const uri = imgUrl ? `${imgUrl}/${cover}.webp` : '';
-    console.log('Relative URI:', uri);
     return uri;
   };
 
   const currentCoverThumb = useMemo(() => {
     const cover = selectedCover || initialCoverPath;
-    console.log('currentCoverThumb useMemo - cover:', cover, 'selectedCover:', selectedCover, 'initialCoverPath:', initialCoverPath);
     const uri = getImageUri(cover);
-    console.log('currentCoverThumb result:', uri);
     return uri;
   }, [selectedCover, initialCoverPath, imgUrl]);
 
@@ -335,11 +325,8 @@ const EditCustomBook = () => {
                       uri: currentCoverThumb,
                     }}
                     onError={(e) => {
-                      console.log('Image load error:', e.nativeEvent.error);
-                      console.log('Failed URI:', currentCoverThumb);
                     }}
                     onLoad={() => {
-                      console.log('Image loaded successfully:', currentCoverThumb);
                     }}
                   />
                 ) : (

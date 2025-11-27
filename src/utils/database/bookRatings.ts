@@ -19,9 +19,6 @@ export const saveBookRating = async (bookId: string, rating: number): Promise<vo
     } catch (error) {
       console.warn(`Error updating unified books table for book ${bookId}:`, error);
     }
-
-    // eslint-disable-next-line no-console
-    console.log(`⭐ [SQLite Cache] Рейтинг сохранен: bookId=${bookId}, rating=${rating}`);
   } catch (error) {
     console.error('Error saving book rating:', error);
     throw error;
@@ -45,19 +42,6 @@ export const loadBookRatings = async (): Promise<IRating[]> => {
       rating: result.rating,
     }));
 
-    // eslint-disable-next-line no-console
-    console.log(`📖 [SQLite Cache] Загружено рейтингов из локальной БД: ${ratings.length}`);
-    if (ratings.length > 0) {
-      // eslint-disable-next-line no-console
-      console.log(
-        `   Первые 5 рейтингов:`,
-        ratings
-          .slice(0, 5)
-          .map((r) => `${r.bookId}:${r.rating}`)
-          .join(', '),
-      );
-    }
-
     return ratings;
   } catch (error) {
     console.error('Error loading book ratings:', error);
@@ -80,12 +64,8 @@ export const deleteBookRating = async (bookId: string): Promise<void> => {
     } catch (error) {
       console.warn(`Error updating unified books table for book ${bookId}:`, error);
     }
-
-    // eslint-disable-next-line no-console
-    console.log(`🗑️ [SQLite Cache] Рейтинг удален: bookId=${bookId}`);
   } catch (error) {
     console.error('Error deleting book rating:', error);
     throw error;
   }
 };
-

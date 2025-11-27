@@ -25,10 +25,6 @@ export const saveBookNote = async (bookId: string, comment: string, added: numbe
       console.warn(`Error updating unified books table for book ${bookId}:`, error);
     }
 
-    // eslint-disable-next-line no-console
-    console.log(
-      `📝 [SQLite Cache] Заметка сохранена: bookId=${bookId}, comment=${comment.substring(0, 50)}${comment.length > 50 ? '...' : ''}, added=${new Date(added).toLocaleDateString()}`,
-    );
   } catch (error) {
     console.error('Error saving book note:', error);
     throw error;
@@ -54,17 +50,7 @@ export const loadBookNotes = async (): Promise<IBookNote[]> => {
       added: result.added,
     }));
 
-    // eslint-disable-next-line no-console
-    console.log(`📝 [SQLite Cache] Загружено заметок из локальной БД: ${notes.length}`);
     if (notes.length > 0) {
-      // eslint-disable-next-line no-console
-      console.log(
-        `   Первые 5 заметок:`,
-        notes
-          .slice(0, 5)
-          .map((n) => `${n.bookId}:${n.comment.substring(0, 30)}${n.comment.length > 30 ? '...' : ''}`)
-          .join(', '),
-      );
     }
 
     return notes;
@@ -90,8 +76,6 @@ export const deleteBookNote = async (bookId: string): Promise<void> => {
       console.warn(`Error updating unified books table for book ${bookId}:`, error);
     }
 
-    // eslint-disable-next-line no-console
-    console.log(`🗑️ [SQLite Cache] Заметка удалена: bookId=${bookId}`);
   } catch (error) {
     console.error('Error deleting book note:', error);
     throw error;

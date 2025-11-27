@@ -47,25 +47,6 @@ export const saveBoardData = async (
         timestamp,
       ],
     );
-
-    // eslint-disable-next-line no-console
-    console.log('💾 [SQLite Cache] Данные сохранены в локальную базу:');
-    // eslint-disable-next-line no-console
-    console.log(`   Доска: ${boardType}`);
-    // eslint-disable-next-line no-console
-    console.log(`   Количество книг: ${data.length}`);
-    // eslint-disable-next-line no-console
-    console.log(`   Всего элементов: ${totalItems}`);
-    // eslint-disable-next-line no-console
-    console.log(`   Страница: ${pageIndex}`);
-    // eslint-disable-next-line no-console
-    console.log(`   Фильтры: ${filterParams && filterParams.length > 0 ? filterParams.join(', ') : 'нет'}`);
-    // eslint-disable-next-line no-console
-    console.log(`   Сортировка: ${sortType} (${sortDirection})`);
-    // eslint-disable-next-line no-console
-    console.log(`   Язык: ${universalLanguage} (универсальный для всех языков)`);
-    // eslint-disable-next-line no-console
-    console.log(`   Есть следующая страница: ${hasNextPage ? 'да' : 'нет'}`);
   } catch (error) {
     console.error('Error saving board data:', error);
     // Не пробрасываем ошибку дальше, чтобы не прерывать работу приложения
@@ -190,20 +171,6 @@ export const loadBoardData = async (
             }
           });
         }
-
-        // eslint-disable-next-line no-console
-        console.log(`📖 [SQLite Cache] Загружены данные из локальной БД (собрано из всех записей доски):`);
-        // eslint-disable-next-line no-console
-        console.log(`   Доска: ${boardType}`);
-        // eslint-disable-next-line no-console
-        console.log(`   Всего записей в board_data: ${allRecords.length}`);
-        // eslint-disable-next-line no-console
-        console.log(`   Книг до фильтрации: ${booksWithDates.length}`);
-        // eslint-disable-next-line no-console
-        console.log(`   Книг после фильтрации по статусу: ${Array.from(uniqueBooks.values()).length}`);
-        // eslint-disable-next-line no-console
-        console.log(`   Книг после применения фильтров и сортировки: ${finalBooks.length}`);
-
         if (finalBooks.length > 0) {
           return {
             boardType,
@@ -283,47 +250,6 @@ export const loadBoardData = async (
       }
     }
 
-    const cacheAge = Date.now() - latestTimestamp;
-    const cacheAgeMinutes = Math.floor(cacheAge / 60000);
-    const cacheAgeHours = Math.floor(cacheAgeMinutes / 60);
-    const cacheAgeDays = Math.floor(cacheAgeHours / 24);
-
-    let cacheAgeStr = '';
-    if (cacheAgeDays > 0) {
-      cacheAgeStr = `${cacheAgeDays} дн. ${cacheAgeHours % 24} ч.`;
-    } else if (cacheAgeHours > 0) {
-      cacheAgeStr = `${cacheAgeHours} ч. ${cacheAgeMinutes % 60} мин.`;
-    } else if (cacheAgeMinutes > 0) {
-      cacheAgeStr = `${cacheAgeMinutes} мин.`;
-    } else {
-      cacheAgeStr = `${Math.floor(cacheAge / 1000)} сек.`;
-    }
-
-    // eslint-disable-next-line no-console
-    console.log('📦 [SQLite Cache] Данные загружены из локальной базы:');
-    // eslint-disable-next-line no-console
-    console.log(`   Доска: ${allResults[0].board_type}`);
-    // eslint-disable-next-line no-console
-    console.log(`   Количество книг (все страницы): ${allBooks.length}`);
-    // eslint-disable-next-line no-console
-    console.log(`   Количество страниц в кэше: ${allResults.length}`);
-    // eslint-disable-next-line no-console
-    console.log(`   Фильтры: ${filterParamsParsed.length > 0 ? filterParamsParsed.join(', ') : 'нет'}`);
-    // eslint-disable-next-line no-console
-    console.log(`   Сортировка: ${allResults[0].sort_type} (${allResults[0].sort_direction})`);
-    // eslint-disable-next-line no-console
-    console.log(`   Язык: ${allResults[0].language} (данные универсальные для всех языков)`);
-    // eslint-disable-next-line no-console
-    console.log(`   Возраст кэша: ${cacheAgeStr}`);
-    if (allBooks.length > 0) {
-      // eslint-disable-next-line no-console
-      console.log(`   Первые 3 книги:`);
-      allBooks.slice(0, 3).forEach((book, idx) => {
-        // eslint-disable-next-line no-console
-        console.log(`     ${idx + 1}. ${book.title} (${book.bookId})`);
-      });
-    }
-
     // Применяем сохраненные статусы и даты
     const booksWithDates = applyBookDatesToData(allBooks, datesMap);
 
@@ -339,8 +265,6 @@ export const loadBoardData = async (
     // Для доски ALL не фильтруем, для остальных фильтруем по статусу
     if (boardType !== ALL) {
       finalBooks = finalBooks.filter((book) => book.bookStatus === boardType);
-      // eslint-disable-next-line no-console
-      console.log(`   После фильтрации по статусу ${boardType}: ${finalBooks.length} книг`);
     }
 
     // Применяем фильтры по категориям (если указаны)
@@ -407,15 +331,11 @@ export const loadBoardData = async (
 export const hydrateBooksTableFromCache = async (): Promise<number> => {
   try {
     const database = await getDatabase();
-    // eslint-disable-next-line no-console
-    console.log('🔄 [hydrateBooksTableFromCache] Старт гидратации таблицы books из board_data...');
     const records = await database.getAllAsync<{
       data: string | null;
     }>(`SELECT data FROM board_data`);
 
     if (!records || records.length === 0) {
-      // eslint-disable-next-line no-console
-      console.log('🔄 [hydrateBooksTableFromCache] В board_data нет записей — гидратация не требуется');
       return 0;
     }
 
@@ -443,23 +363,17 @@ export const hydrateBooksTableFromCache = async (): Promise<number> => {
     }
 
     if (booksMap.size === 0) {
-      // eslint-disable-next-line no-console
-      console.log('🔄 [hydrateBooksTableFromCache] После парсинга не найдено книг для гидратации');
       return 0;
     }
 
     try {
       const { saveBooks } = await import('./books');
       await saveBooks(Array.from(booksMap.values()));
-      // eslint-disable-next-line no-console
-      console.log(`📚 [hydrateBooksTableFromCache] Синхронизировано книг: ${booksMap.size}`);
     } catch (error) {
       console.error('Error saving hydrated books:', error);
       return 0;
     }
 
-    // eslint-disable-next-line no-console
-    console.log('🔄 [hydrateBooksTableFromCache] Гидратация завершена');
     return booksMap.size;
   } catch (error) {
     console.error('Error hydrating books table from cache:', error);
@@ -568,8 +482,6 @@ export const searchBooksInCache = async (
     // Фильтруем книги по статусу доски (если не ALL)
     if (boardType !== ALL) {
       booksWithDates = booksWithDates.filter((book) => book.bookStatus === boardType);
-      // eslint-disable-next-line no-console
-      console.log(`   После фильтрации по статусу ${boardType}: ${booksWithDates.length} книг`);
     }
 
     // Фильтруем по поисковому запросу (по title)
@@ -624,16 +536,6 @@ export const searchBooksInCache = async (
         }
       });
     }
-
-    // eslint-disable-next-line no-console
-    console.log(`🔍 [SQLite Cache] Поиск в локальной БД:`);
-    // eslint-disable-next-line no-console
-    console.log(`   Поисковый запрос: "${searchText}"`);
-    // eslint-disable-next-line no-console
-    console.log(`   Доска: ${boardType}`);
-    // eslint-disable-next-line no-console
-    console.log(`   Найдено книг: ${finalBooks.length}`);
-
     return finalBooks;
   } catch (error) {
     console.error('Error searching books in cache:', error);
@@ -717,8 +619,6 @@ export const updateBookInCache = async (bookId: string, updates: Partial<IBook>)
       timestamp: number;
     }>(`SELECT * FROM board_data`);
 
-    let updatedCount = 0;
-
     for (const record of allRecords) {
       const books = JSON.parse(record.data) as IBook[];
       const bookIndex = books.findIndex((book) => book.bookId === bookId);
@@ -730,20 +630,7 @@ export const updateBookInCache = async (bookId: string, updates: Partial<IBook>)
 
         // Обновляем запись в БД
         await database.runAsync(`UPDATE board_data SET data = ?, timestamp = ? WHERE id = ?`, [updatedData, Date.now(), record.id]);
-
-        updatedCount++;
       }
-    }
-
-    if (updatedCount > 0) {
-      // eslint-disable-next-line no-console
-      console.log(`🔄 [SQLite Cache] Книга обновлена в кэше:`);
-      // eslint-disable-next-line no-console
-      console.log(`   bookId: ${bookId}`);
-      // eslint-disable-next-line no-console
-      console.log(`   Обновлено записей: ${updatedCount}`);
-      // eslint-disable-next-line no-console
-      console.log(`   Изменения:`, updates);
     }
   } catch (error) {
     console.error('Error updating book in cache:', error);
@@ -793,8 +680,6 @@ export const addBookToCache = async (boardType: BookStatus, newBook: IBook): Pro
         [boardType, 0, emptyFilters, defaultSortType, defaultSortDirection, universalLanguage, booksData, 1, 0, null, timestamp],
       );
 
-      // eslint-disable-next-line no-console
-      console.log(`➕ [SQLite Cache] Создана новая запись board_data для доски ${boardType} с книгой: ${newBook.bookId}`);
       return;
     }
 
@@ -813,9 +698,6 @@ export const addBookToCache = async (boardType: BookStatus, newBook: IBook): Pro
         ]);
       }
     }
-
-    // eslint-disable-next-line no-console
-    console.log(`➕ [SQLite Cache] Книга добавлена в кэш доски ${boardType}: ${newBook.bookId}`);
   } catch (error) {
     console.error('Error adding book to cache:', error);
   }
@@ -826,8 +708,6 @@ export const addBookToCache = async (boardType: BookStatus, newBook: IBook): Pro
  */
 export const updateBookVotesInCache = async (bookId: string, votesCount: number): Promise<void> => {
   await updateBookInCache(bookId, { votesCount });
-  // eslint-disable-next-line no-console
-  console.log(`👍 [SQLite Cache] Обновлен votesCount для книги ${bookId}: ${votesCount}`);
 };
 
 /**
@@ -845,8 +725,6 @@ export const updateBookStatusInCache = async (bookId: string, bookStatus: BookSt
       // Обновляем статус и дату в полном объекте книги
       const updatedBook = { ...fullBook, bookStatus, added };
       await saveBook(updatedBook);
-      // eslint-disable-next-line no-console
-      console.log(`📚 [SQLite Cache] Полные данные книги сохранены в единую таблицу: ${bookId}`);
     } catch (error) {
       console.warn(`Error saving full book data to unified table for book ${bookId}:`, error);
     }
@@ -862,19 +740,12 @@ export const updateBookStatusInCache = async (bookId: string, bookStatus: BookSt
           const { saveBook } = await import('./books');
           const updatedBook = { ...existingBook, bookStatus, added };
           await saveBook(updatedBook);
-          // eslint-disable-next-line no-console
-          console.log(`📚 [SQLite Cache] Данные книги загружены из кэша и сохранены в единую таблицу: ${bookId}`);
         }
       }
     } catch (error) {
       console.warn(`Error loading book data from cache for book ${bookId}:`, error);
     }
   }
-
-  // eslint-disable-next-line no-console
-  console.log(`📝 [SQLite Cache] Обновлен статус книги ${bookId}: ${bookStatus}, дата: ${new Date(added).toLocaleDateString()}`);
-  // eslint-disable-next-line no-console
-  console.log(`   Статус и дата сохранены в таблицу book_dates`);
 };
 
 /**
@@ -900,8 +771,6 @@ export const removeBookFromCache = async (bookId: string): Promise<void> => {
       timestamp: number;
     }>(`SELECT * FROM board_data`);
 
-    let removedCount = 0;
-
     for (const record of allRecords) {
       const books = JSON.parse(record.data) as IBook[];
       const bookIndex = books.findIndex((book) => book.bookId === bookId);
@@ -918,11 +787,8 @@ export const removeBookFromCache = async (bookId: string): Promise<void> => {
           Date.now(),
           record.id,
         ]);
-
-        removedCount++;
       }
     }
-
     // Удаляем связанные данные (дата, рейтинг, заметки)
     try {
       await database.runAsync(`DELETE FROM book_dates WHERE book_id = ?`, [bookId]);
@@ -930,15 +796,6 @@ export const removeBookFromCache = async (bookId: string): Promise<void> => {
       await database.runAsync(`DELETE FROM book_notes WHERE book_id = ?`, [bookId]);
     } catch (e) {
       console.error('Error deleting related book data:', e);
-    }
-
-    if (removedCount > 0) {
-      // eslint-disable-next-line no-console
-      console.log(`🗑️ [SQLite Cache] Книга удалена из кэша:`);
-      // eslint-disable-next-line no-console
-      console.log(`   bookId: ${bookId}`);
-      // eslint-disable-next-line no-console
-      console.log(`   Удалено из записей: ${removedCount}`);
     }
   } catch (error) {
     console.error('Error removing book from cache:', error);

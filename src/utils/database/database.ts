@@ -233,8 +233,6 @@ export const initDatabase = async (): Promise<void> => {
 
         // Если ни одна из старых таблиц не существует, пропускаем миграцию
         if (!bookDatesExists && !bookRatingsExists && !bookVotesExists && !bookNotesExists) {
-          // eslint-disable-next-line no-console
-          console.log('✅ [Migration] Старые таблицы не найдены, миграция не требуется');
         } else {
           // Проверяем, есть ли данные в старых таблицах, но нет в новой
           const existingBooks = await db.getFirstAsync<{ count: number }>(`SELECT COUNT(*) as count FROM books`);
@@ -254,8 +252,6 @@ export const initDatabase = async (): Promise<void> => {
             `);
 
             if (hasOldData && hasOldData.count > 0 && (!existingBooks || existingBooks.count === 0)) {
-              // eslint-disable-next-line no-console
-              console.log('🔄 [Migration] Начинаем миграцию данных из старых таблиц в единую таблицу books...');
 
               // Получаем все уникальные book_id из старых таблиц
               const allBookIds = await db.getAllAsync<{ book_id: string }>(`
@@ -302,8 +298,6 @@ export const initDatabase = async (): Promise<void> => {
                 );
               }
 
-              // eslint-disable-next-line no-console
-              console.log(`✅ [Migration] Мигрировано ${allBookIds.length} книг из старых таблиц в единую таблицу books`);
             }
           }
         }
@@ -321,8 +315,6 @@ export const initDatabase = async (): Promise<void> => {
         await db.execAsync(`
           ALTER TABLE user_profile ADD COLUMN sync_with_local_database_completed INTEGER NOT NULL DEFAULT 0;
         `);
-        // eslint-disable-next-line no-console
-        console.log('✅ [Migration] Added sync_with_local_database_completed column');
       } catch (error: any) {
         // Игнорируем ошибку если колонка уже существует
         if (!error?.message?.includes('duplicate column') && !error?.message?.includes('already exists')) {
@@ -334,8 +326,6 @@ export const initDatabase = async (): Promise<void> => {
         await db.execAsync(`
           ALTER TABLE user_profile ADD COLUMN is_new_user INTEGER NOT NULL DEFAULT 0;
         `);
-        // eslint-disable-next-line no-console
-        console.log('✅ [Migration] Added is_new_user column');
       } catch (error: any) {
         // Игнорируем ошибку если колонка уже существует
         if (!error?.message?.includes('duplicate column') && !error?.message?.includes('already exists')) {
@@ -352,11 +342,7 @@ export const initDatabase = async (): Promise<void> => {
           await db.execAsync(`
             ALTER TABLE user_profile ADD COLUMN sync_database_completed INTEGER NOT NULL DEFAULT 0;
           `);
-          // eslint-disable-next-line no-console
-          console.log('✅ [Migration] Added sync_database_completed column');
         } else {
-          // eslint-disable-next-line no-console
-          console.log('✅ [Migration] sync_database_completed column already exists');
         }
       } catch (error: any) {
         // Игнорируем ошибку если колонка уже существует
@@ -378,8 +364,6 @@ export const initDatabase = async (): Promise<void> => {
             console.error(`Error initializing categories for language ${lang}:`, error);
           }
         }
-        // eslint-disable-next-line no-console
-        console.log('✅ [initDatabase] Категории инициализированы из config/categories.ts');
       } catch (error) {
         console.error('Error initializing categories during database init:', error);
         // Не прерываем инициализацию БД из-за ошибки категорий
@@ -447,8 +431,6 @@ export const resetAllDatabaseData = async (): Promise<void> => {
       }
     });
 
-    // eslint-disable-next-line no-console
-    console.log('🗑️ [SQLite Cache] Все данные базы данных сброшены (включая единую таблицу books)');
   } catch (error) {
     console.error('Error resetting all database data:', error);
     throw error;

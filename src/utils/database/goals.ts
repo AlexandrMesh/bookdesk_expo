@@ -15,8 +15,6 @@ export const saveGoalItem = async (itemId: string, pages: number, addedAt: numbe
       timestamp,
     ]);
 
-    // eslint-disable-next-line no-console
-    console.log(`📊 [SQLite Cache] Goal item сохранен: itemId=${itemId}, pages=${pages}, addedAt=${new Date(addedAt).toLocaleDateString()}`);
   } catch (error) {
     console.error('Error saving goal item:', error);
     throw error;
@@ -43,8 +41,6 @@ export const saveGoalItems = async (items: Array<{ _id: string; pages: number; a
       }
     });
 
-    // eslint-disable-next-line no-console
-    console.log(`📊 [SQLite Cache] Сохранено goal items: ${items.length}`);
   } catch (error) {
     console.error('Error saving goal items:', error);
     throw error;
@@ -70,17 +66,7 @@ export const loadGoalItems = async (): Promise<Array<{ _id: string; pages: numbe
       added_at: result.added_at,
     }));
 
-    // eslint-disable-next-line no-console
-    console.log(`📊 [SQLite Cache] Загружено goal items из локальной БД: ${items.length}`);
     if (items.length > 0) {
-      // eslint-disable-next-line no-console
-      console.log(
-        `   Первые 5 items:`,
-        items
-          .slice(0, 5)
-          .map((i) => `${i._id}:${i.pages} pages (${new Date(i.added_at).toLocaleDateString()})`)
-          .join(', '),
-      );
     }
 
     return items;
@@ -97,8 +83,6 @@ export const deleteGoalItem = async (itemId: string): Promise<void> => {
   try {
     const database = await getDatabase();
     await database.runAsync(`DELETE FROM goal_items WHERE item_id = ?`, [itemId]);
-    // eslint-disable-next-line no-console
-    console.log(`🗑️ [SQLite Cache] Goal item удален: itemId=${itemId}`);
   } catch (error) {
     console.error('Error deleting goal item:', error);
     throw error;
@@ -117,8 +101,6 @@ export const saveGoal = async (numberOfPages: number | null, goalType: string): 
     await database.runAsync(`DELETE FROM user_goal`);
     await database.runAsync(`INSERT INTO user_goal (number_of_pages, goal_type, timestamp) VALUES (?, ?, ?)`, [numberOfPages, goalType, timestamp]);
 
-    // eslint-disable-next-line no-console
-    console.log(`🎯 [SQLite Cache] Цель сохранена: numberOfPages=${numberOfPages}, type=${goalType}`);
   } catch (error) {
     console.error('Error saving goal:', error);
     throw error;
@@ -141,8 +123,6 @@ export const loadGoal = async (): Promise<{ numberOfPages: number | null; goalTy
       return null;
     }
 
-    // eslint-disable-next-line no-console
-    console.log(`🎯 [SQLite Cache] Загружена цель из локальной БД: numberOfPages=${result.number_of_pages}, type=${result.goal_type}`);
 
     return {
       numberOfPages: result.number_of_pages,
@@ -161,8 +141,6 @@ export const deleteGoal = async (): Promise<void> => {
   try {
     const database = await getDatabase();
     await database.runAsync(`DELETE FROM user_goal`);
-    // eslint-disable-next-line no-console
-    console.log(`🗑️ [SQLite Cache] Цель удалена из локальной БД`);
   } catch (error) {
     console.error('Error deleting goal:', error);
     throw error;

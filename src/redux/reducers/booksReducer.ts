@@ -433,15 +433,6 @@ export default createReducer(defaultState, (builder) => {
       booksActions.loadBookListFromLocalDB.fulfilled,
       (state, { payload: { boardType, data = [], totalItems = 0, hasNextPage = false, shouldLoadMoreResults, booksCountByYear } }) => {
         // DEBUG: Логируем payload перед обновлением state
-        console.log(`🔍 [reducer DEBUG] loadBookListFromLocalDB.fulfilled ${boardType}:`, {
-          dataIsArray: Array.isArray(data),
-          dataLength: Array.isArray(data) ? data.length : typeof data,
-          totalItems,
-          booksCountByYearIsArray: Array.isArray(booksCountByYear),
-          booksCountByYearType: typeof booksCountByYear,
-          boardExists: !!state.board[boardType],
-          currentDataLength: Array.isArray(state.board[boardType]?.data) ? state.board[boardType].data.length : 'not array',
-        });
 
         // Проверяем что board[boardType] существует
         if (!state.board[boardType]) {
@@ -461,18 +452,6 @@ export default createReducer(defaultState, (builder) => {
         state.board[boardType].booksCountByYear = Array.isArray(booksCountByYear) ? booksCountByYear : state.board[boardType].booksCountByYear || [];
 
         // DEBUG: Логируем состояние после обновления
-        console.log(`🔍 [reducer DEBUG] loadBookListFromLocalDB.fulfilled ${boardType} AFTER:`, {
-          dataLength: Array.isArray(state.board[boardType].data) ? state.board[boardType].data.length : 'not array',
-          booksCountByYearLength: Array.isArray(state.board[boardType].booksCountByYear)
-            ? state.board[boardType].booksCountByYear.length
-            : 'not array',
-          filterParamsExists: !!state.board[boardType].filterParams,
-          filterParamsCategoryPaths: state.board[boardType].filterParams?.categoryPaths
-            ? Array.isArray(state.board[boardType].filterParams.categoryPaths)
-              ? `array[${state.board[boardType].filterParams.categoryPaths.length}]`
-              : typeof state.board[boardType].filterParams.categoryPaths
-            : 'undefined',
-        });
       },
     )
     .addCase(booksActions.loadBookListFromLocalDB.rejected, (state, action) => {

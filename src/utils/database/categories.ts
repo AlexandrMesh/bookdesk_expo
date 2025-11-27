@@ -11,17 +11,7 @@ export const loadCategoriesFromJson = async (language: string): Promise<ICategor
     // Фильтруем категории по языку
     const categories: ICategory[] = categoriesData.filter((cat) => cat.language === language);
 
-    // eslint-disable-next-line no-console
-    console.log(`📂 [Categories] Загружено категорий из TS файла: ${categories.length} для языка ${language}`);
     if (categories.length > 0) {
-      // eslint-disable-next-line no-console
-      console.log(
-        `   Первые 5 категорий:`,
-        categories
-          .slice(0, 5)
-          .map((c) => `${c.path}:${c.value}`)
-          .join(', '),
-      );
     }
 
     return categories;
@@ -42,8 +32,6 @@ export const saveCategories = async (categories: ICategory[], language: string):
 
     await database.runAsync(`INSERT OR REPLACE INTO categories (language, data, timestamp) VALUES (?, ?, ?)`, [language, dataStr, timestamp]);
 
-    // eslint-disable-next-line no-console
-    console.log(`📂 [SQLite Cache] Категории сохранены: language=${language}, количество=${categories.length}`);
   } catch (error) {
     console.error('Error saving categories:', error);
     throw error;
@@ -68,17 +56,7 @@ export const loadCategories = async (language: string): Promise<ICategory[]> => 
 
     const categories: ICategory[] = JSON.parse(result.data);
 
-    // eslint-disable-next-line no-console
-    console.log(`📂 [SQLite Cache] Загружено категорий из локальной БД: ${categories.length} для языка ${language}`);
     if (categories.length > 0) {
-      // eslint-disable-next-line no-console
-      console.log(
-        `   Первые 5 категорий:`,
-        categories
-          .slice(0, 5)
-          .map((c) => `${c.path}:${c.value}`)
-          .join(', '),
-      );
     }
 
     return categories;
@@ -97,21 +75,15 @@ export const initializeCategoriesFromJson = async (language: string): Promise<IC
     const existingCategories = await loadCategories(language);
     
     if (existingCategories.length > 0) {
-      // eslint-disable-next-line no-console
-      console.log(`📂 [initializeCategoriesFromJson] Категории уже есть в БД, используем их`);
       return existingCategories;
     }
 
     // Если категорий нет в БД, загружаем из JSON файла
-    // eslint-disable-next-line no-console
-    console.log(`📂 [initializeCategoriesFromJson] Категорий нет в БД, загружаем из JSON файла`);
     const categoriesFromJson = await loadCategoriesFromJson(language);
     
     if (categoriesFromJson.length > 0) {
       // Сохраняем в БД
       await saveCategories(categoriesFromJson, language);
-      // eslint-disable-next-line no-console
-      console.log(`📂 [initializeCategoriesFromJson] Категории из JSON файла сохранены в БД`);
       return categoriesFromJson;
     }
 

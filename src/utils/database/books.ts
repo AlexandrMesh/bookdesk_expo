@@ -37,8 +37,6 @@ export const saveBook = async (book: IBook): Promise<void> => {
       ],
     );
 
-    // eslint-disable-next-line no-console
-    console.log(`📚 [SQLite Cache] Книга сохранена: bookId=${book.bookId}, title=${book.title || 'N/A'}`);
   } catch (error) {
     console.error('Error saving book:', error);
     throw error;
@@ -84,8 +82,6 @@ export const saveBooks = async (books: IBook[]): Promise<void> => {
       }
     });
 
-    // eslint-disable-next-line no-console
-    console.log(`📚 [SQLite Cache] Сохранено книг: ${books.length}`);
   } catch (error) {
     console.error('Error saving books:', error);
     throw error;
@@ -204,8 +200,6 @@ export const loadAllBooks = async (): Promise<IBook[]> => {
       };
     });
 
-    // eslint-disable-next-line no-console
-    console.log(`📚 [SQLite Cache] Загружено книг из единой таблицы: ${books.length}`);
     return books;
   } catch (error) {
     console.error('Error loading all books:', error);
@@ -288,8 +282,6 @@ export const updateBook = async (bookId: string, updates: Partial<IBook>): Promi
 
     await database.runAsync(`UPDATE books SET ${fields.join(', ')} WHERE book_id = ?`, values);
 
-    // eslint-disable-next-line no-console
-    console.log(`📝 [SQLite Cache] Книга обновлена: bookId=${bookId}, поля: ${fields.length - 1}`);
   } catch (error) {
     console.error('Error updating book:', error);
     throw error;
@@ -302,8 +294,6 @@ export const updateBook = async (bookId: string, updates: Partial<IBook>): Promi
 export const updateBookRating = async (bookId: string, rating: number | null): Promise<void> => {
   try {
     await updateBook(bookId, { rating });
-    // eslint-disable-next-line no-console
-    console.log(`⭐ [SQLite Cache] Рейтинг обновлен: bookId=${bookId}, rating=${rating}`);
   } catch (error) {
     console.error('Error updating book rating:', error);
     throw error;
@@ -317,8 +307,6 @@ export const deleteBook = async (bookId: string): Promise<void> => {
   try {
     const database = await getDatabase();
     await database.runAsync(`DELETE FROM books WHERE book_id = ?`, [bookId]);
-    // eslint-disable-next-line no-console
-    console.log(`🗑️ [SQLite Cache] Книга удалена: bookId=${bookId}`);
   } catch (error) {
     console.error('Error deleting book:', error);
     throw error;

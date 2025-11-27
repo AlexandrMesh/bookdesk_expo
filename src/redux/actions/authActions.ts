@@ -19,8 +19,6 @@ export const resetData = createAsyncThunk(`${PREFIX}/resetData`, async (_, { dis
 
     try {
       await removeToken();
-      // eslint-disable-next-line no-console
-      console.log('🗑️ [resetData] Токен удален');
     } catch (error) {
       console.error('Error removing token:', error);
     }
@@ -43,9 +41,6 @@ export const resetData = createAsyncThunk(`${PREFIX}/resetData`, async (_, { dis
     } else {
       dispatch(initializationComplete({ profile: null, isSignedIn: false }));
     }
-
-    // eslint-disable-next-line no-console
-    console.log('✅ [resetData] Все данные приложения сброшены, создан новый гостевой пользователь');
   } catch (error) {
     console.error('Error resetting data:', error);
     throw error;

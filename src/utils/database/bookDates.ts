@@ -25,8 +25,6 @@ export const saveBookDate = async (bookId: string, added: number, bookStatus?: B
       console.warn(`Error updating unified books table for book ${bookId}:`, error);
     }
 
-    // eslint-disable-next-line no-console
-    console.log(`📅 [SQLite Cache] Дата сохранена: bookId=${bookId}, added=${new Date(added).toLocaleDateString()}, status=${bookStatus || 'null'}`);
   } catch (error) {
     console.error('Error saving book date:', error);
     throw error;
@@ -63,10 +61,6 @@ export const saveBookStatus = async (bookId: string, bookStatus: BookStatus | nu
       console.warn(`Error updating unified books table for book ${bookId}:`, error);
     }
 
-    // eslint-disable-next-line no-console
-    console.log(
-      `📝 [SQLite Cache] Статус сохранен: bookId=${bookId}, status=${bookStatus || 'null'}, added=${new Date(currentAdded).toLocaleDateString()}`,
-    );
   } catch (error) {
     console.error('Error saving book status:', error);
     throw error;
@@ -94,17 +88,8 @@ export const loadBookDates = async (): Promise<Map<string, { added: number; book
       });
     });
 
-    // eslint-disable-next-line no-console
-    console.log(`📅 [SQLite Cache] Загружено дат и статусов из локальной БД: ${datesMap.size} записей`);
     if (datesMap.size > 0) {
       const firstFive = Array.from(datesMap.entries()).slice(0, 5);
-      // eslint-disable-next-line no-console
-      console.log(
-        `   Первые 5 записей:`,
-        firstFive
-          .map(([bookId, data]) => `${bookId}: дата=${new Date(data.added).toLocaleDateString()}, статус=${data.bookStatus || 'null'}`)
-          .join(', '),
-      );
     }
 
     return datesMap;
@@ -139,7 +124,5 @@ export const updateBookDateInCache = async (bookId: string, added: number, bookS
   const { updateBookInCache } = await import('./boardData');
   await updateBookInCache(bookId, { added });
   await saveBookDate(bookId, added, bookStatus);
-  // eslint-disable-next-line no-console
-  console.log(`📅 [SQLite Cache] Обновлена дата для книги ${bookId}: ${new Date(added).toLocaleDateString()}`);
 };
 

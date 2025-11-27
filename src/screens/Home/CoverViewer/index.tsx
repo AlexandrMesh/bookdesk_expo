@@ -28,10 +28,6 @@ const CoverViewer = () => {
     return null;
   }
 
-  // eslint-disable-next-line no-console
-  console.log('🔍 [CoverViewer] Открытие обложки:', coverUrl);
-  // eslint-disable-next-line no-console
-  console.log('🔍 [CoverViewer] isVisible:', isVisible);
 
   return (
     <Modal visible={isVisible} transparent={true} animationType='fade' onRequestClose={handleClose}>
@@ -51,8 +47,6 @@ const CoverViewer = () => {
               console.error('❌ [CoverViewer] Ошибка загрузки изображения:', error);
             }}
             onLoad={() => {
-              // eslint-disable-next-line no-console
-              console.log('✅ [CoverViewer] Изображение загружено успешно');
             }}
           />
         </View>

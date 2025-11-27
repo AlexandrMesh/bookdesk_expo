@@ -16,12 +16,8 @@ export const loadStat = createAsyncThunk(`${PREFIX}/loadStat`, async (boardType:
   try {
     // Загружаем и группируем книги из локальной БД
     await initDatabase();
-    const syncedCount = await hydrateBooksTableFromCache();
-    // eslint-disable-next-line no-console
-    console.log(`📊 [loadStat] hydrateBooksTableFromCache synced ${syncedCount} books`);
+    await hydrateBooksTableFromCache();
     const { items, booksReadPerMonth, booksReadPerYear } = await getBooksByYear();
-    // eslint-disable-next-line no-console
-    console.log(`📊 [loadStat] Books stat: points=${items.length}, month=${booksReadPerMonth}, year=${booksReadPerYear}, boardType=${boardType}`);
 
     const chartData = generateBarChartData(items);
     return {

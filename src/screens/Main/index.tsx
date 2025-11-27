@@ -478,8 +478,6 @@ const Main = () => {
       const categoriesFromDB = await loadCategories(language);
       if (categoriesFromDB.length > 0) {
         dispatch(setCategories(categoriesFromDB));
-        // eslint-disable-next-line no-console
-        console.log(`📂 [initializeApp] Категории загружены из локальной БД: ${categoriesFromDB.length} для языка ${language}`);
         return;
       }
       // Если категорий нет, инициализируем из config/categories.ts
@@ -487,8 +485,6 @@ const Main = () => {
       const initializedCategories = await initializeCategoriesFromJson(language);
       if (initializedCategories.length > 0) {
         dispatch(setCategories(initializedCategories));
-        // eslint-disable-next-line no-console
-        console.log(`📂 [initializeApp] Категории инициализированы из config/categories.ts: ${initializedCategories.length}`);
       }
     } catch (error) {
       console.error('Error loading categories:', error);
@@ -497,9 +493,7 @@ const Main = () => {
 
   const loadLocalData = useCallback(async () => {
     try {
-      const synced = await hydrateBooksTableFromCache();
-      // eslint-disable-next-line no-console
-      console.log(`📚 [loadLocalData] hydrateBooksTableFromCache synced ${synced} rows`);
+      await hydrateBooksTableFromCache();
     } catch (error) {
       console.error('Error hydrating books table from cache:', error);
     }

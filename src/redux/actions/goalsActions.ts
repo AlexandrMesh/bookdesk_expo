@@ -46,8 +46,6 @@ export const deleteGoalAction = createAsyncThunk(`${PREFIX}/deleteGoal`, async (
   try {
     await initDatabase();
     await deleteGoal();
-    // eslint-disable-next-line no-console
-    console.log('🎯 [deleteGoal] Цель удалена из локальной БД');
     return null;
   } catch (error) {
     console.error('Error deleting goal:', error);
@@ -66,8 +64,6 @@ export const deleteUserGoalItem = createAsyncThunk(`${PREFIX}/deleteUserGoalItem
 
     dispatch(triggerReloadStat());
 
-    // eslint-disable-next-line no-console
-    console.log('📊 [deleteUserGoalItem] Goal item удален из локальной БД:', id);
 
     return allItems as IGoal[];
   } catch (error) {
@@ -84,8 +80,6 @@ export const addGoal = createAsyncThunk(`${PREFIX}/addGoal`, async (params: { nu
     await initDatabase();
     await saveGoal(numberOfPages, params.type);
 
-    // eslint-disable-next-line no-console
-    console.log('🎯 [addGoal] Цель добавлена в локальную БД:', numberOfPages, params.type);
 
     return {
       numberOfPages,
@@ -105,8 +99,6 @@ export const updateGoal = createAsyncThunk(`${PREFIX}/updateGoal`, async (params
     await initDatabase();
     await saveGoal(numberOfPages, params.type);
 
-    // eslint-disable-next-line no-console
-    console.log('🎯 [updateGoal] Цель обновлена в локальной БД:', numberOfPages, params.type);
 
     return {
       numberOfPages,
@@ -156,8 +148,6 @@ export const addGoalItem = createAsyncThunk(`${PREFIX}/addGoalItem`, async (page
 
     dispatch(triggerReloadStat());
 
-    // eslint-disable-next-line no-console
-    console.log('📊 [addGoalItem] Goal item добавлен в локальную БД:', itemId);
 
     return allItems as IGoal[];
   } catch (error) {
