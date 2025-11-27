@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
 import { ScrollView, View, Pressable, Text } from 'react-native';
 
@@ -14,11 +14,13 @@ import { CLOSE_ICON } from '~constants/dimensions';
 import { CUSTOM_CATEGORY_CHOOSER_ROUTE } from '~constants/routes';
 import { SECONDARY } from '~constants/themes';
 import { setPages, addAuthor, removeAuthor, updateAuthor, setCurrentStep, addCustomBook } from '~redux/actions/customBookActions';
-import { getSelectedCategoryLabel, getPages, getAuthorsList } from '~redux/selectors/customBook';
+import { getCategoriesData } from '~redux/selectors/common';
+import { getSelectedCategory, getSelectedCategoryLabel, getPages, getAuthorsList, getSelectedCategoryPath } from '~redux/selectors/customBook';
 import colors from '~styles/colors';
 import Button from '~UI/Button';
 import Input from '~UI/TextInput';
 import { getValidationFailure, validationTypes } from '~utils/validation';
+import { showTooltip } from '~utils/showTooltip';
 
 import CustomBookStatusDropdown from '../CustomBookStatusDropdown';
 import styles from './styles';
@@ -40,8 +42,29 @@ const Step3 = () => {
   const _addCustomBook = () => dispatch(addCustomBook());
 
   const selectedCategoryLabel = useAppSelector(getSelectedCategoryLabel);
+  const selectedCategoryPath = useAppSelector(getSelectedCategoryPath);
+  const categories = useAppSelector(getCategoriesData);
   const pages = useAppSelector(getPages);
   const authorsList = useAppSelector(getAuthorsList);
+  const selectedCategory = useAppSelector(getSelectedCategory);
+
+  const displayedCategoryLabel = useMemo(() => {
+    if (!selectedCategoryPath && selectedCategoryLabel) {
+      return selectedCategoryLabel;
+    }
+
+    const categoryFromStore = categories.find((category) => category.path === selectedCategoryPath);
+    if (categoryFromStore?.isCustom) {
+      return categoryFromStore.customTitle || categoryFromStore.value;
+    }
+    if (categoryFromStore) {
+      return t(`categories:${categoryFromStore.value}`);
+    }
+    if (selectedCategory?.label) {
+      return selectedCategory.label;
+    }
+    return selectedCategoryLabel;
+  }, [categories, selectedCategory?.label, selectedCategoryLabel, selectedCategoryPath, t]);
 
   const handleAddAuthor = () => {
     _addAuthor(uniqueId());
@@ -84,9 +107,13 @@ const Step3 = () => {
         <View style={styles.block}>
           <Text style={styles.subTitle}>{t('customBook:genre')}</Text>
           <View style={styles.blockWrapper}>
-            <Pressable style={[styles.inputBlockWrapper, selectedCategoryLabel ? styles.activeInputWrapper : {}]} onPress={showCategoryChooser}>
-              <Text numberOfLines={1} style={[styles.inputLabel, selectedCategoryLabel ? styles.activeInputLabel : {}]}>
-                {selectedCategoryLabel ? t(`categories:${selectedCategoryLabel}`) : t('customBook:noGenre')}
+            <Pressable
+              style={[styles.inputBlockWrapper, displayedCategoryLabel ? styles.activeInputWrapper : {}]}
+              onPress={showCategoryChooser}
+              onLongPress={() => showTooltip(displayedCategoryLabel)}
+            >
+              <Text numberOfLines={1} style={[styles.inputLabel, displayedCategoryLabel ? styles.activeInputLabel : {}]}>
+                {displayedCategoryLabel || t('customBook:noGenre')}
               </Text>
             </Pressable>
             <Button style={styles.mainButton} onPress={showCategoryChooser} title={t('common:choose')} />

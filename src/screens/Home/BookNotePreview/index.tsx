@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { FC, useMemo } from 'react';
 
 import { TouchableHighlight, Text, View } from 'react-native';
 
@@ -27,6 +27,16 @@ const BookNotePreview: FC<Props> = ({ bookId, bookTitle, numberOfLines = 2, font
   const { language } = i18n;
   const bookNote = useAppSelector(deriveBookNote(bookId));
   const bookNoteContent = bookNote?.comment;
+  const truncatedContent = useMemo(() => {
+    if (!bookNoteContent) {
+      return '';
+    }
+    const trimmed = bookNoteContent.trim();
+    if (trimmed.length <= 120) {
+      return trimmed;
+    }
+    return `${trimmed.slice(0, 120)}...`;
+  }, [bookNoteContent]);
   const bookNoteAdded = new Date(bookNote?.added as number).toLocaleDateString(language);
 
   return (
@@ -43,7 +53,7 @@ const BookNotePreview: FC<Props> = ({ bookId, bookTitle, numberOfLines = 2, font
           <View style={styles.noteWrapper}>
             <View style={styles.textWrapper}>
               <Text numberOfLines={numberOfLines} style={[styles.lightColor, styles.italic, { fontSize }]}>
-                {bookNoteContent}
+                {truncatedContent}
               </Text>
             </View>
             <View style={styles.arrowWrapper}>

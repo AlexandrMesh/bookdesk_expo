@@ -20,6 +20,7 @@ import colors from '~styles/colors';
 import Button from '~UI/Button';
 import RadioButton from '~UI/RadioButton';
 import Input from '~UI/TextInput';
+import { showTooltip } from '~utils/showTooltip';
 
 import styles from './styles';
 
@@ -165,7 +166,7 @@ const CategoryChooser = () => {
               ) : null}
             </Pressable>
           )}
-          <Pressable style={styles.labelWrapper} onPress={handlePressLabel}>
+          <Pressable style={styles.labelWrapper} onPress={handlePressLabel} onLongPress={() => showTooltip(label)}>
             <Text style={styles.menuItemTitle} numberOfLines={1} ellipsizeMode='tail'>
               {label}
             </Text>
@@ -187,7 +188,7 @@ const CategoryChooser = () => {
                 </View>
               )}
               {isCustom && customId && !isSearchResult && (
-                <Pressable
+          <Pressable
                   style={styles.editIconButton}
                   onPress={(event) => {
                     event.stopPropagation();

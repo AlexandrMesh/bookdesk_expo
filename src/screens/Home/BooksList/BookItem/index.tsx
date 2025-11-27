@@ -15,6 +15,7 @@ import { COVER_VIEWER } from '~constants/modalTypes';
 import { EDIT_CUSTOM_BOOK_ROUTE } from '~constants/routes';
 import { setCoverUrl, showModal } from '~redux/actions/booksActions';
 import { deriveUserBookRating } from '~redux/selectors/books';
+import { getCategoriesData } from '~redux/selectors/common';
 import BookNotePreview from '~screens/Home/BookNotePreview';
 import BookStatusDropdown from '~screens/Home/BookStatusDropdown';
 import Like from '~screens/Home/Like';
@@ -22,6 +23,7 @@ import Rating from '~screens/Home/Rating';
 import colors from '~styles/colors';
 import { BookStatus, IBook } from '~types/books';
 import Button from '~UI/Button';
+import { showTooltip } from '~utils/showTooltip';
 
 import styles from './styles';
 import ModifiedDate from '../../ModifiedDate';
@@ -35,11 +37,12 @@ export type Props = {
 
 const BookItem: FC<Props> = memo(
   (book) => {
-    const { bookId, title, coverPath, pages, categoryValue, authorsList, added, bookStatus, annotation } = book.bookItem;
+    const { bookId, title, coverPath, pages, categoryValue, categoryPath, authorsList, added, bookStatus, annotation } = book.bookItem;
     const { t } = useTranslation(['books', 'categories', 'common']);
     const navigation = useNavigation<any>();
     const dispatch = useAppDispatch();
     const bookRating = useSelector(deriveUserBookRating(bookId))?.rating;
+    const categories = useSelector(getCategoriesData);
 
     const navigateToEditCustomBook = useCallback(() => {
       navigation.navigate(EDIT_CUSTOM_BOOK_ROUTE, {
@@ -52,6 +55,23 @@ const BookItem: FC<Props> = memo(
         coverPath,
       });
     }, [navigation, bookId, title, pages, authorsList, annotation, bookStatus, coverPath]);
+
+    const categoryLabel = useMemo(() => {
+      if (!categoryValue && !categoryPath) {
+        return '';
+      }
+      const categoryFromStore = categories.find((category) => category.path === categoryPath);
+      if (categoryFromStore?.isCustom) {
+        return categoryFromStore.customTitle || categoryFromStore.value;
+      }
+      if (categoryFromStore?.value) {
+        return t(`categories:${categoryFromStore.value}`);
+      }
+      if (categoryValue) {
+        return t(`categories:${categoryValue}`);
+      }
+      return '';
+    }, [categories, categoryPath, categoryValue, t]);
 
     const imageUri = useMemo(() => {
       if (!coverPath) return '';
@@ -130,9 +150,13 @@ const BookItem: FC<Props> = memo(
                   ),
               )}
             <View style={styles.info}>
-              {categoryValue && (
-                <Text style={[styles.lightColor]}>{t(`categories:${categoryValue}`)}</Text>
-              )}
+              {categoryLabel ? (
+                <Pressable onLongPress={() => showTooltip(categoryLabel)}>
+                  <Text style={[styles.lightColor]} numberOfLines={1} ellipsizeMode='tail'>
+                    {categoryLabel}
+                  </Text>
+                </Pressable>
+              ) : null}
               {!!pages && (
                 <Text style={[styles.pagesBlock, styles.item, styles.mediumColor]}>
                   {t('pages')}
