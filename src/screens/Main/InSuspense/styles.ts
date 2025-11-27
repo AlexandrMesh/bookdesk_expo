@@ -1,11 +1,12 @@
 import { StyleSheet } from 'react-native';
 
-import colors from '~styles/colors';
+import { ThemeColors } from '~theme/types';
 
-export default StyleSheet.create({
-  wrapper: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: colors.primary_dark,
-  },
-});
+export default (colors: ThemeColors) =>
+  StyleSheet.create({
+    wrapper: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: colors.primary_dark,
+    },
+  });
