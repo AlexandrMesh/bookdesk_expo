@@ -43,18 +43,6 @@ const BookItem: FC<Props> = memo(
     const bookRating = useSelector(deriveUserBookRating(bookId))?.rating;
     const categories = useSelector(getCategoriesData);
 
-    const navigateToEditCustomBook = useCallback(() => {
-      navigation.navigate(EDIT_CUSTOM_BOOK_ROUTE, {
-        bookId,
-        title,
-        pages,
-        authorsList,
-        annotation,
-        bookStatus,
-        coverPath,
-      });
-    }, [navigation, bookId, title, pages, authorsList, annotation, bookStatus, coverPath]);
-
     const categoryLabel = useMemo(() => {
       if (!categoryValue && !categoryPath) {
         return '';
@@ -71,6 +59,20 @@ const BookItem: FC<Props> = memo(
       }
       return '';
     }, [categories, categoryPath, categoryValue, t]);
+
+    const navigateToEditCustomBook = useCallback(() => {
+      navigation.navigate(EDIT_CUSTOM_BOOK_ROUTE, {
+        bookId,
+        title,
+        pages,
+        authorsList,
+        annotation,
+        bookStatus,
+        coverPath,
+        categoryPath,
+        categoryLabel,
+      });
+    }, [navigation, bookId, title, pages, authorsList, annotation, bookStatus, coverPath, categoryPath, categoryLabel]);
 
     const imageUri = useMemo(() => {
       if (!coverPath) return '';

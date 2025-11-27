@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Alert, FlatList, Modal, Pressable, SectionList, Text, View } from 'react-native';
 
@@ -23,9 +23,15 @@ import Input from '~UI/TextInput';
 
 import styles from './styles';
 
-const CategoryChooser = () => {
+interface CategoryChooserProps {
+  variant?: 'screen' | 'embedded';
+  onClose?: () => void;
+}
+
+const CategoryChooser = ({ variant = 'screen', onClose }: CategoryChooserProps) => {
   const { t } = useTranslation(['common', 'categories']);
   const navigation = useNavigation();
+  const isEmbedded = variant === 'embedded';
 
   const dispatch = useAppDispatch();
   const _toggleExpandedCategory = useCallback((path: string) => dispatch(toggleExpandedCategoryCustomBooks(path)), [dispatch]);
@@ -47,7 +53,12 @@ const CategoryChooser = () => {
 
   const handleChoose = () => {
     _submitCategory();
-    navigation.goBack();
+    if (!isEmbedded && !onClose) {
+      navigation.goBack();
+    }
+    if (onClose) {
+      onClose();
+    }
   };
 
   const shouldDisplaySearchResults = searchQuery;
@@ -268,8 +279,11 @@ const CategoryChooser = () => {
     dispatch(setSearchQuery(''));
   }, [dispatch]);
 
+  const containerStyle = useMemo(() => (isEmbedded ? styles.embeddedContainer : styles.container), [isEmbedded]);
+  const listWrapperStyle = useMemo(() => (isEmbedded ? styles.embeddedWrapper : styles.wrapper), [isEmbedded]);
+
   return (
-    <View style={styles.container}>
+    <View style={containerStyle}>
       <Input
         placeholder={t('searchCategory')}
         onChangeText={_setSearchQuery}
@@ -278,7 +292,7 @@ const CategoryChooser = () => {
         shouldDisplayClearButton={!!searchQuery}
         onClear={clearSearchQueryForCategory}
       />
-      <View style={styles.wrapper}>
+      <View style={listWrapperStyle}>
         {renderSearchResults()}
         {!searchQuery && (
           <SectionList
@@ -290,9 +304,11 @@ const CategoryChooser = () => {
           />
         )}
       </View>
-      <View style={styles.submitButtonWrapper}>
-        <Button style={styles.submitButton} title={t('choose')} onPress={handleChoose} />
-      </View>
+      {!isEmbedded && (
+        <View style={styles.submitButtonWrapper}>
+          <Button style={styles.submitButton} title={t('choose')} onPress={handleChoose} />
+        </View>
+      )}
       <Modal visible={isCustomGenreModalVisible} transparent animationType='fade' onRequestClose={closeCustomGenreModal}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalContent}>

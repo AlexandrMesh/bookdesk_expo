@@ -114,6 +114,7 @@ export const updateUserCustomBook = createAsyncThunk(
       annotation: string;
       bookStatus: BookStatus;
       coverPath?: string;
+      categoryPath?: string;
     },
     { dispatch }: AppThunkAPI,
   ) => {
@@ -127,6 +128,7 @@ export const updateUserCustomBook = createAsyncThunk(
         annotation: params.annotation || '',
         bookStatus: params.bookStatus,
         coverPath: params.coverPath,
+        categoryPath: params.categoryPath,
       };
       dispatch(updateBookOnBoardAndSearch(response));
 

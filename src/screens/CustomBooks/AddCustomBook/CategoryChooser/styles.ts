@@ -9,11 +9,25 @@ export default StyleSheet.create({
     flex: 1,
     height: '100%',
   },
+  embeddedContainer: {
+    backgroundColor: 'transparent',
+    width: '100%',
+    flex: 0,
+    paddingVertical: 10,
+  },
   wrapper: {
     height: 300,
     width: '100%',
     display: 'flex',
     flex: 1,
+  },
+  embeddedWrapper: {
+    width: '100%',
+    height: 260,
+    borderWidth: 1,
+    borderColor: colors.neutral_medium,
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   menuItem: {
     height: 50,

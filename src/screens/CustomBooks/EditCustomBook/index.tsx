@@ -9,7 +9,7 @@ import uniqueId from 'lodash/uniqueId';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAppDispatch } from '~hooks';
+import { useAppDispatch, useAppSelector } from '~hooks';
 
 import CloseIcon from '~assets/close.svg';
 import { DEFAULT_COVER } from '~constants/customBooks';
@@ -18,7 +18,9 @@ import { SECONDARY } from '~constants/themes';
 import useDisplayAlert from '~hooks/useDisplayAlert';
 import useGetImgUrl from '~hooks/useGetImgUrl';
 import useNetworkStatus from '~hooks/useNetworkStatus';
-import { deleteCustomBook, updateUserCustomBook } from '~redux/actions/customBookActions';
+import { deleteCustomBook, updateUserCustomBook, selectCategory, submitCategory, clearCategory } from '~redux/actions/customBookActions';
+import { getSelectedCategoryLabel, getSelectedCategoryPath } from '~redux/selectors/customBook';
+import CategoryChooser from '~screens/CustomBooks/AddCustomBook/CategoryChooser';
 import colors from '~styles/colors';
 import { BookStatus } from '~types/books';
 import Button from '~UI/Button';
@@ -39,6 +41,8 @@ type ParamList = {
     annotation: string;
     bookStatus: BookStatus;
     coverPath?: string;
+    categoryPath?: string;
+    categoryLabel?: string;
   };
 };
 
@@ -69,6 +73,9 @@ const EditCustomBook = () => {
   const [pagesError, setPagesError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCategoryModalVisible, setIsCategoryModalVisible] = useState(false);
+  const selectedCategoryLabel = useAppSelector(getSelectedCategoryLabel);
+  const selectedCategoryPath = useAppSelector(getSelectedCategoryPath);
 
   // Cover state
   const initialCoverPath = params.coverPath || DEFAULT_COVER;
@@ -77,6 +84,18 @@ const EditCustomBook = () => {
 
   useEffect(() => {
   }, []);
+
+  useEffect(() => {
+    if (params.categoryPath) {
+      dispatch(selectCategory({ path: params.categoryPath, label: params.categoryLabel || params.categoryPath }));
+      dispatch(submitCategory());
+    } else {
+      dispatch(clearCategory());
+    }
+    return () => {
+      dispatch(clearCategory());
+    };
+  }, [dispatch, params.categoryLabel, params.categoryPath]);
   const [isPickingFromDevice, setIsPickingFromDevice] = useState(false);
   const [suggestedCoversData, setSuggestedCoversData] = useState<Array<{ coverPath: string }>>([]);
   const [loadingDataStatus, setLoadingDataStatus] = useState<'idle' | 'pending' | 'succeeded' | 'failed'>('idle');
@@ -162,6 +181,9 @@ const EditCustomBook = () => {
     }
   };
 
+  const showCategoryChooser = () => setIsCategoryModalVisible(true);
+  const displayedCategoryLabel = selectedCategoryLabel || params.categoryLabel || '';
+
   // Cover handlers (for modal - use draft states)
   const handlePressOnWithoutCover = () => {
     setDraftShouldAddCover(false);
@@ -235,6 +257,7 @@ const EditCustomBook = () => {
   }, [params.bookId]);
 
   const handleEditBook = async () => {
+    const categoryPathToSave = selectedCategoryPath || params.categoryPath || '';
     setIsSaving(true);
     try {
       const coverPath = shouldAddCover === false ? DEFAULT_COVER : selectedCover || params.coverPath || DEFAULT_COVER;
@@ -247,6 +270,7 @@ const EditCustomBook = () => {
           annotation: '',
           bookStatus: params.bookStatus,
           coverPath,
+          categoryPath: categoryPathToSave,
         }),
       );
       navigation.goBack();
@@ -294,8 +318,9 @@ const EditCustomBook = () => {
   }, [selectedCover, initialCoverPath, imgUrl]);
 
   return (
-    <View style={styles.wrapper}>
-      <View style={styles.container}>
+    <>
+      <View style={styles.wrapper}>
+        <View style={styles.container}>
         <ScrollView style={styles.inputWrapper} keyboardShouldPersistTaps='handled'>
           <View>
             <Text style={styles.subTitle}>
@@ -314,33 +339,43 @@ const EditCustomBook = () => {
           </View>
 
           {/* Cover block with thumbnail and Change button */}
-          <View style={styles.block}>
-            <Text style={styles.subTitle}>{t('customBook:bookCover')}</Text>
-            <View style={styles.editThumbWrapper}>
-              <View style={styles.editThumbCover}>
-                {currentCoverThumb ? (
-                  <Image
-                    style={styles.cover as ImageStyle}
-                    source={{
-                      uri: currentCoverThumb,
-                    }}
-                    onError={(e) => {
-                    }}
-                    onLoad={() => {
-                    }}
-                  />
-                ) : (
-                  <View style={styles.coverPlaceholder} />
-                )}
-              </View>
-              <Button
-                style={styles.editChangeButton}
-                titleStyle={styles.buttonTitle}
-                title={t('common:edit')}
-                onPress={() => setIsCoverModalVisible(true)}
-              />
+        <View style={styles.block}>
+          <Text style={styles.subTitle}>{t('customBook:bookCover')}</Text>
+          <View style={styles.editThumbWrapper}>
+            <View style={styles.editThumbCover}>
+              {currentCoverThumb ? (
+                <Image
+                  style={styles.cover as ImageStyle}
+                  source={{
+                    uri: currentCoverThumb,
+                  }}
+                  onError={() => {}}
+                  onLoad={() => {}}
+                />
+              ) : (
+                <View style={styles.coverPlaceholder} />
+              )}
             </View>
+            <Button
+              style={styles.editChangeButton}
+              titleStyle={styles.buttonTitle}
+              title={t('common:edit')}
+              onPress={() => setIsCoverModalVisible(true)}
+            />
           </View>
+        </View>
+
+        <View style={styles.block}>
+          <Text style={styles.subTitle}>{t('customBook:genre')}</Text>
+          <View style={styles.blockWrapper}>
+            <Pressable style={[styles.inputBlockWrapper, displayedCategoryLabel ? styles.activeInputWrapper : {}]} onPress={showCategoryChooser}>
+              <Text numberOfLines={1} style={[styles.inputLabel, displayedCategoryLabel ? styles.activeInputLabel : {}]}>
+                {displayedCategoryLabel || t('customBook:noGenre')}
+              </Text>
+            </Pressable>
+            <Button style={styles.mainButton} onPress={showCategoryChooser} title={t('common:choose')} />
+          </View>
+        </View>
 
           {/* Cover selection modal (reuses step 2 logic) */}
           <Modal
@@ -604,9 +639,22 @@ const EditCustomBook = () => {
             />
           </View>
         </View>
+
+        </View>
+        {isSaving && <Spinner backgroundColor='rgba(0, 0, 0, 0.5)' />}
       </View>
-      {isSaving && <Spinner backgroundColor='rgba(0, 0, 0, 0.5)' />}
-    </View>
+      <Modal visible={isCategoryModalVisible} animationType='slide' onRequestClose={() => setIsCategoryModalVisible(false)}>
+      <View style={styles.categoryModalWrapper}>
+        <View style={styles.categoryModalHeader}>
+          <Text style={styles.modalHeaderTitle}>{t('customBook:genre')}</Text>
+          <Pressable onPress={() => setIsCategoryModalVisible(false)}>
+            <CloseIcon width={CLOSE_ICON.width} height={CLOSE_ICON.height} fill={colors.neutral_light} />
+          </Pressable>
+        </View>
+        <CategoryChooser onClose={() => setIsCategoryModalVisible(false)} />
+      </View>
+      </Modal>
+    </>
   );
 };
 

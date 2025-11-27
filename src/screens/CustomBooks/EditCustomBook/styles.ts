@@ -171,20 +171,31 @@ export default StyleSheet.create({
   },
   footerButtonsWrapper: {
     display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'stretch',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingVertical: 10,
     width: '100%',
   },
   footerButton: {
-    width: '100%',
-    marginHorizontal: 0,
-    marginBottom: 10,
-    height: 44,
+    flex: 1,
+    marginHorizontal: 5,
+    height: 40,
   },
   deleteButton: {
     borderColor: colors.error,
+  },
+  categoryModalWrapper: {
+    flex: 1,
+    backgroundColor: colors.primary_dark,
+    padding: 10,
+    paddingTop: 20,
+  },
+  categoryModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   contentSpinnerWrapper: {
     width: '100%',

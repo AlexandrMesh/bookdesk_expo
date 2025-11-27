@@ -287,12 +287,17 @@ export default createReducer(defaultState, (builder) => {
     .addCase(customBooksActions.updateBookVotesInCustomBook, (state, { payload: { bookId, votesCount } }) => {
       state.booksData.data = state.booksData.data.map((book) => (book.bookId === bookId ? { ...book, votesCount } : book));
     })
-    .addCase(customBooksActions.updateUserCustomBook.fulfilled, (state, { payload: { bookId, title, pages, authorsList, annotation } }) => {
-      state.booksData.data = state.booksData.data.map((book) => (book.bookId === bookId ? { ...book, title, pages, authorsList, annotation } : book));
-      state.add.steps[1].suggestedBooks.data = state.add.steps[1].suggestedBooks.data.map((book) =>
-        book.bookId === bookId ? { ...book, title, pages, authorsList } : book,
-      );
-    })
+    .addCase(
+      customBooksActions.updateUserCustomBook.fulfilled,
+      (state, { payload: { bookId, title, pages, authorsList, annotation, categoryPath } }) => {
+        state.booksData.data = state.booksData.data.map((book) =>
+          book.bookId === bookId ? { ...book, title, pages, authorsList, annotation, categoryPath } : book,
+        );
+        state.add.steps[1].suggestedBooks.data = state.add.steps[1].suggestedBooks.data.map((book) =>
+          book.bookId === bookId ? { ...book, title, pages, authorsList, categoryPath } : book,
+        );
+      },
+    )
     .addCase(customBooksActions.deleteCustomBook.fulfilled, (state, { payload: bookId }) => {
       // Удаляем книгу из списка кастомных книг
       state.booksData.data = state.booksData.data.filter((book) => book.bookId !== bookId);
