@@ -24,9 +24,6 @@
       "~hooks/*": [
         "./src/hooks/*"
       ],
-      "~http/*": [
-        "./src/http/*"
-      ],
       "~redux/*": [
         "./src/redux/*"
       ],

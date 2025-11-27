@@ -12,12 +12,52 @@ export const getBooksByYear = async (): Promise<{
   try {
     const database = await getDatabase();
     // Используем единую таблицу books вместо book_dates
-    const results = await database.getAllAsync<{
-      book_id: string;
+    const rawResults = await database.getAllAsync<{
       added: number | null;
       book_status: string | null;
       timestamp: number;
-    }>(`SELECT book_id, added, book_status, timestamp FROM books WHERE book_status = ? AND added IS NOT NULL ORDER BY added ASC`, ['completed']);
+    }>(`SELECT added, book_status, timestamp FROM books WHERE book_status = ? AND added IS NOT NULL ORDER BY added ASC`, ['completed']);
+
+    let results = rawResults;
+
+    if (results.length === 0) {
+      try {
+        const cachedBoardData = await database.getAllAsync<{
+          data: string | null;
+        }>(`SELECT data FROM board_data WHERE board_type = ?`, ['completed']);
+
+        if (cachedBoardData.length > 0) {
+          const fallbackItems: Array<{ added: number; book_status: string; timestamp: number }> = [];
+          cachedBoardData.forEach((record) => {
+            if (!record.data) {
+              return;
+            }
+            try {
+              const books = JSON.parse(record.data) as Array<{ added?: number | null }>;
+              books.forEach((book) => {
+                if (book?.added) {
+                  fallbackItems.push({
+                    added: book.added,
+                    book_status: 'completed',
+                    timestamp: book.added,
+                  });
+                }
+              });
+            } catch (error) {
+              console.error('Error parsing board_data for statistics fallback:', error);
+            }
+          });
+
+          if (fallbackItems.length > 0) {
+            results = fallbackItems;
+            // eslint-disable-next-line no-console
+            console.log(`📚 [getBooksByYear] Использован fallback из board_data: ${fallbackItems.length} записей`);
+          }
+        }
+      } catch (fallbackError) {
+        console.error('Error loading fallback board_data for statistics:', fallbackError);
+      }
+    }
 
     // Группируем по годам и месяцам
     const groupedByYearMonth: Record<string, number> = {};

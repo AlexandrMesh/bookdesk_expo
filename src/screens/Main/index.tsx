@@ -1,7 +1,5 @@
 /* eslint-disable import/order */
 import React, { FC, lazy, useCallback, useEffect, useState } from 'react';
-import { Alert } from 'react-native';
-import NetInfo from '@react-native-community/netinfo';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { BottomTabBar, BottomTabBarProps, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -38,13 +36,11 @@ import {
   PROFILE_NAVIGATOR_ROUTE,
   PROFILE_ROUTE,
   SEARCH_ROUTE,
-  SIGN_IN_ROUTE,
   STAT_NAVIGATOR_ROUTE,
   STAT_ROUTE,
 } from '~constants/routes';
 import { useAppUpdates } from '~hooks/useAppUpdates';
-import useNetworkStatus from '~hooks/useNetworkStatus';
-import { authCheckingFailed, checkAuthAndSyncDB, initializationComplete } from '~redux/actions/authActions';
+import { initializationComplete } from '~redux/actions/authActions';
 import { loadBookListFromLocalDB, setBookNotes, setBookVotes, userBookRatingsLoaded, setCategories } from '~redux/actions/booksActions';
 import { getGoalItems, setGoal } from '~redux/actions/goalsActions';
 import { getCheckingStatus } from '~redux/selectors/auth';
@@ -56,18 +52,8 @@ import i18n from '~translations/i18n';
 import { GoalType } from '~types/goals';
 import BannerAd from '~UI/BannerAd';
 import { Spinner } from '~UI/Spinner';
-import {
-  initDatabase,
-  loadProfile,
-  saveGuestProfile,
-  loadGoal,
-  loadBookNotes,
-  loadUserVotes,
-  loadBookRatings,
-  loadCategories,
-} from '~utils/boardStorage';
+import { initDatabase, loadProfile, saveGuestProfile, loadGoal, loadBookNotes, loadUserVotes, loadBookRatings, loadCategories } from '~utils/boardStorage';
 import { maybeAskForReview, recordAppOpen } from '~utils/reviewPrompt';
-import { getToken } from '~utils/secureStorage';
 
 import ClearFilters from './ClearFilters';
 import CloseComponent from './CloseComponent';
@@ -93,7 +79,6 @@ const DateUpdater = lazy(() => import('~screens/Home/DateUpdater'));
 const CoverViewer = lazy(() => import('~screens/Home/CoverViewer'));
 
 const UnderConstruction = lazy(() => import('./UnderConstruction'));
-const SignIn = lazy(() => import('~screens/Auth/SignIn'));
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -328,13 +313,6 @@ const ProfileNavigator: FC<ProfileNavigatorProps> = ({ isUpdateAvailable, google
           </InSuspense>
         )}
       </Stack.Screen>
-      <Stack.Screen name={SIGN_IN_ROUTE} options={{ title: t('auth:signIn', { defaultValue: 'Авторизация' }) }}>
-        {() => (
-          <InSuspense>
-            <SignIn />
-          </InSuspense>
-        )}
-      </Stack.Screen>
     </Stack.Navigator>
   );
 };
@@ -473,40 +451,9 @@ const MainNavigator: FC<MainNavigatorProps> = ({ isUpdateAvailable, googlePlayUr
 const Main = () => {
   const { t } = useTranslation('common');
   const [shouldDisplayUnderConstructionView, setShouldDisplayUnderConstructionView] = useState(false);
-  const [shouldRetrySyncWhenOnline, setShouldRetrySyncWhenOnline] = useState(false);
   const [googlePlayUrl, setGooglePlayUrl] = useState('');
 
   const dispatch = useAppDispatch();
-  const _checkAuthAndSyncDB = useCallback(() => dispatch(checkAuthAndSyncDB()), [dispatch]);
-  const isOnline = useNetworkStatus();
-
-  const checkInternetBeforeSync = useCallback(async () => {
-    const netState = await NetInfo.fetch();
-    const hasInternet = Boolean(netState.isConnected && (netState.isInternetReachable ?? true));
-
-    if (!hasInternet) {
-      setShouldRetrySyncWhenOnline(true);
-      Alert.alert(
-        '',
-        i18n.t('app:noConnectionMessage'),
-        [
-          {
-            text: i18n.t('app:checkConnectionButton'),
-            onPress: () => {
-              checkInternetBeforeSync();
-            },
-          },
-        ],
-        { cancelable: false },
-      );
-      dispatch(authCheckingFailed());
-      return;
-    }
-
-    setShouldRetrySyncWhenOnline(false);
-    _checkAuthAndSyncDB();
-  }, [_checkAuthAndSyncDB, dispatch]);
-
   // Хук для проверки EAS Updates
   const { checkAndInstallUpdate, isUpdateAvailable } = useAppUpdates();
 
@@ -603,90 +550,29 @@ const Main = () => {
 
   const initializeApp = useCallback(async () => {
     try {
-      // Инициализируем базу данных
       await initDatabase();
-
-      // Загружаем категории из локальной БД автоматически
       await loadCategoriesToRedux();
 
-      // Загружаем профиль из локальной БД
-      const profile = await loadProfile();
-      const token = await getToken();
+      let profile = await loadProfile();
 
-      // eslint-disable-next-line no-console
-      console.log(
-        `🔍 [initializeApp] Проверка состояния: profile=${profile ? 'есть' : 'нет'}, syncDatabaseCompleted=${profile?.syncDatabaseCompleted}, token=${token ? 'есть' : 'нет'}`,
-      );
-      // eslint-disable-next-line no-console
-      console.log(
-        `🔍 [initializeApp] Данные профиля из БД: _id=${profile?._id || 'нет'}, email=${profile?.email || 'нет'}, registered=${profile?.registered || 'нет'}`,
-      );
-
-      // Проверяем syncDatabaseCompleted (явно проверяем на true)
-      if (profile && profile.syncDatabaseCompleted === true) {
-        // syncDatabaseCompleted = true - загружаем данные из локальной БД
-        // eslint-disable-next-line no-console
-        console.log(
-          `✅ [initializeApp] syncDatabaseCompleted=true, загружаем данные из локальной БД. Профиль: _id=${profile._id}, email=${profile.email}, registered=${profile.registered}`,
-        );
-
-        await loadLocalData();
-
-        // Помечаем проверку как завершенную
-        dispatch(initializationComplete({ profile, isSignedIn: !!profile?.email }));
-      } else if (token) {
-        // syncDatabaseCompleted = false/undefined и есть токен - выполняем checkAuthAndSyncDB
-        // eslint-disable-next-line no-console
-        console.log(
-          `🔄 [initializeApp] syncDatabaseCompleted=${profile?.syncDatabaseCompleted ?? 'undefined'} и есть токен, проверяем интернет перед синхронизацией`,
-        );
-
-        await checkInternetBeforeSync();
-      } else {
-        // syncDatabaseCompleted = false/undefined и нет токена - создаем нового пользователя
-        // eslint-disable-next-line no-console
-        console.log(`👤 [initializeApp] syncDatabaseCompleted=${profile?.syncDatabaseCompleted ?? 'undefined'} и нет токена, проверяем профиль`);
-
-        // ВАЖНО: Проверяем, не является ли существующий профиль синхронизированным
-        // Если профиль существует и имеет email (не гостевой), то не создаем нового гостевого пользователя
-        if (!profile) {
-          // Профиля нет - создаем гостевого пользователя с текущей датой регистрации
-          // eslint-disable-next-line no-console
-          console.log('👤 [initializeApp] Профиля нет, создаем гостевого пользователя');
-          await saveGuestProfile();
-          const newProfile = await loadProfile();
-          if (newProfile) {
-            await loadLocalData();
-            // Помечаем проверку как завершенную
-            dispatch(initializationComplete({ profile: newProfile, isSignedIn: false }));
-          } else {
-            dispatch(initializationComplete({ profile: null, isSignedIn: false }));
-          }
-        } else {
-          // Профиль уже есть
-          // eslint-disable-next-line no-console
-          console.log(
-            `👤 [initializeApp] Профиль уже существует: _id=${profile._id}, email=${profile.email || 'нет'}, registered=${profile.registered || 'нет'}`,
-          );
-          await loadLocalData();
-          // Просто помечаем проверку как завершенную
-          dispatch(initializationComplete({ profile, isSignedIn: !!profile?.email }));
-        }
+      if (!profile) {
+        await saveGuestProfile();
+        profile = await loadProfile();
       }
+
+      await loadLocalData();
+
+      dispatch(
+        initializationComplete({
+          profile: profile || null,
+          isSignedIn: Boolean(profile?.email),
+        }),
+      );
     } catch (error) {
-      // Ошибка при инициализации - продолжаем работу
       console.error('Error in initializeApp:', error);
-      // Помечаем проверку как завершенную с ошибкой
       dispatch(initializationComplete({ profile: null, isSignedIn: false }));
     }
-  }, [checkInternetBeforeSync, dispatch, loadCategoriesToRedux, loadLocalData]);
-
-  useEffect(() => {
-    if (shouldRetrySyncWhenOnline && isOnline) {
-      setShouldRetrySyncWhenOnline(false);
-      _checkAuthAndSyncDB();
-    }
-  }, [shouldRetrySyncWhenOnline, isOnline, _checkAuthAndSyncDB]);
+  }, [dispatch, loadCategoriesToRedux, loadLocalData]);
 
   // Инициализация конфигурации приложения
   useEffect(() => {
@@ -747,7 +633,7 @@ const Main = () => {
             <CoverViewer />
           </>
         </InSuspense>
-        {/* Показываем спиннер во время синхронизации данных с сервера */}
+        {/* Показываем спиннер во время инициализации */}
         {checkingStatus === PENDING && <Spinner label={t('syncingData')} />}
       </NavigationContainer>
     </SafeAreaProvider>

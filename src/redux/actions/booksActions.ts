@@ -4,7 +4,6 @@ import intersection from 'lodash/intersection';
 
 import { ALL } from '~constants/boardType';
 import { SEARCH_RESULTS_LIMIT } from '~constants/bookList';
-import DataService from '~http/services/books';
 import {
   removeBookFromBoardAndSearch as sharedRemoveBookFromBoardAndSearch,
   triggerReloadBookList as sharedTriggerReloadBookList,
@@ -53,6 +52,21 @@ import {
 } from '~utils/boardStorage';
 
 const PREFIX = 'BOOKS';
+
+const syncBooksTableWithCache = async (books: IBook[]) => {
+  if (!books || books.length === 0) {
+    return;
+  }
+
+  try {
+    const { saveBooks } = await import('~utils/database/books');
+    await saveBooks(books);
+    // eslint-disable-next-line no-console
+    console.log(`📚 [loadBookListFromCache] Синхронизирована единая таблица книг: ${books.length}`);
+  } catch (error) {
+    console.error('Error syncing unified books table from cache:', error);
+  }
+};
 
 /**
  * Подсчет количества книг по месяцам из массива книг
@@ -209,315 +223,115 @@ export const loadSearchResults = createAsyncThunk(
   },
 );
 
-export const loadBookList = createAsyncThunk(
-  `${PREFIX}/loadBookList`,
-  async ({ boardType, shouldLoadMoreResults }: { boardType: BookStatus; shouldLoadMoreResults: boolean }, { getState }: AppThunkAPI) => {
-    const state = getState();
-    const pageIndex = deriveBookListPageIndex(boardType)(state);
-    const filterParams = deriveFilterBookCategoryPaths(boardType)(state);
-    const sortParams = deriveBookListSortParams(boardType)(state);
-    const { language } = i18n;
+const loadBookListFromCache = async (
+  { boardType, shouldLoadMoreResults }: { boardType: BookStatus; shouldLoadMoreResults: boolean },
+  { getState }: AppThunkAPI,
+) => {
+  console.log(`🔍 [loadBookListFromCache DEBUG] ${boardType}: Начало загрузки`);
 
-    const targetPageIndex = shouldLoadMoreResults ? pageIndex + 1 : 0;
+  const state = getState();
+  const pageIndex = deriveBookListPageIndex(boardType)(state);
+  const filterParams = deriveFilterBookCategoryPaths(boardType)(state);
+  const sortParams = deriveBookListSortParams(boardType)(state);
+  const { language } = i18n;
 
-    // Инициализируем базу данных
-    try {
-      await initDatabase();
-    } catch (error) {
-      console.error('Error initializing database:', error);
-    }
+  console.log(`🔍 [loadBookListFromCache DEBUG] ${boardType}: Параметры:`, {
+    pageIndex,
+    filterParamsIsArray: Array.isArray(filterParams),
+    filterParamsLength: Array.isArray(filterParams) ? filterParams.length : typeof filterParams,
+    sortParamsExists: !!sortParams,
+    sortParamsType: sortParams?.type,
+    sortParamsDirection: sortParams?.direction,
+    language,
+  });
 
-    // eslint-disable-next-line no-console
-    console.log('📡 [loadBookList] Загрузка данных с сервера API');
+  const targetPageIndex = shouldLoadMoreResults ? pageIndex + 1 : 0;
 
-    const params = {
-      pageIndex: 0,
-      limit: 10000, // Большой лимит, чтобы загрузить все книги сразу
-      boardType,
-      categoryPaths: filterParams,
-      sortType: sortParams.type,
-      sortDirection: sortParams.direction,
-      language,
-    };
+  try {
+    await initDatabase();
+  } catch (error) {
+    console.error('Error initializing database:', error);
+  }
 
-    try {
-      // Устанавливаем таймаут для запроса, чтобы не висеть вечно
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout')), 30000); // 30 секунд
+  console.log('💾 [loadBookListFromCache] Загрузка данных из локальной БД');
+
+  try {
+    const sortType = (sortParams.type ?? '') as string;
+    const sortDirection = (sortParams.direction ?? '') as string;
+    const cachedData = await loadBoardData(boardType, targetPageIndex, filterParams, sortType, sortDirection, language);
+
+    if (cachedData) {
+      console.log(`🔍 [loadBookListFromCache DEBUG] ${boardType}: cachedData получен:`, {
+        dataIsArray: Array.isArray(cachedData.data),
+        dataLength: Array.isArray(cachedData.data) ? cachedData.data.length : typeof cachedData.data,
+        filterParamsExists: !!cachedData.filterParams,
+        filterParamsIsArray: Array.isArray(cachedData.filterParams),
+        filterParamsLength: Array.isArray(cachedData.filterParams) ? cachedData.filterParams.length : typeof cachedData.filterParams,
       });
 
-      const result = (await Promise.race([DataService().getBookList({ ...params }), timeoutPromise])) as any;
-      const { items } = result?.data || {};
+      console.log(`✅ [loadBookListFromCache] Загружено ${cachedData.data.length} книг из локальной БД`);
 
-      // Подсчитываем booksCountByYear локально из всех загруженных книг
       let booksCountByYear: any = null;
-      if (boardType !== ALL && items && items.length > 0) {
-        booksCountByYear = calculateBooksCountByYear(items, language);
-        // eslint-disable-next-line no-console
-        console.log(`   Подсчитано booksCountByYear локально: ${booksCountByYear?.length || 0} месяцев`);
+      if (boardType !== ALL && cachedData.data && cachedData.data.length > 0) {
+        booksCountByYear = calculateBooksCountByYear(cachedData.data, language);
+        console.log(`   Подсчитано booksCountByYear из локальной БД: ${booksCountByYear?.length || 0} месяцев`);
       }
 
-      // Сохраняем в кэш и конвертируем обложки
-      let booksWithBase64Covers: typeof items = items || [];
-      try {
-        // eslint-disable-next-line no-console
-        console.log('💾 [loadBookList] Сохранение данных в локальный кэш...');
-        const sortType = (sortParams.type ?? '') as string;
-        const sortDirection = (sortParams.direction ?? '') as string;
-
-        // Сохраняем даты и статусы книг отдельно
-        // Конвертируем обложки в base64 для локального хранения
-        const { getImgUrl } = await import('~config/api');
-        const imgUrl = await getImgUrl();
-        const { convertBookCoverToBase64 } = await import('~utils/imageConverter');
-
-        // Сохраняем все книги в единую таблицу (данные будут агрегированы)
-        if (items && items.length > 0) {
-          try {
-            const { saveBooks } = await import('~utils/database/books');
-            // Сначала сохраняем книги без обложек (базовая информация)
-            await saveBooks(items);
-            // eslint-disable-next-line no-console
-            console.log(`💾 [loadBookList] Сохранено ${items.length} книг в единую таблицу`);
-          } catch (error) {
-            console.error('Error saving books to unified table:', error);
-          }
-        }
-
-        // Конвертируем обложки в base64 для локального хранения
-        if (items && items.length > 0) {
-          // eslint-disable-next-line no-console
-          console.log(`🖼️ [loadBookList] Начинаем конвертацию обложек в base64 для ${items.length} книг`);
-          let convertedCount = 0;
-          let skippedCount = 0;
-          let errorCount = 0;
-
-          // Конвертируем обложки параллельно, но с ограничением (по 5 одновременно)
-          const CONCURRENT_LIMIT = 5;
-          const safeItems = (items || []) as IBook[];
-          const booksToConvert = safeItems.filter((book: IBook) => book.coverPath && !book.coverPath.startsWith('data:image') && Boolean(imgUrl));
-
-          // Формируем карту конвертированных обложек
-          const coverMap = new Map<string, string>();
-          for (let i = 0; i < booksToConvert.length; i += CONCURRENT_LIMIT) {
-            const batch = booksToConvert.slice(i, i + CONCURRENT_LIMIT);
-            const conversionPromises = batch.map(async (book: IBook) => {
-              try {
-                const base64Cover = await convertBookCoverToBase64(book.coverPath!, imgUrl);
-                if (base64Cover) {
-                  coverMap.set(book.bookId, base64Cover);
-                  convertedCount++;
-                } else {
-                  errorCount++;
-                }
-              } catch (error) {
-                console.error(`Error converting cover to base64 for book ${book.bookId}:`, error);
-                errorCount++;
-              }
-            });
-            await Promise.all(conversionPromises);
-          }
-
-          // Формируем финальный массив книг с конвертированными обложками
-          booksWithBase64Covers = [];
-          for (const book of safeItems) {
-            let coverPath = book.coverPath;
-            if (coverPath && !coverPath.startsWith('data:image') && coverMap.has(book.bookId)) {
-              coverPath = coverMap.get(book.bookId)!;
-            } else if (coverPath && coverPath.startsWith('data:image')) {
-              skippedCount++;
-            } else if (!coverPath) {
-              skippedCount++;
-            }
-
-            booksWithBase64Covers.push({
-              ...book,
-              coverPath,
-            });
-          }
-
-          // Обновляем обложки в единой таблице после конвертации
-          if (booksWithBase64Covers.length > 0) {
-            try {
-              const { updateBook } = await import('~utils/database/books');
-              for (const book of booksWithBase64Covers as IBook[]) {
-                if (book.coverPath) {
-                  await updateBook(book.bookId, { coverPath: book.coverPath });
-                }
-              }
-              // eslint-disable-next-line no-console
-              console.log(`🖼️ [loadBookList] Обновлены обложки в единой таблице для ${booksWithBase64Covers.length} книг`);
-            } catch (error) {
-              console.error('Error updating covers in unified table:', error);
-            }
-          }
-
-          // eslint-disable-next-line no-console
-          console.log(
-            `✅ [loadBookList] Конвертация обложек завершена: конвертировано=${convertedCount}, пропущено=${skippedCount}, ошибок=${errorCount}`,
-          );
-        }
-
-        await saveBoardData(
-          boardType,
-          targetPageIndex,
-          filterParams,
-          sortType,
-          sortDirection,
-          language,
-          booksWithBase64Covers,
-          booksWithBase64Covers.length,
-          false,
-          booksCountByYear,
-        );
-        // eslint-disable-next-line no-console
-        console.log('✅ [loadBookList] Данные успешно сохранены в кэш');
-      } catch (error) {
-        console.error('Error saving to cache:', error);
-        // Не прерываем выполнение, если не удалось сохранить в кэш
-      }
-
-      // ВАЖНО: Возвращаем данные с конвертированными обложками, чтобы Redux state обновился правильно
-      const responseData = {
+      const returnPayload = {
         boardType,
-        data: booksWithBase64Covers,
-        totalItems: booksWithBase64Covers.length,
+        data: cachedData.data,
+        totalItems: cachedData.data.length,
         hasNextPage: false,
         shouldLoadMoreResults: false,
         booksCountByYear,
-        fromCache: false,
+        fromCache: true,
       };
 
-      // eslint-disable-next-line no-console
-      console.log(`✅ [loadBookList] Загружено ${booksWithBase64Covers.length} книг с сервера (с конвертированными обложками)`);
-      return responseData;
-    } catch (error) {
-      console.error('Error loading book list from server:', error);
-      // При ошибке возвращаем пустой массив, чтобы не висеть
-      // eslint-disable-next-line no-console
-      console.log('⚠️ [loadBookList] Ошибка загрузки с сервера, возвращаем пустой массив');
-      return {
-        boardType,
-        data: [],
-        totalItems: 0,
-        hasNextPage: false,
-        shouldLoadMoreResults: false,
-        booksCountByYear: null,
-        fromCache: false,
-      };
+      console.log(`🔍 [loadBookListFromCache DEBUG] ${boardType}: Возвращаем payload:`, {
+        dataIsArray: Array.isArray(returnPayload.data),
+        dataLength: Array.isArray(returnPayload.data) ? returnPayload.data.length : typeof returnPayload.data,
+        booksCountByYearIsArray: Array.isArray(returnPayload.booksCountByYear),
+        booksCountByYearType: typeof returnPayload.booksCountByYear,
+      });
+
+      await syncBooksTableWithCache((cachedData.data || []) as IBook[]);
+
+      return returnPayload;
     }
-  },
+
+    console.log('⚠️ [loadBookListFromCache] Данные не найдены в локальной БД, возвращаем пустой массив');
+    return {
+      boardType,
+      data: [],
+      totalItems: 0,
+      hasNextPage: false,
+      shouldLoadMoreResults: false,
+      booksCountByYear: null,
+      fromCache: true,
+    };
+  } catch (error) {
+    console.error('Error loading from local DB:', error);
+    console.log('⚠️ [loadBookListFromCache] Ошибка загрузки из локальной БД, возвращаем пустой массив');
+    return {
+      boardType,
+      data: [],
+      totalItems: 0,
+      hasNextPage: false,
+      shouldLoadMoreResults: false,
+      booksCountByYear: null,
+      fromCache: true,
+    };
+  }
+};
+
+export const loadBookList = createAsyncThunk(
+  `${PREFIX}/loadBookList`,
+  async (params: { boardType: BookStatus; shouldLoadMoreResults: boolean }, thunkAPI: AppThunkAPI) => loadBookListFromCache(params, thunkAPI),
 );
 
 export const loadBookListFromLocalDB = createAsyncThunk(
   `${PREFIX}/loadBookListFromLocalDB`,
-  async ({ boardType, shouldLoadMoreResults }: { boardType: BookStatus; shouldLoadMoreResults: boolean }, { getState }: AppThunkAPI) => {
-    // DEBUG: Логируем начало загрузки
-    console.log(`🔍 [loadBookListFromLocalDB DEBUG] ${boardType}: Начало загрузки`);
-
-    const state = getState();
-    const pageIndex = deriveBookListPageIndex(boardType)(state);
-    const filterParams = deriveFilterBookCategoryPaths(boardType)(state);
-    const sortParams = deriveBookListSortParams(boardType)(state);
-    const { language } = i18n;
-
-    // DEBUG: Логируем параметры загрузки
-    console.log(`🔍 [loadBookListFromLocalDB DEBUG] ${boardType}: Параметры:`, {
-      pageIndex,
-      filterParamsIsArray: Array.isArray(filterParams),
-      filterParamsLength: Array.isArray(filterParams) ? filterParams.length : typeof filterParams,
-      sortParamsExists: !!sortParams,
-      sortParamsType: sortParams?.type,
-      sortParamsDirection: sortParams?.direction,
-      language,
-    });
-
-    const targetPageIndex = shouldLoadMoreResults ? pageIndex + 1 : 0;
-
-    // Инициализируем базу данных
-    try {
-      await initDatabase();
-    } catch (error) {
-      console.error('Error initializing database:', error);
-    }
-
-    // eslint-disable-next-line no-console
-    console.log('💾 [loadBookListFromLocalDB] Загрузка данных из локальной БД');
-
-    try {
-      const sortType = (sortParams.type ?? '') as string;
-      const sortDirection = (sortParams.direction ?? '') as string;
-      const cachedData = await loadBoardData(boardType, targetPageIndex, filterParams, sortType, sortDirection, language);
-
-      if (cachedData) {
-        // DEBUG: Логируем загруженные данные
-        console.log(`🔍 [loadBookListFromLocalDB DEBUG] ${boardType}: cachedData получен:`, {
-          dataIsArray: Array.isArray(cachedData.data),
-          dataLength: Array.isArray(cachedData.data) ? cachedData.data.length : typeof cachedData.data,
-          filterParamsExists: !!cachedData.filterParams,
-          filterParamsIsArray: Array.isArray(cachedData.filterParams),
-          filterParamsLength: Array.isArray(cachedData.filterParams) ? cachedData.filterParams.length : typeof cachedData.filterParams,
-        });
-
-        // eslint-disable-next-line no-console
-        console.log(`✅ [loadBookListFromLocalDB] Загружено ${cachedData.data.length} книг из локальной БД`);
-
-        // Подсчитываем booksCountByYear локально из всех книг в кэше
-        let booksCountByYear: any = null;
-        if (boardType !== ALL && cachedData.data && cachedData.data.length > 0) {
-          booksCountByYear = calculateBooksCountByYear(cachedData.data, language);
-          // eslint-disable-next-line no-console
-          console.log(`   Подсчитано booksCountByYear из локальной БД: ${booksCountByYear?.length || 0} месяцев`);
-        }
-
-        const returnPayload = {
-          boardType,
-          data: cachedData.data,
-          totalItems: cachedData.data.length, // Используем реальное количество книг
-          hasNextPage: false, // Больше не используем пагинацию
-          shouldLoadMoreResults: false,
-          booksCountByYear,
-          fromCache: true,
-        };
-
-        // DEBUG: Логируем payload перед возвратом
-        console.log(`🔍 [loadBookListFromLocalDB DEBUG] ${boardType}: Возвращаем payload:`, {
-          dataIsArray: Array.isArray(returnPayload.data),
-          dataLength: Array.isArray(returnPayload.data) ? returnPayload.data.length : typeof returnPayload.data,
-          booksCountByYearIsArray: Array.isArray(returnPayload.booksCountByYear),
-          booksCountByYearType: typeof returnPayload.booksCountByYear,
-        });
-
-        return returnPayload;
-      } else {
-        // eslint-disable-next-line no-console
-        console.log('⚠️ [loadBookListFromLocalDB] Данные не найдены в локальной БД, возвращаем пустой массив');
-        return {
-          boardType,
-          data: [],
-          totalItems: 0,
-          hasNextPage: false,
-          shouldLoadMoreResults: false,
-          booksCountByYear: null,
-          fromCache: true,
-        };
-      }
-    } catch (error) {
-      console.error('Error loading from local DB:', error);
-      // При ошибке возвращаем пустой массив
-      // eslint-disable-next-line no-console
-      console.log('⚠️ [loadBookListFromLocalDB] Ошибка загрузки из локальной БД, возвращаем пустой массив');
-      return {
-        boardType,
-        data: [],
-        totalItems: 0,
-        hasNextPage: false,
-        shouldLoadMoreResults: false,
-        booksCountByYear: null,
-        fromCache: true,
-      };
-    }
-  },
+  async (params: { boardType: BookStatus; shouldLoadMoreResults: boolean }, thunkAPI: AppThunkAPI) => loadBookListFromCache(params, thunkAPI),
 );
 
 export const loadCategories = createAsyncThunk(`${PREFIX}/loadCategories`, async (shouldRewrite: boolean, { getState }: AppThunkAPI) => {

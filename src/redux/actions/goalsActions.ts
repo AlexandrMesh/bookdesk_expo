@@ -1,10 +1,9 @@
 import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
 
-import GoalsService from '~http/services/goals';
 import { triggerReloadStat } from '~redux/actions/statisticActions';
 import { AppThunkAPI } from '~redux/store/configureStore';
 import { GoalType, IGoal } from '~types/goals';
-import { deleteGoal, deleteGoalItem, initDatabase, loadGoal, loadGoalItems, saveGoal, saveGoalItem, saveGoalItems } from '~utils/boardStorage';
+import { deleteGoal, deleteGoalItem, initDatabase, loadGoal, loadGoalItems, saveGoal, saveGoalItem } from '~utils/boardStorage';
 
 const PREFIX = 'GOALS';
 
@@ -125,29 +124,7 @@ export const getGoalItems = createAsyncThunk(`${PREFIX}/getGoalItems`, async () 
     await initDatabase();
     const localGoalItems = await loadGoalItems();
 
-    if (localGoalItems.length > 0) {
-      // eslint-disable-next-line no-console
-      console.log('📊 [getGoalItems] Загружены goal items из локальной БД');
-      return localGoalItems as IGoal[];
-    }
-
-    // Если в локальной БД нет данных, загружаем с сервера (первый запуск)
-    // eslint-disable-next-line no-console
-    console.log('📊 [getGoalItems] Goal items в локальной БД нет, загружаем с сервера');
-    const { data } = await GoalsService().getGoalItems();
-
-    // Сохраняем в локальную БД
-    if (data && data.length > 0) {
-      try {
-        await saveGoalItems(data);
-        // eslint-disable-next-line no-console
-        console.log('📊 [getGoalItems] Goal items сохранены в локальную БД');
-      } catch (saveError) {
-        console.error('Error saving goal items to local DB:', saveError);
-      }
-    }
-
-    return data || [];
+    return localGoalItems as IGoal[];
   } catch (error) {
     console.error(error);
     throw error;

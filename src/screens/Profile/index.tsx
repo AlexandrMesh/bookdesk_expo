@@ -1,13 +1,13 @@
-import React, { FC, useState, useRef } from 'react';
+import React, { FC } from 'react';
 
-import { Alert, ScrollView, Text, View, Pressable } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
 
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 
 import { useAppDispatch, useAppSelector } from '~hooks';
 
-import { ABOUT_ROUTE, SIGN_IN_ROUTE } from '~constants/routes';
+import { ABOUT_ROUTE } from '~constants/routes';
 import { SECONDARY } from '~constants/themes';
 import { useAppUpdates } from '~hooks/useAppUpdates';
 import { resetData } from '~redux/actions/authActions';
@@ -64,39 +64,12 @@ const Profile: FC<Props> = ({ isUpdateAvailable, googlePlayUrl }) => {
   // Проверяем, является ли пользователь гостевым (нет email)
   const isGuestUser = !email || email.trim() === '';
 
-  // Triple-click handler for user ID
-  const [clickCount, setClickCount] = useState(0);
-  const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleUserIdPress = () => {
-    const newCount = clickCount + 1;
-    setClickCount(newCount);
-
-    // Clear existing timeout
-    if (clickTimeoutRef.current) {
-      clearTimeout(clickTimeoutRef.current);
-    }
-
-    // If triple click, navigate to SignIn
-    if (newCount === 3) {
-      setClickCount(0);
-      navigation.navigate(SIGN_IN_ROUTE);
-    } else {
-      // Reset count after 500ms if no more clicks
-      clickTimeoutRef.current = setTimeout(() => {
-        setClickCount(0);
-      }, 500);
-    }
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.profile}>
-        <Pressable onPress={handleUserIdPress}>
-          <Text style={styles.label}>
-            {t('userId')} <Text style={styles.value}>{userId || '—'}</Text>
-          </Text>
-        </Pressable>
+        <Text style={styles.label}>
+          {t('userId')} <Text style={styles.value}>{userId || '—'}</Text>
+        </Text>
         {!isGuestUser && (
           <Text style={styles.label}>
             {t('email')} <Text style={styles.value}>{email}</Text>
@@ -134,12 +107,6 @@ const Profile: FC<Props> = ({ isUpdateAvailable, googlePlayUrl }) => {
               onPress={() => navigation.navigate(ABOUT_ROUTE)}
               title={t('aboutApp')}
             />
-            {/* <Button
-              theme={SECONDARY}
-              style={styles.marginBottom}
-              onPress={() => navigation.navigate(SIGN_IN_ROUTE)}
-              title={t('openAuthTest')}
-            /> */}
             <Button
               theme={SECONDARY}
               style={styles.profileButton}
