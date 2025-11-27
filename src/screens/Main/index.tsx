@@ -375,14 +375,14 @@ const TabNavigator: FC<TabNavigatorProps> = ({ isUpdateAvailable, googlePlayUrl,
               <HomeIcon
                 width={BOTTOM_BAR_ICON.width}
                 height={BOTTOM_BAR_ICON.height}
-                fill={focused ? themeColors.neutral_light : themeColors.neutral_medium}
+                fill={focused ? themeColors.primary_medium : themeColors.neutral_medium}
               />
             ),
             StatNavigator: (
               <StatIcon
                 width={BOTTOM_BAR_ICON.width}
                 height={BOTTOM_BAR_ICON.height}
-                fill={focused ? themeColors.neutral_light : themeColors.neutral_medium}
+                fill={focused ? themeColors.primary_medium : themeColors.neutral_medium}
               />
             ),
             AddCustomBookNavigator: (
@@ -390,21 +390,21 @@ const TabNavigator: FC<TabNavigatorProps> = ({ isUpdateAvailable, googlePlayUrl,
                 width={BOTTOM_BAR_ADD_ICON.width}
                 height={BOTTOM_BAR_ADD_ICON.height}
                 strokeWidth={1.5}
-                stroke={focused ? themeColors.neutral_light : themeColors.neutral_medium}
+                stroke={focused ? themeColors.primary_medium : themeColors.neutral_medium}
               />
             ),
             GoalsNavigator: (
               <GoalIcon
                 width={BOTTOM_BAR_ICON.width}
                 height={BOTTOM_BAR_ICON.height}
-                fill={focused ? themeColors.neutral_light : themeColors.neutral_medium}
+                fill={focused ? themeColors.primary_medium : themeColors.neutral_medium}
               />
             ),
             ProfileNavigator: (
               <ProfileIcon
                 width={BOTTOM_BAR_ICON.width}
                 height={BOTTOM_BAR_ICON.height}
-                fill={focused ? themeColors.neutral_light : themeColors.neutral_medium}
+                fill={focused ? themeColors.primary_medium : themeColors.neutral_medium}
               />
             ),
           };

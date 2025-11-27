@@ -49,7 +49,7 @@ const Like: FC<Props> = ({ bookId, bookStatus }) => {
         {bookWithVote ? (
           <LikeFillIcon width={LIKE_ICON.width} height={LIKE_ICON.width} fill={themeColors.error} stroke={themeColors.error} />
         ) : (
-          <LikeIcon width={LIKE_ICON.width} height={LIKE_ICON.width} fill={themeColors.neutral_light} stroke={themeColors.neutral_light} />
+          <LikeIcon width={LIKE_ICON.width} height={LIKE_ICON.width} fill="transparent" stroke={themeColors.neutral_black} />
         )}
       </Pressable>
     </Animated.View>
