@@ -18,9 +18,9 @@ export const darkPalette: ThemeColors = {
 };
 
 export const lightPalette: ThemeColors = {
-  primary_dark: '#f1f5f9',
-  primary_darkest: '#e2e8f0',
-  primary_medium: '#60a5fa',
+  primary_dark: '#cbd5e1',
+  primary_darkest: '#94a3b8',
+  primary_medium: '#4a90e2',
   neutral_white: '#ffffff',
   neutral_black: '#000000',
   neutral_light: '#0f172a',
@@ -33,4 +33,3 @@ export const lightPalette: ThemeColors = {
   error: '#ef4444',
   success: '#10b981',
 };
-

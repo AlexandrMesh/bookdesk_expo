@@ -8,6 +8,7 @@ import FilledStarIcon from '~assets/star-filled.svg';
 import StarIcon from '~assets/star.svg';
 import useGetAnimatedPlaceholderStyle from '~hooks/useGetAnimatedPlaceholderStyle';
 import { updateUserBookRating } from '~redux/actions/booksActions';
+import { useThemeColors } from '~theme/hooks';
 
 import styles from './styles';
 
@@ -23,6 +24,7 @@ const Rating: FC<Props> = ({ bookId, width = 32, height = 32, wrapperStyle, rati
   const [internalBookRating, setInternalBookRating] = useState(rating);
   const [isLoading, setIsLoading] = useState(false);
   const dispatch = useAppDispatch();
+  const themeColors = useThemeColors();
 
   const animatedStyleForRating = useGetAnimatedPlaceholderStyle(isLoading);
 
@@ -88,7 +90,7 @@ const Rating: FC<Props> = ({ bookId, width = 32, height = 32, wrapperStyle, rati
                 }
               }}
             >
-              {isSelected ? <FilledStarIcon width={width} height={height} /> : <StarIcon width={width} height={height} />}
+              {isSelected ? <FilledStarIcon width={width} height={height} fill={themeColors.gold} /> : <StarIcon width={width} height={height} fill={themeColors.neutral_light} />}
             </Pressable>
           );
         })}

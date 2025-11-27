@@ -12,8 +12,9 @@ import useGetAnimatedPlaceholderStyle from '~hooks/useGetAnimatedPlaceholderStyl
 import { setBookToUpdate, showModal } from '~redux/actions/booksActions';
 import { getBookValuesUpdatingStatus, getBookToUpdate } from '~redux/selectors/books';
 import { BookStatus } from '~types/books';
+import { useThemedStyles } from '~theme/useThemedStyles';
 
-import styles from './styles';
+import createStyles from './styles';
 
 export type Props = {
   added: number;
@@ -29,6 +30,7 @@ const ModifiedDate: FC<Props> = ({ bookId, bookStatus, added, fontSize = 15, hei
   const dispatch = useAppDispatch();
   const bookIdToUpdateAddedDate = useAppSelector(getBookToUpdate)?.bookId;
   const bookValuesUpdatingStatus = useAppSelector(getBookValuesUpdatingStatus);
+  const styles = useThemedStyles(createStyles);
 
   const handleAddedPress = useCallback(() => {
     dispatch(setBookToUpdate({ bookId, bookStatus, added }));

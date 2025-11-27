@@ -11,6 +11,7 @@ import useGetAnimatedPlaceholderStyle from '~hooks/useGetAnimatedPlaceholderStyl
 import { updateBookVotes } from '~redux/actions/booksActions';
 import { deriveBookVotes } from '~redux/selectors/books';
 import { BookStatus } from '~types/books';
+import { useThemeColors } from '~theme/hooks';
 
 import styles from './styles';
 
@@ -23,6 +24,7 @@ const Like: FC<Props> = ({ bookId, bookStatus }) => {
   const [isLoading, setIsloading] = useState(false);
   const bookWithVote = useAppSelector(deriveBookVotes(bookId));
   const dispatch = useAppDispatch();
+  const themeColors = useThemeColors();
 
   const animatedStyle = useGetAnimatedPlaceholderStyle(isLoading);
 
@@ -45,9 +47,9 @@ const Like: FC<Props> = ({ bookId, bookStatus }) => {
     <Animated.View style={isLoading ? { opacity: animatedStyle } : {}}>
       <Pressable style={styles.votesWrapper} disabled={isLoading} onPress={handleLike}>
         {bookWithVote ? (
-          <LikeFillIcon width={LIKE_ICON.width} height={LIKE_ICON.width} />
+          <LikeFillIcon width={LIKE_ICON.width} height={LIKE_ICON.width} fill={themeColors.error} stroke={themeColors.error} />
         ) : (
-          <LikeIcon width={LIKE_ICON.width} height={LIKE_ICON.width} />
+          <LikeIcon width={LIKE_ICON.width} height={LIKE_ICON.width} fill={themeColors.neutral_light} stroke={themeColors.neutral_light} />
         )}
       </Pressable>
     </Animated.View>
