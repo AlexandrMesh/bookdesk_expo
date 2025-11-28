@@ -7,13 +7,15 @@ import Constants from 'expo-constants';
 import { useTranslation } from 'react-i18next';
 
 import { SECONDARY } from '~constants/themes';
+import { useThemedStyles } from '~theme/useThemedStyles';
 import Button from '~UI/Button';
 import { Spinner } from '~UI/Spinner';
 
-import styles from './styles';
+import createStyles from './styles';
 
 const About = () => {
   const { t } = useTranslation('app');
+  const styles = useThemedStyles(createStyles);
 
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState('');
