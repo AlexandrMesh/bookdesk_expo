@@ -29,6 +29,8 @@ const ThemeObserver: React.FC<Props> = ({ children }) => {
       const storedMode = await loadThemeMode();
       if (storedMode) {
         dispatch(setThemeMode(storedMode));
+      } else {
+        saveThemeMode('auto');
       }
     })();
   }, [dispatch]);
