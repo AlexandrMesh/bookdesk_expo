@@ -48,7 +48,7 @@
           "image": "./assets/images/android-icon-foreground.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#09172a",
+          "backgroundColor": "#cbd5e1",
           "dark": {
             "backgroundColor": "#09172a"
           }
