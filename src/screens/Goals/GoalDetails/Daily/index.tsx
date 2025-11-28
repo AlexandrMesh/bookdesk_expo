@@ -52,7 +52,7 @@ const Daily = () => {
   const dispatch = useAppDispatch();
   const themeColors = useThemeColors();
   const themeScheme = useAppSelector(selectThemeScheme);
-  const styles = useThemedStyles(createStyles);
+  const styles = useThemedStyles((colors) => createStyles(colors, themeScheme));
   const _getGoalItems = useCallback(() => dispatch(getGoalItems()), [dispatch]);
   const _addGoalItem = useCallback((pages: string) => dispatch(addGoalItem(pages)), [dispatch]);
   const _deleteUserGoalItem = useCallback((id: string) => dispatch(deleteUserGoalItem(id)), [dispatch]);
@@ -180,7 +180,7 @@ const Daily = () => {
           {themeScheme === 'light' ? (
             <MaterialCommunityIcons
               name={expandedItems.includes(item.title) ? 'chevron-down' : 'chevron-right'}
-              size={16}
+              size={20}
               color={themeColors.primary_medium}
               style={styles.arrowIcon}
             />

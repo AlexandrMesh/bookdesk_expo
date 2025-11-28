@@ -1,8 +1,8 @@
 import { StyleSheet } from 'react-native';
 
-import { ThemeColors } from '~theme/types';
+import { ThemeColors, ThemeScheme } from '~theme/types';
 
-export default (colors: ThemeColors) =>
+export default (colors: ThemeColors, scheme?: ThemeScheme) =>
   StyleSheet.create({
     container: {
       height: '100%',
@@ -191,7 +191,7 @@ export default (colors: ThemeColors) =>
   },
   headerTitleText: {
     fontSize: 16,
-    color: colors.neutral_light,
+    color: scheme === 'light' ? colors.neutral_white : colors.neutral_light,
   },
   listFooterComponent: {
     height: 80,
