@@ -87,7 +87,7 @@ export default (colors: ThemeColors) =>
     fontSize: 16,
   },
   themeSettings: {
-    marginTop: 20,
+    marginTop: 10,
   },
   themeSegment: {
     flexDirection: 'row',
