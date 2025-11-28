@@ -173,7 +173,7 @@ const BookItemComponent: FC<Props> = ({ bookItem, itemStyle, imgUrl, isEditable:
               </>
             )}
           </View>
-          {bookStatus ? <BookNotePreview bookId={bookId} bookTitle={title} /> : null}
+          {bookStatus ? <BookNotePreview bookId={bookId} bookTitle={title} coverUri={imageUri} /> : null}
         </View>
       </View>
       <View style={styles.bottom}>

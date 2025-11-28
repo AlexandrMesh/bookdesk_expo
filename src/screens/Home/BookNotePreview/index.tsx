@@ -19,11 +19,12 @@ import createStyles from './styles';
 export type Props = {
   bookId: string;
   bookTitle?: string;
+  coverUri?: string;
   numberOfLines?: number;
   fontSize?: number;
 };
 
-const BookNotePreview: FC<Props> = ({ bookId, bookTitle, numberOfLines = 2, fontSize = 14 }) => {
+const BookNotePreview: FC<Props> = ({ bookId, bookTitle, coverUri, numberOfLines = 2, fontSize = 14 }) => {
   const { t, i18n } = useTranslation(['books', 'common']);
   const navigation = useNavigation<any>();
   const { language } = i18n;
@@ -46,7 +47,7 @@ const BookNotePreview: FC<Props> = ({ bookId, bookTitle, numberOfLines = 2, font
   return (
     <TouchableHighlight
       style={styles.info}
-      onPress={() => navigation.navigate(BOOK_NOTE_ROUTE, { bookTitle, bookId, shouldOpenEditableMode: isEmpty(bookNote) })}
+      onPress={() => navigation.navigate(BOOK_NOTE_ROUTE, { bookTitle, bookId, coverUri, shouldOpenEditableMode: isEmpty(bookNote) })}
       underlayColor={themeColors.primary_dark}
     >
       {bookNoteContent ? (

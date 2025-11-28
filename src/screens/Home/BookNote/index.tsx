@@ -2,6 +2,7 @@ import React, { FC, useState, useCallback } from 'react';
 
 import { TouchableHighlight, ScrollView, View, Text } from 'react-native';
 
+import { Image } from 'expo-image';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { isEmpty } from 'lodash';
 import { useTranslation } from 'react-i18next';
@@ -15,20 +16,21 @@ import { SECONDARY } from '~constants/themes';
 import useDisplayAlert from '~hooks/useDisplayAlert';
 import { deleteUserComment, updateUserComment } from '~redux/actions/booksActions';
 import { deriveBookNote } from '~redux/selectors/books';
-import colors from '~styles/colors';
 import { useThemeColors } from '~theme/hooks';
+import { useThemedStyles } from '~theme/useThemedStyles';
 import Button from '~UI/Button';
 import { Spinner } from '~UI/Spinner';
 import Input from '~UI/TextInput';
 import { getValidationFailure, validationTypes } from '~utils/validation';
 
-import styles from './styles';
+import createStyles from './styles';
 
 type ParamList = {
   BookNote: {
     bookTitle: string;
     bookId: string;
     shouldOpenEditableMode: boolean;
+    coverUri?: string;
   };
 };
 
@@ -48,6 +50,7 @@ const BookNote: FC = () => {
 
   const dispatch = useAppDispatch();
   const themeColors = useThemeColors();
+  const styles = useThemedStyles(createStyles);
 
   const deleteComment = async () => {
     try {
@@ -109,8 +112,17 @@ const BookNote: FC = () => {
   }, []);
 
   const renderBookTitle = () => (
-    <View style={styles.book}>
-      <Text style={[styles.info, styles.title, styles.lightColor]}>{params?.bookTitle}</Text>
+    <View style={styles.bookHeader}>
+      {params?.coverUri ? (
+        <Image style={styles.coverThumb} source={{ uri: params.coverUri }} contentFit='cover' transition={150} />
+      ) : (
+        <View style={[styles.coverThumb, styles.coverPlaceholder]} />
+      )}
+      <View style={styles.bookTitleWrapper}>
+        <Text style={[styles.title, styles.lightColor]} numberOfLines={2} ellipsizeMode='tail'>
+          {params?.bookTitle}
+        </Text>
+      </View>
     </View>
   );
 
@@ -150,7 +162,7 @@ const BookNote: FC = () => {
 
   return (
     <View style={styles.wrapper}>
-      <ScrollView keyboardShouldPersistTaps='handled'>
+      <ScrollView keyboardShouldPersistTaps='handled' contentContainerStyle={styles.scrollContent}>
         {isEmpty(bookNote) ? (
           <>
             {renderBookTitle()}
@@ -168,7 +180,7 @@ const BookNote: FC = () => {
             {renderBookTitle()}
             <View style={styles.added}>
               <View>
-                <Text style={[styles.lightColor, styles.content]}>{bookNoteAdded}</Text>
+                <Text style={[styles.mediumColor, styles.content]}>{bookNoteAdded}</Text>
               </View>
               <View style={styles.actions}>
                 <TouchableHighlight
@@ -177,14 +189,15 @@ const BookNote: FC = () => {
                   onPress={toggleEditableMode}
                   underlayColor={themeColors.primary_dark}
                 >
-                  <EditIcon width={26} height={26} stroke={colors.neutral_medium} />
+                  <EditIcon width={22} height={22} stroke={themeColors.neutral_medium} />
                 </TouchableHighlight>
                 <TouchableHighlight
                   disabled={isEditing}
+                  style={styles.deleteIcon}
                   onPress={displayConfirmationAlert}
                   underlayColor={themeColors.primary_dark}
                 >
-                  <RemoveIcon fill={colors.neutral_medium} width={26} height={26} />
+                  <RemoveIcon fill={themeColors.neutral_medium} width={22} height={22} />
                 </TouchableHighlight>
               </View>
             </View>
