@@ -2,6 +2,11 @@
 
 ## bookdesk
 
+## 6.1.0
+###### 2025-11-28
+- [New] Added light theme and theme switcher
+- [New] Added ability for creating category (genre)
+
 ## 6.0.0
 ###### 2025-11-17
 - [New] New project platform (removed backend API and use SQL Lite)
