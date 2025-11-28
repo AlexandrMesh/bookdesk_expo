@@ -2,6 +2,8 @@ import React, { memo, JSX, FC, Fragment } from 'react';
 
 import { View, Pressable, Text } from 'react-native';
 
+import { useAppSelector } from '~hooks';
+import { selectThemeScheme } from '~redux/selectors/theme';
 import { useThemedStyles } from '~theme/useThemedStyles';
 
 import createStyles from './styles';
@@ -18,7 +20,8 @@ export type Props = {
 };
 
 const Stepper: FC<Props> = ({ steps, currentStep, lastAvailableStep, onStepPress }) => {
-  const styles = useThemedStyles(createStyles);
+  const themeScheme = useAppSelector(selectThemeScheme);
+  const styles = useThemedStyles((colors) => createStyles(colors, themeScheme));
   return (
     <>
       <View style={styles.stepper}>

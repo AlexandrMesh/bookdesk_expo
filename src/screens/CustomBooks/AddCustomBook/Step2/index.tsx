@@ -9,7 +9,7 @@ import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 
 import { DEFAULT_COVER } from '~constants/customBooks';
-import { PENDING, SUCCEEDED } from '~constants/loadingStatuses';
+import { FAILED, PENDING, SUCCEEDED } from '~constants/loadingStatuses';
 import { SECONDARY } from '~constants/themes';
 import { useAppDispatch, useAppSelector } from '~hooks';
 import useGetImgUrl from '~hooks/useGetImgUrl';
@@ -155,6 +155,18 @@ const Step2 = () => {
           {(isPickingFromDevice || (shouldAddCover && !isSelectedFromDevice && loadingDataStatus === PENDING)) && (
             <View style={styles.contentSpinnerWrapper}>
               <Spinner />
+            </View>
+          )}
+
+          {/* Сообщение об ошибке при загрузке обложек */}
+          {shouldAddCover && !isSelectedFromDevice && !isPickingFromDevice && loadingDataStatus === FAILED && (
+            <View style={styles.errorMessageWrapper}>
+              <Text style={styles.errorMessage}>{t('customBook:coversNotFound')}</Text>
+              <Button
+                style={styles.uploadButton}
+                onPress={pickImageFromDevice}
+                title={t('customBook:upload')}
+              />
             </View>
           )}
 

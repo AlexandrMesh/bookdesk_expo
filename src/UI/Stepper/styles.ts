@@ -1,8 +1,8 @@
 import { StyleSheet } from 'react-native';
 
-import { ThemeColors } from '~theme/types';
+import { ThemeColors, ThemeScheme } from '~theme/types';
 
-export default (colors: ThemeColors) =>
+export default (colors: ThemeColors, scheme?: ThemeScheme) =>
   StyleSheet.create({
     stepper: {
       paddingHorizontal: 15,
@@ -20,7 +20,7 @@ export default (colors: ThemeColors) =>
       backgroundColor: colors.neutral_medium,
     },
     activeLine: {
-      backgroundColor: colors.neutral_light,
+      backgroundColor: scheme === 'light' ? colors.primary_medium : colors.neutral_light,
     },
     step: {
       display: 'flex',
@@ -34,10 +34,10 @@ export default (colors: ThemeColors) =>
     currentStep: {
       width: 40,
       height: 40,
-      backgroundColor: colors.neutral_light,
+      backgroundColor: scheme === 'light' ? colors.primary_medium : colors.neutral_light,
     },
     availableStep: {
-      backgroundColor: colors.neutral_light,
+      backgroundColor: scheme === 'light' ? colors.primary_medium : colors.neutral_light,
     },
     label: {
       color: colors.neutral_light,
@@ -45,10 +45,10 @@ export default (colors: ThemeColors) =>
       fontSize: 17,
     },
     currentLabel: {
-      color: colors.primary_dark,
+      color: scheme === 'light' ? colors.neutral_white : colors.primary_dark,
     },
     availableLabel: {
-      color: colors.primary_dark,
+      color: scheme === 'light' ? colors.neutral_white : colors.primary_dark,
     },
     component: {
       flex: 1,

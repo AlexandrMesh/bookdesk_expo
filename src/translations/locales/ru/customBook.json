@@ -33,5 +33,7 @@
   "enterBookTitle": "Введите название книги",
   "editCustomBookTitle": "Изменить книгу",
   "bookSuccessfullyUpdated": "Книга обновлена!",
-  "currentCover": "Текущая обложка"
+  "currentCover": "Текущая обложка",
+  "coversNotFound": "Обложки не найдены. Попробуйте загрузить свою обложку.",
+  "upload": "Загрузить"
 }

@@ -33,5 +33,7 @@
   "enterBookTitle": "Enter the book title",
   "editCustomBookTitle": "Edit book",
   "bookSuccessfullyUpdated": "Book has updated!",
-  "currentCover": "Current cover"
+  "currentCover": "Current cover",
+  "coversNotFound": "Covers not found. Try uploading your own cover.",
+  "upload": "Upload"
 }
