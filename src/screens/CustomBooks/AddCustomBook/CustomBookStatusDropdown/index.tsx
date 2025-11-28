@@ -74,7 +74,6 @@ const CustomBookStatusDropdown = () => {
       isLoading={isLoading}
       wrapperStyle={{ borderColor: statusColor }}
       buttonLabelStyle={{ color: statusColor }}
-      iconStyle={{ fill: statusColor } as any}
       selectedItem={bookStatus || actionTypes[0].value}
       buttonLabel={t(`books:${bookStatus || actionTypes[0].value}`)}
       onChange={handleUpdateBookStatus}

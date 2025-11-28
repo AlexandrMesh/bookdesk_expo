@@ -16,6 +16,7 @@ import { addCustomGenre, deleteCustomGenre, updateCustomGenre } from '~redux/act
 import { selectCategory, setSearchQuery, submitCategory, toggleExpandedCategoryCustomBooks } from '~redux/actions/customBookActions';
 import { deriveCategories } from '~redux/selectors/books';
 import { deriveCategoriesSearchResult, getCategorySearchQuery, getEditableSelectedCategoryPath } from '~redux/selectors/customBook';
+import { selectThemeScheme } from '~redux/selectors/theme';
 import { useThemeColors } from '~theme/hooks';
 import { useThemedStyles } from '~theme/useThemedStyles';
 import Button from '~UI/Button';
@@ -47,6 +48,7 @@ const CategoryChooser = ({ variant = 'screen', onClose }: CategoryChooserProps) 
   const navigation = useNavigation();
   const isEmbedded = variant === 'embedded';
   const themeColors = useThemeColors();
+  const themeScheme = useAppSelector(selectThemeScheme);
   const styles = useThemedStyles(createStyles);
 
   const dispatch = useAppDispatch();
@@ -228,7 +230,10 @@ const CategoryChooser = ({ variant = 'screen', onClose }: CategoryChooserProps) 
               )}
               {isLeafCategory && (
                 <View style={styles.radioWrapper}>
-                  <RadioButton isSelected={selectedCategoryPath === path} />
+                  <RadioButton
+                    isSelected={selectedCategoryPath === path}
+                    color={themeScheme === 'light' ? themeColors.primary_medium : themeColors.neutral_light}
+                  />
                 </View>
               )}
               {isCustom && customId && !isSearchResult && (
