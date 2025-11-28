@@ -11,8 +11,9 @@ import useDebouncedSearch from '~hooks/useDebouncedSearch';
 import { setSearchQuery, clearSearchResults, triggerShouldNotClearSearchQuery } from '~redux/actions/booksActions';
 import { deriveSearchQuery, getShouldClearSearchQuery, getLoadingSearchResultsStatus } from '~redux/selectors/books';
 import Input from '~UI/TextInput';
+import { useThemedStyles } from '~theme/useThemedStyles';
 
-import styles from './styles';
+import createStyles from './styles';
 
 const SearchBar = () => {
   const { t } = useTranslation(['books', 'common', 'search']);
@@ -50,6 +51,8 @@ const SearchBar = () => {
       (clearSearchText as any)();
     }
   }, [clearSearchText, shouldClearSearchQuery]);
+
+  const styles = useThemedStyles(createStyles);
 
   return (
     <View style={styles.wrapper}>

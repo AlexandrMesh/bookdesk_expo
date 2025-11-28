@@ -22,8 +22,9 @@ import TotalCount from '~screens/Home/ActionBar/TotalCount';
 import BooksList from '~screens/Home/BooksList';
 import EmptyResults from '~screens/Home/EmptyResults';
 import { BookStatus } from '~types/books';
+import { useThemedStyles } from '~theme/useThemedStyles';
 
-import styles from './styles';
+import createStyles from './styles';
 
 type ParamList = {
   SearchResults: {
@@ -64,6 +65,8 @@ const SearchResults = () => {
       _loadSearchResults(false);
     }
   }, [searchQuery, _loadSearchResults, shouldReloadData]);
+
+  const styles = useThemedStyles(createStyles);
 
   if (isEmpty(searchQuery)) {
     return (

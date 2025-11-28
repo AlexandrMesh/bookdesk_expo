@@ -2,7 +2,7 @@
   "expo": {
     "name": "BookDesk",
     "slug": "bookdesk",
-    "version": "6.0.0",
+    "version": "6.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "bookdesk",
@@ -33,7 +33,7 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.bookdesk",
       "usesCleartextTraffic": true,
-      "versionCode": 66
+      "versionCode": 67
     },
     "web": {
       "output": "static",
