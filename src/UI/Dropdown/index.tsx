@@ -23,6 +23,7 @@ export type Props = {
   dropdownLeftPosition?: number;
   dropdownHeight?: number;
   isLoading?: boolean;
+  fillBackground?: boolean;
 };
 
 const Dropdown: FC<Props> = ({
@@ -36,6 +37,7 @@ const Dropdown: FC<Props> = ({
   iconStyle,
   dropdownHeight = 150,
   isLoading,
+  fillBackground = true,
 }) => {
   const { height } = useWindowDimensions();
   const dropdownButton = useRef<any>(null);
@@ -168,28 +170,32 @@ const Dropdown: FC<Props> = ({
   };
 
   const statusColor = getBorderColor(wrapperStyle);
-  const backgroundColor = statusColor || styles.dropdownButtonStyle.borderColor;
+  const filledBackgroundColor = statusColor || themeColors.primary_medium;
+  const buttonColors = fillBackground
+    ? {
+        backgroundColor: filledBackgroundColor,
+        borderColor: filledBackgroundColor,
+      }
+    : {};
+
+  const labelColor = fillBackground ? themeColors.neutral_white : themeColors.neutral_light;
 
   return (
     <Animated.View style={isLoading ? { opacity: animatedStyle } : {}}>
       <TouchableOpacity
         ref={dropdownButton}
-        style={[
-          styles.dropdownButtonStyle,
-          { backgroundColor, borderColor: backgroundColor },
-          wrapperStyle,
-        ]}
+        style={[styles.dropdownButtonStyle, buttonColors, wrapperStyle]}
         disabled={isLoading}
         onPress={toggleDropdown}
       >
         <View style={styles.status}>
-          <Text style={[styles.dropdownButtonLabelStyle, buttonLabelStyle, { color: themeColors.neutral_white }]}>
+          <Text style={[styles.dropdownButtonLabelStyle, buttonLabelStyle, { color: labelColor }]}>
             {buttonLabel}
           </Text>
           <DropdownIcon
             width={DROPDOWN_ICON.width}
             height={DROPDOWN_ICON.height}
-            style={[styles.icon, { fill: themeColors.neutral_white }, iconStyle]}
+            style={[styles.icon, { fill: labelColor }, iconStyle]}
           />
         </View>
         {renderDropdown()}

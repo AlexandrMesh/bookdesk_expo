@@ -85,9 +85,9 @@ const Profile: FC<Props> = ({ isUpdateAvailable, googlePlayUrl }) => {
         )}
         <View>
           <Text style={[styles.label, styles.mTop]}>{t('app:appLanguage')}</Text>
-          <LanguageSettings />
+          <LanguageSettings buttonStyle={styles.languageButton} buttonLabelStyle={styles.languageButtonTitle} />
         </View>
-        <ThemeSettings />
+        <ThemeSettings buttonStyle={styles.themeButton} buttonLabelStyle={styles.themeButtonTitle} />
       </View>
       <View style={styles.buttonsWrapper}>
         <View style={styles.buttons}>

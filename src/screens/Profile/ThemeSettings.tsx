@@ -1,43 +1,52 @@
-import React from 'react';
+import React, { FC, useMemo } from 'react';
 
-import { Pressable, Text, View } from 'react-native';
-
+import { StyleProp, Text, TextStyle, View, ViewStyle } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { useAppDispatch, useAppSelector } from '~hooks';
 
 import { setThemeMode } from '~redux/actions/themeActions';
 import { getThemeMode } from '~redux/selectors/theme';
+import Dropdown from '~UI/Dropdown';
 import { useThemedStyles } from '~theme/useThemedStyles';
 
 import createStyles from './styles';
 
-const ThemeSettings = () => {
+type Props = {
+  buttonStyle?: StyleProp<ViewStyle>;
+  buttonLabelStyle?: StyleProp<TextStyle>;
+};
+
+const ThemeSettings: FC<Props> = ({ buttonStyle, buttonLabelStyle }) => {
   const { t } = useTranslation(['profile']);
   const dispatch = useAppDispatch();
   const mode = useAppSelector(getThemeMode);
   const styles = useThemedStyles(createStyles);
 
-  const options: Array<{ value: 'auto' | 'light' | 'dark'; label: string }> = [
-    { value: 'auto', label: t('themeAuto') },
-    { value: 'light', label: t('themeLight') },
-    { value: 'dark', label: t('themeDark') },
-  ];
+  const options: Array<{ value: 'auto' | 'light' | 'dark'; title: string }> = useMemo(
+    () => [
+      { value: 'auto', title: t('themeAuto') },
+      { value: 'light', title: t('themeLight') },
+      { value: 'dark', title: t('themeDark') },
+    ],
+    [t],
+  );
+
+  const currentOption = options.find((option) => option.value === mode);
 
   return (
     <View style={styles.themeSettings}>
       <Text style={[styles.label, styles.mTop]}>{t('themeTitle')}</Text>
-      <View style={styles.themeSegment}>
-        {options.map((option) => (
-          <Pressable
-            key={option.value}
-            style={[styles.themeOption, mode === option.value && styles.themeOptionActive]}
-            onPress={() => dispatch(setThemeMode(option.value))}
-          >
-            <Text style={[styles.themeOptionText, mode === option.value && styles.themeOptionTextActive]}>{option.label}</Text>
-          </Pressable>
-        ))}
-      </View>
+      <Dropdown
+        items={options}
+        selectedItem={mode}
+        buttonLabel={currentOption?.title || ''}
+        onChange={(value) => dispatch(setThemeMode(value))}
+        wrapperStyle={buttonStyle}
+        buttonLabelStyle={buttonLabelStyle}
+        fillBackground={false}
+        isLoading={false}
+      />
     </View>
   );
 };

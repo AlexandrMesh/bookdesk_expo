@@ -1,6 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { FC, useState, useCallback } from 'react';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { StyleProp, TextStyle, ViewStyle } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { useAppDispatch } from '~hooks';
@@ -12,7 +13,12 @@ import { clearAddCustomBookState, triggerReloadCustomBookList } from '~redux/act
 import { triggerReloadStat } from '~redux/actions/statisticActions';
 import Dropdown from '~UI/Dropdown';
 
-const LanguageSettings = () => {
+type Props = {
+  buttonStyle?: StyleProp<ViewStyle>;
+  buttonLabelStyle?: StyleProp<TextStyle>;
+};
+
+const LanguageSettings: FC<Props> = ({ buttonStyle, buttonLabelStyle }) => {
   const { t, i18n } = useTranslation('app');
   const [isLoading, seIstLoading] = useState(false);
 
@@ -54,7 +60,18 @@ const LanguageSettings = () => {
     { title: t(EN), value: EN },
   ];
 
-  return <Dropdown items={actionTypes} isLoading={isLoading} selectedItem={language} buttonLabel={t(language)} onChange={handleUpdate} />;
+  return (
+    <Dropdown
+      items={actionTypes}
+      isLoading={isLoading}
+      selectedItem={language}
+      buttonLabel={t(language)}
+      onChange={handleUpdate}
+      wrapperStyle={buttonStyle}
+      buttonLabelStyle={buttonLabelStyle}
+      fillBackground={false}
+    />
+  );
 };
 
 export default LanguageSettings;
