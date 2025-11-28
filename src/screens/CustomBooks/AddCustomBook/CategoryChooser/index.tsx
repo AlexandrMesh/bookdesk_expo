@@ -208,7 +208,20 @@ const CategoryChooser = ({ variant = 'screen', onClose }: CategoryChooserProps) 
               style={[styles.arrowIconWrapper, iconWrapperStyle]}
             >
               {shouldDisplayArrowIcon ? (
-                <ArrowDown style={isExpanded ? undefined : styles.collapsed} width={FILTER_ICON.width} height={FILTER_ICON.height} />
+                themeScheme === 'light' ? (
+                  <MaterialCommunityIcons
+                    name={isExpanded ? 'chevron-down' : 'chevron-right'}
+                    size={24}
+                    color={themeColors.primary_medium}
+                  />
+                ) : (
+                  <ArrowDown
+                    style={isExpanded ? undefined : styles.collapsed}
+                    width={FILTER_ICON.width}
+                    height={FILTER_ICON.height}
+                    fill={themeColors.neutral_light}
+                  />
+                )
               ) : null}
             </Pressable>
           )}
