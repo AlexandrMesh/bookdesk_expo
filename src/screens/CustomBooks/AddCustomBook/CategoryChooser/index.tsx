@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 
 import { Alert, FlatList, Modal, Pressable, SectionList, SectionListRenderItemInfo, Text, View, ToastAndroid, Platform } from 'react-native';
 
+import { useBackHandler } from '@react-native-community/hooks';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -81,6 +82,26 @@ const CategoryChooser = ({ variant = 'screen', onClose }: CategoryChooserProps) 
       onClose();
     }
   };
+
+  const handleBack = useCallback(() => {
+    // Если открыт модал для добавления/редактирования жанра, сначала закрываем его
+    if (isCustomGenreModalVisible) {
+      closeCustomGenreModal();
+      return true;
+    }
+    // Иначе закрываем CategoryChooser и возвращаемся на предыдущий экран
+    if (!isEmbedded && !onClose) {
+      navigation.goBack();
+      return true;
+    }
+    if (onClose) {
+      onClose();
+      return true;
+    }
+    return false;
+  }, [isCustomGenreModalVisible, closeCustomGenreModal, isEmbedded, onClose, navigation]);
+
+  useBackHandler(handleBack);
 
   const shouldDisplaySearchResults = searchQuery;
 
