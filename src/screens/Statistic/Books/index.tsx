@@ -11,6 +11,7 @@ import { useAppDispatch, useAppSelector } from '~hooks';
 import { COMPLETED } from '~constants/boardType';
 import { loadStat } from '~redux/actions/statisticActions';
 import { getShouldReloadStat } from '~redux/selectors/statistic';
+import { selectThemeScheme } from '~redux/selectors/theme';
 import { useThemeColors } from '~theme/hooks';
 import { useThemedStyles } from '~theme/useThemedStyles';
 import { Spinner } from '~UI/Spinner';
@@ -30,7 +31,8 @@ const Books = () => {
   const dispatch = useAppDispatch();
   const _loadStat = useCallback(() => dispatch(loadStat(COMPLETED)), [dispatch]);
   const themeColors = useThemeColors();
-  const styles = useThemedStyles(createStyles);
+  const themeScheme = useAppSelector(selectThemeScheme);
+  const styles = useThemedStyles((colors) => createStyles(colors, themeScheme));
 
   const shouldReloadStat = useAppSelector(getShouldReloadStat);
 

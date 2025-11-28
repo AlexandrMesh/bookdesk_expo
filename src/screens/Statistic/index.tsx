@@ -6,7 +6,10 @@ import { createMaterialTopTabNavigator } from '@react-navigation/material-top-ta
 import { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 
+import { useAppSelector } from '~hooks';
+
 import { BOOKS_STATISTIC_ROUTE, PAGES_STATISTIC_ROUTE } from '~constants/routes';
+import { selectThemeScheme } from '~redux/selectors/theme';
 import { useThemeColors } from '~theme/hooks';
 import { useThemedStyles } from '~theme/useThemedStyles';
 
@@ -22,7 +25,8 @@ const Tab = createMaterialTopTabNavigator();
 
 const HeaderTabs: FC<Props> = ({ t }) => {
   const themeColors = useThemeColors();
-  const styles = useThemedStyles(createStyles);
+  const themeScheme = useAppSelector(selectThemeScheme);
+  const styles = useThemedStyles((colors) => createStyles(colors, themeScheme));
 
   const renderLazyPlaceholder = () => <View style={{ width: '100%', height: '100%', backgroundColor: themeColors.primary_dark }} />;
 
@@ -59,7 +63,8 @@ const HeaderTabs: FC<Props> = ({ t }) => {
 
 const Statistic = () => {
   const { t } = useTranslation('statistic');
-  const styles = useThemedStyles(createStyles);
+  const themeScheme = useAppSelector(selectThemeScheme);
+  const styles = useThemedStyles((colors) => createStyles(colors, themeScheme));
   return (
     <View style={styles.container}>
       <HeaderTabs t={t} />

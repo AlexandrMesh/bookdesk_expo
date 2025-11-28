@@ -1,8 +1,8 @@
 import { StyleSheet } from 'react-native';
 
-import { ThemeColors } from '~theme/types';
+import { ThemeColors, ThemeScheme } from '~theme/types';
 
-export default (colors: ThemeColors) =>
+export default (colors: ThemeColors, scheme?: ThemeScheme) =>
   StyleSheet.create({
     container: {
       height: '100%',
@@ -41,7 +41,7 @@ export default (colors: ThemeColors) =>
       paddingVertical: 10,
       marginTop: 5,
       color: colors.neutral_light,
-      backgroundColor: colors.primary_darkest,
+      backgroundColor: scheme === 'light' ? colors.primary_dark : colors.primary_darkest,
       borderRadius: 5,
     },
     subTitle: {
