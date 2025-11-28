@@ -482,6 +482,18 @@ const EditCustomBook = () => {
                       </View>
                     )}
 
+                    {/* Сообщение об ошибке при загрузке обложек */}
+                    {draftShouldAddCover &&
+                      !draftIsSelectedFromDevice &&
+                      !draftIsCurrentCover &&
+                      !draftIsPickingFromDevice &&
+                      draftLoadingDataStatus === 'failed' && (
+                        <View style={styles.errorMessageWrapper}>
+                          <Text style={styles.errorMessage}>{t('customBook:coversNotFound')}</Text>
+                          <Button style={styles.uploadButton} onPress={pickImageFromDevice} title={t('customBook:upload')} />
+                        </View>
+                      )}
+
                     {draftShouldAddCover && !draftIsPickingFromDevice && draftIsSelectedFromDevice && (
                       <View style={styles.deviceCoverWrapper}>
                         <View style={[styles.coverWrapper, styles.selectedCover]}>

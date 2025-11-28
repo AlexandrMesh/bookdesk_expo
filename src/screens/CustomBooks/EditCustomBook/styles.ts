@@ -268,4 +268,23 @@ export default (colors: ThemeColors) =>
   footerButtonTitle: {
     fontSize: 16,
   },
+  errorMessageWrapper: {
+    width: '100%',
+    minHeight: 180,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  errorMessage: {
+    fontSize: 18,
+    color: colors.neutral_light,
+    textAlign: 'center',
+    lineHeight: 26,
+    marginBottom: 20,
+  },
+  uploadButton: {
+    maxWidth: 200,
+    marginTop: 10,
+  },
 });
