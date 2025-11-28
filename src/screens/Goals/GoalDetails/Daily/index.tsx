@@ -180,15 +180,15 @@ const Daily = () => {
           {themeScheme === 'light' ? (
             <MaterialCommunityIcons
               name={expandedItems.includes(item.title) ? 'chevron-down' : 'chevron-right'}
-              size={20}
+              size={24}
               color={themeColors.primary_medium}
               style={styles.arrowIcon}
             />
           ) : (
             <ArrowDown
               style={[styles.arrowIcon, expandedItems.includes(item.title) ? null : styles.collapsedIcon]}
-              width={16}
-              height={16}
+              width={20}
+              height={20}
               fill={themeColors.neutral_light}
             />
           )}

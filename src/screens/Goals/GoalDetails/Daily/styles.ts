@@ -151,7 +151,8 @@ export default (colors: ThemeColors, scheme?: ThemeScheme) =>
     marginVertical: 5,
   },
   readingHistoryActive: {
-    borderColor: colors.neutral_light,
+    borderColor: scheme === 'light' ? colors.primary_medium : colors.neutral_light,
+    borderWidth: scheme === 'light' ? 2 : 1,
   },
   nested: {
     marginLeft: 20,
