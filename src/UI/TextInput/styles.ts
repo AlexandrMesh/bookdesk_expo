@@ -1,8 +1,8 @@
 import { StyleSheet } from 'react-native';
 
-import { ThemeColors } from '~theme/types';
+import { ThemeColors, ThemeScheme } from '~theme/types';
 
-export default (colors: ThemeColors) =>
+export default (colors: ThemeColors, scheme?: ThemeScheme) =>
   StyleSheet.create({
     validateableWrapper: {
     height: 80,
@@ -14,7 +14,7 @@ export default (colors: ThemeColors) =>
     height: 50,
     borderWidth: 1,
     fontSize: 18,
-    borderColor: colors.neutral_medium,
+    borderColor: scheme === 'light' ? '#60a5fa' : colors.neutral_medium,
     backgroundColor: colors.primary_dark,
     paddingHorizontal: 15,
     color: colors.neutral_light,
@@ -33,7 +33,8 @@ export default (colors: ThemeColors) =>
     color: colors.error,
   },
   focusedInput: {
-    borderColor: colors.neutral_light,
+    borderColor: scheme === 'light' ? colors.primary_medium : colors.neutral_light,
+    borderWidth: scheme === 'light' ? 2 : 1,
   },
   clearButtonWrapper: {
     position: 'absolute',

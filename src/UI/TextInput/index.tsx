@@ -6,6 +6,8 @@ import isEmpty from 'lodash/isEmpty';
 
 import CloseIcon from '~assets/close.svg';
 import { CLOSE_ICON } from '~constants/dimensions';
+import { useAppSelector } from '~hooks';
+import { selectThemeScheme } from '~redux/selectors/theme';
 import { useThemeColors } from '~theme/hooks';
 import { useThemedStyles } from '~theme/useThemedStyles';
 
@@ -51,7 +53,8 @@ const Input: FC<Props> = ({
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const themeColors = useThemeColors();
-  const styles = useThemedStyles(createStyles);
+  const themeScheme = useAppSelector(selectThemeScheme);
+  const styles = useThemedStyles((colors) => createStyles(colors, themeScheme));
 
   const onFocus = () => {
     if (!disabled) {
