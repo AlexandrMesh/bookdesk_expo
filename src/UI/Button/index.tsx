@@ -83,7 +83,7 @@ const Button: FC<Props> = ({
         ) : (
           <>
             {icon && iconPosition === 'left' && <View style={[styles.icon, styles.iconLeft, iconClassName]}>{icon}</View>}
-            <Text style={[styles.title, titleStyle]}>{title}</Text>
+            <Text style={[styles.title, theme === PRIMARY && styles.primaryTitle, titleStyle]}>{title}</Text>
             {icon && iconPosition === 'right' && <View style={[styles.icon, styles.iconRight, iconClassName]}>{icon}</View>}
           </>
         )}

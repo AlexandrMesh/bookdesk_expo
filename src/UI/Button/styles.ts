@@ -23,6 +23,9 @@ export default (colors: ThemeColors) =>
     color: colors.neutral_light,
     fontSize: 20,
   },
+  primaryTitle: {
+    color: colors.neutral_white,
+  },
   icon: {
     height: '100%',
     display: 'flex',
