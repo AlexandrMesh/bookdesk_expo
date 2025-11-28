@@ -40,7 +40,7 @@ export default (colors: ThemeColors, scheme?: ThemeScheme) =>
       backgroundColor: scheme === 'light' ? colors.primary_medium : colors.neutral_light,
     },
     label: {
-      color: colors.neutral_light,
+      color: scheme === 'light' ? colors.neutral_white : colors.neutral_light,
       fontWeight: 600,
       fontSize: 17,
     },

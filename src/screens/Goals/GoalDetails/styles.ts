@@ -1,14 +1,15 @@
 import { StyleSheet } from 'react-native';
 
-import colors from '~styles/colors';
+import { ThemeColors } from '~theme/types';
 
-export default StyleSheet.create({
-  container: {
-    height: '100%',
-    width: '100%',
-    display: 'flex',
-    backgroundColor: colors.primary_dark,
-  },
+export default (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      height: '100%',
+      width: '100%',
+      display: 'flex',
+      backgroundColor: colors.primary_dark,
+    },
   content: {
     display: 'flex',
     flexDirection: 'column',

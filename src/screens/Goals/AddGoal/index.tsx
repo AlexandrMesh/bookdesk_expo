@@ -11,18 +11,20 @@ import { DAILY, MONTHLY } from '~constants/goals';
 import { GOAL_DETAILS } from '~constants/routes';
 import { addGoal } from '~redux/actions/goalsActions';
 import { GoalType } from '~types/goals';
+import { useThemedStyles } from '~theme/useThemedStyles';
 import Button from '~UI/Button';
 import RadioButton from '~UI/RadioButton';
 import { Spinner } from '~UI/Spinner';
 import Input from '~UI/TextInput';
 import { getValidationFailure, validationTypes } from '~utils/validation';
 
-import styles from './styles';
+import createStyles from './styles';
 
 const AddGoal = () => {
   const { t } = useTranslation(['goals', 'errors']);
   const navigation = useNavigation<any>();
   const dispatch = useAppDispatch();
+  const styles = useThemedStyles(createStyles);
   const [pages, setPages] = useState('');
   const [errorForPage, setErrorForPages] = useState('');
   const [isLoading, setIsLoading] = useState(false);

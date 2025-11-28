@@ -11,16 +11,18 @@ import { DAILY, MONTHLY } from '~constants/goals';
 import { updateGoal } from '~redux/actions/goalsActions';
 import { getGoalNumberOfPages, getGoalType } from '~redux/selectors/goals';
 import { GoalType } from '~types/goals';
+import { useThemedStyles } from '~theme/useThemedStyles';
 import Button from '~UI/Button';
 import RadioButton from '~UI/RadioButton';
 import { Spinner } from '~UI/Spinner';
 import Input from '~UI/TextInput';
 import { getValidationFailure, validationTypes } from '~utils/validation';
 
-import styles from './styles';
+import createStyles from './styles';
 
 const EditGoal = () => {
   const { t } = useTranslation(['goals', 'common']);
+  const styles = useThemedStyles(createStyles);
   const [pages, setPages] = useState<string>('');
   const _goalType = useAppSelector(getGoalType);
   const [goalType, setGoalType] = useState<GoalType>(_goalType);

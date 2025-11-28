@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next';
 
 import { useAppDispatch, useAppSelector } from '~hooks';
 
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
 import ArrowDown from '~assets/arrow-down.svg';
 import MedalIcon from '~assets/medal-star.svg';
 import RemoveIcon from '~assets/remove.svg';
@@ -19,14 +21,16 @@ import {
   deriveTodayProgress,
   deriveGoalsDataLength,
 } from '~redux/selectors/goals';
-import colors from '~styles/colors';
+import { selectThemeScheme } from '~redux/selectors/theme';
+import { useThemeColors } from '~theme/hooks';
+import { useThemedStyles } from '~theme/useThemedStyles';
 import Button from '~UI/Button';
 import { Spinner } from '~UI/Spinner';
 import Input from '~UI/TextInput';
 import { getValidationFailure, validationTypes } from '~utils/validation';
 
 import ItemPlaceholder from '../ItemPlaceholder';
-import styles from './styles';
+import createStyles from './styles';
 
 const READING_HISTORY_ITEM_HEIGHT = 72;
 const PAGE_SIZE = 100;
@@ -46,6 +50,9 @@ const Daily = () => {
   const loadMoreTaskRef = useRef<ReturnType<typeof InteractionManager.runAfterInteractions> | null>(null);
 
   const dispatch = useAppDispatch();
+  const themeColors = useThemeColors();
+  const themeScheme = useAppSelector(selectThemeScheme);
+  const styles = useThemedStyles(createStyles);
   const _getGoalItems = useCallback(() => dispatch(getGoalItems()), [dispatch]);
   const _addGoalItem = useCallback((pages: string) => dispatch(addGoalItem(pages)), [dispatch]);
   const _deleteUserGoalItem = useCallback((id: string) => dispatch(deleteUserGoalItem(id)), [dispatch]);
@@ -170,16 +177,30 @@ const Daily = () => {
         onPress={() => toggleExpandedItem(item.title)}
       >
         <View style={styles.titleColumn}>
-          <ArrowDown style={[styles.arrowIcon, expandedItems.includes(item.title) ? null : styles.collapsedIcon]} width={16} height={16} />
+          {themeScheme === 'light' ? (
+            <MaterialCommunityIcons
+              name={expandedItems.includes(item.title) ? 'chevron-down' : 'chevron-right'}
+              size={16}
+              color={themeColors.primary_medium}
+              style={styles.arrowIcon}
+            />
+          ) : (
+            <ArrowDown
+              style={[styles.arrowIcon, expandedItems.includes(item.title) ? null : styles.collapsedIcon]}
+              width={16}
+              height={16}
+              fill={themeColors.neutral_light}
+            />
+          )}
           <Text style={styles.readingHistoryItem}>{item.title}</Text>
         </View>
         <View style={styles.countColumn}>
-          {item.count >= goalNumberOfPages ? <MedalIcon style={styles.starIcon} width={24} height={24} fill={colors.gold} /> : null}
+          {item.count >= goalNumberOfPages ? <MedalIcon style={styles.starIcon} width={24} height={24} fill={themeColors.gold} /> : null}
           <Text style={styles.countItem}>{t('common:count', { count: item.count })}</Text>
         </View>
       </Pressable>
     ),
-    [expandedItems, goalNumberOfPages, t, toggleExpandedItem],
+    [expandedItems, goalNumberOfPages, t, toggleExpandedItem, themeScheme, themeColors],
   );
 
   const getKeyExtractor = useCallback((item: any) => item._id, []);
@@ -203,13 +224,13 @@ const Daily = () => {
             {loadingGoalItemsId === item._id ? (
               <Spinner size='small' variant='inline' />
             ) : (
-              <RemoveIcon fill={colors.neutral_medium} width={20} height={20} />
+              <RemoveIcon fill={themeColors.neutral_medium} width={20} height={20} />
             )}
           </Pressable>
         </View>
       </View>
     ),
-    [onDelete, language, loadingGoalItemsId, t],
+    [onDelete, language, loadingGoalItemsId, t, themeColors],
   );
 
   const renderReadingHistoryNestedItems = useCallback(
@@ -227,12 +248,12 @@ const Daily = () => {
 
   const getProgressBarLabelColor = () => {
     if (todayProgress >= 100) {
-      return colors.gold;
+      return themeColors.gold;
     }
     if (todayProgress >= 55) {
-      return colors.primary_dark;
+      return themeColors.primary_dark;
     }
-    return colors.neutral_light;
+    return themeColors.neutral_light;
   };
 
   useEffect(() => {
@@ -331,8 +352,8 @@ const Daily = () => {
                   <Text style={styles.infoText}>{t('goals:pagesDone')}</Text>
                 </View>
                 <View style={styles.goalWrapper}>
-                  {todayProgress >= 100 && <MedalIcon style={styles.starIcon} width={24} height={24} fill={colors.gold} />}
-                  <Text style={{ ...styles.blockText, color: todayProgress >= 100 ? colors.gold : colors.completed }}>{numberOfPagesDoneToday}</Text>
+                  {todayProgress >= 100 && <MedalIcon style={styles.starIcon} width={24} height={24} fill={themeColors.gold} />}
+                  <Text style={{ ...styles.blockText, color: todayProgress >= 100 ? themeColors.gold : themeColors.completed }}>{numberOfPagesDoneToday}</Text>
                 </View>
               </View>
 
@@ -346,12 +367,12 @@ const Daily = () => {
               </View>
             </View>
 
-            <View style={{ ...styles.progressBarWrapper, borderColor: todayProgress >= 100 ? colors.gold : colors.completed }}>
+            <View style={{ ...styles.progressBarWrapper, borderColor: todayProgress >= 100 ? themeColors.gold : themeColors.completed }}>
               <View
                 style={{
                   ...styles.progressBar,
                   width: todayProgress > 100 ? '100%' : `${todayProgress}%`,
-                  backgroundColor: todayProgress >= 100 ? 'transparent' : colors.completed,
+                  backgroundColor: todayProgress >= 100 ? 'transparent' : themeColors.completed,
                 }}
               />
               <View style={styles.progressBarLabelWrapper}>

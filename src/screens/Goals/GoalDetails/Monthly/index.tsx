@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next';
 
 import { useAppDispatch, useAppSelector } from '~hooks';
 
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
 import ArrowDown from '~assets/arrow-down.svg';
 import MedalIcon from '~assets/medal-star.svg';
 import RemoveIcon from '~assets/remove.svg';
@@ -19,14 +21,16 @@ import {
   deriveMonthlyProgress,
   deriveGoalsDataLength,
 } from '~redux/selectors/goals';
-import colors from '~styles/colors';
+import { selectThemeScheme } from '~redux/selectors/theme';
+import { useThemeColors } from '~theme/hooks';
+import { useThemedStyles } from '~theme/useThemedStyles';
 import Button from '~UI/Button';
 import { Spinner } from '~UI/Spinner';
 import Input from '~UI/TextInput';
 import { getValidationFailure, validationTypes } from '~utils/validation';
 
 import ItemPlaceholder from '../ItemPlaceholder';
-import styles from './styles';
+import createStyles from './styles';
 
 const READING_HISTORY_ITEM_HEIGHT = 72;
 const PAGE_SIZE = 100;
@@ -46,6 +50,9 @@ const Monthly = () => {
   const loadMoreTaskRef = useRef<ReturnType<typeof InteractionManager.runAfterInteractions> | null>(null);
 
   const dispatch = useAppDispatch();
+  const themeColors = useThemeColors();
+  const themeScheme = useAppSelector(selectThemeScheme);
+  const styles = useThemedStyles(createStyles);
   const _getGoalItems = useCallback(() => dispatch(getGoalItems()), [dispatch]);
   const _addGoalItem = useCallback((pages: string) => dispatch(addGoalItem(pages)), [dispatch]);
   const _deleteUserGoalItem = useCallback((id: string) => dispatch(deleteUserGoalItem(id)), [dispatch]);
@@ -170,7 +177,21 @@ const Monthly = () => {
         onPress={() => toggleExpandedItem(item.title)}
       >
         <View style={styles.titleColumn}>
-          <ArrowDown style={[styles.arrowIcon, expandedItems.includes(item.title) ? null : styles.collapsedIcon]} width={16} height={16} />
+          {themeScheme === 'light' ? (
+            <MaterialCommunityIcons
+              name={expandedItems.includes(item.title) ? 'chevron-down' : 'chevron-right'}
+              size={16}
+              color={themeColors.primary_medium}
+              style={styles.arrowIcon}
+            />
+          ) : (
+            <ArrowDown
+              style={[styles.arrowIcon, expandedItems.includes(item.title) ? null : styles.collapsedIcon]}
+              width={16}
+              height={16}
+              fill={themeColors.neutral_light}
+            />
+          )}
           <Text style={styles.readingHistoryItem}>{item.title}</Text>
         </View>
         <View style={styles.countColumn}>
@@ -178,7 +199,7 @@ const Monthly = () => {
         </View>
       </Pressable>
     ),
-    [expandedItems, t, toggleExpandedItem],
+    [expandedItems, t, toggleExpandedItem, themeScheme, themeColors],
   );
 
   const getKeyExtractor = useCallback((item: any) => item._id, []);
@@ -202,13 +223,13 @@ const Monthly = () => {
             {loadingGoalItemsId === item._id ? (
               <Spinner size='small' variant='inline' />
             ) : (
-              <RemoveIcon fill={colors.neutral_medium} width={20} height={20} />
+              <RemoveIcon fill={themeColors.neutral_medium} width={20} height={20} />
             )}
           </Pressable>
         </View>
       </View>
     ),
-    [onDelete, language, loadingGoalItemsId, t],
+    [onDelete, language, loadingGoalItemsId, t, themeColors],
   );
 
   const renderReadingHistoryNestedItems = useCallback(
@@ -226,12 +247,12 @@ const Monthly = () => {
 
   const getProgressBarLabelColor = () => {
     if (progress >= 100) {
-      return colors.gold;
+      return themeColors.gold;
     }
     if (progress >= 55) {
-      return colors.primary_dark;
+      return themeColors.primary_dark;
     }
-    return colors.neutral_light;
+    return themeColors.neutral_light;
   };
 
   useEffect(() => {
@@ -302,13 +323,13 @@ const Monthly = () => {
             <Text style={styles.headerTitleText}>{section.title}</Text>
           </View>
           <View style={[styles.countColumn, styles.headerTitle]}>
-            {isDone ? <MedalIcon style={styles.starIcon} width={24} height={24} fill={colors.gold} /> : null}
+            {isDone ? <MedalIcon style={styles.starIcon} width={24} height={24} fill={themeColors.gold} /> : null}
             <Text style={styles.headerTitleText}>{t('common:count', { count: section.count })}</Text>
           </View>
         </View>
       );
     },
-    [t, goalNumberOfPages],
+    [t, goalNumberOfPages, themeColors],
   );
 
   const renderItemFFormSectionList = useCallback(
@@ -334,8 +355,8 @@ const Monthly = () => {
                   <Text style={styles.infoText}>{t('goals:pagesDone')}</Text>
                 </View>
                 <View style={styles.goalWrapper}>
-                  {progress >= 100 && <MedalIcon style={styles.starIcon} width={24} height={24} fill={colors.gold} />}
-                  <Text style={{ ...styles.blockText, color: progress >= 100 ? colors.gold : colors.completed }}>{numberOfPagesDone}</Text>
+                  {progress >= 100 && <MedalIcon style={styles.starIcon} width={24} height={24} fill={themeColors.gold} />}
+                  <Text style={{ ...styles.blockText, color: progress >= 100 ? themeColors.gold : themeColors.completed }}>{numberOfPagesDone}</Text>
                 </View>
               </View>
 
@@ -349,12 +370,12 @@ const Monthly = () => {
               </View>
             </View>
 
-            <View style={{ ...styles.progressBarWrapper, borderColor: progress >= 100 ? colors.gold : colors.completed }}>
+            <View style={{ ...styles.progressBarWrapper, borderColor: progress >= 100 ? themeColors.gold : themeColors.completed }}>
               <View
                 style={{
                   ...styles.progressBar,
                   width: progress > 100 ? '100%' : `${progress}%`,
-                  backgroundColor: progress >= 100 ? 'transparent' : colors.completed,
+                  backgroundColor: progress >= 100 ? 'transparent' : themeColors.completed,
                 }}
               />
               <View style={styles.progressBarLabelWrapper}>

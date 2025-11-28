@@ -7,13 +7,15 @@ import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ADD_GOAL } from '~constants/routes';
+import { useThemedStyles } from '~theme/useThemedStyles';
 import Button from '~UI/Button';
 
-import styles from './styles';
+import createStyles from './styles';
 
 const Goals = () => {
   const { t } = useTranslation('goals');
   const navigation = useNavigation<any>();
+  const styles = useThemedStyles(createStyles);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
