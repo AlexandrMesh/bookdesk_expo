@@ -21,4 +21,11 @@ export default (colors: ThemeColors) =>
       fontSize: 18,
       color: colors.neutral_light,
     },
+    countWrapper: {
+      width: '100%',
+      paddingHorizontal: 16,
+      marginTop: 8,
+      marginBottom: 4,
+      alignItems: 'flex-end',
+    },
   });

@@ -84,7 +84,11 @@ const SearchResults = () => {
 
   return (
     <>
-      {loadingDataStatus === PENDING ? null : <TotalCount count={searchResult.length > 0 ? totalItems : 0} />}
+      {loadingDataStatus === PENDING ? null : (
+        <View style={styles.countWrapper}>
+          <TotalCount count={searchResult.length > 0 ? totalItems : 0} />
+        </View>
+      )}
       <BooksList data={searchResult} loadingDataStatus={loadingDataStatus} />
     </>
   );
