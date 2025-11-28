@@ -85,10 +85,11 @@ export default (colors: ThemeColors) =>
     },
     commentWrapperClassName: {
       marginTop: 10,
-      minHeight: 240,
+      height: undefined,
+      marginBottom: 0,
     },
     commentInput: {
-      minHeight: 210,
+      height: 150,
       textAlignVertical: 'top',
     },
     primaryButton: {
@@ -104,7 +105,8 @@ export default (colors: ThemeColors) =>
     editActions: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingBottom: 10,
+      paddingBottom: 6,
+      marginTop: 2,
     },
     symbolsWrapper: {
       alignItems: 'flex-end',
@@ -112,5 +114,11 @@ export default (colors: ThemeColors) =>
     subTitle: {
       fontSize: 16,
       color: colors.neutral_light,
+    },
+    errorWrapper: {
+      minHeight: 20,
+      marginBottom: 2,
+      marginTop: 2,
+      justifyContent: 'flex-start',
     },
   });

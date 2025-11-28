@@ -138,15 +138,18 @@ const BookNote: FC = () => {
         autoFocus
         wrapperClassName={styles.commentWrapperClassName}
         className={styles.commentInput}
+        validateable={false}
         onChangeText={handleChangeComment}
         value={editedComment}
-        error={editedCommentError}
         shouldDisplayClearButton={!!editedComment && !isEditing}
         disabled={isEditing}
         onClear={handleClearComment}
         multiline
         numberOfLines={5}
       />
+      <View style={styles.errorWrapper}>
+        {!!editedCommentError && <Text style={[styles.subTitle, { color: themeColors.error }]}>{editedCommentError}</Text>}
+      </View>
       <View style={styles.editActions}>
         <Button
           style={styles.primaryButton}
