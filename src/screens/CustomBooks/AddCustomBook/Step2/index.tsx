@@ -23,16 +23,18 @@ import {
   getSuggestedCoversData,
   getSuggestedCoversLoadingDataStatus,
 } from '~redux/selectors/customBook';
+import { useThemedStyles } from '~theme/useThemedStyles';
 import Button from '~UI/Button';
 import RadioButton from '~UI/RadioButton';
 import { Spinner } from '~UI/Spinner';
 
-import styles from './styles';
+import createStyles from './styles';
 
 const Step2 = () => {
   const { t } = useTranslation(['customBook, common']);
 
   const dispatch = useAppDispatch();
+  const styles = useThemedStyles(createStyles);
   const onPressBack = () => dispatch(setCurrentStep(1));
   const onPressNext = () => {
     dispatch(setCurrentStep(3));

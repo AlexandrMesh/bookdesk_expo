@@ -16,7 +16,7 @@ import { SECONDARY } from '~constants/themes';
 import { setPages, addAuthor, removeAuthor, updateAuthor, setCurrentStep, addCustomBook } from '~redux/actions/customBookActions';
 import { getCategoriesData } from '~redux/selectors/common';
 import { getSelectedCategory, getSelectedCategoryLabel, getPages, getAuthorsList, getSelectedCategoryPath } from '~redux/selectors/customBook';
-import colors from '~styles/colors';
+import { useThemeColors } from '~theme/hooks';
 import { useThemedStyles } from '~theme/useThemedStyles';
 import Button from '~UI/Button';
 import Input from '~UI/TextInput';
@@ -30,6 +30,7 @@ const Step3 = () => {
   const dispatch = useAppDispatch();
   const navigation = useNavigation<any>();
   const styles = useThemedStyles(createStyles);
+  const themeColors = useThemeColors();
   const onPressBack = () => dispatch(setCurrentStep(2));
   const showCategoryChooser = () => navigation.navigate(CUSTOM_CATEGORY_CHOOSER_ROUTE);
   const _setPages = (pages: string | null, error: string | null = null) => {
@@ -151,7 +152,7 @@ const Step3 = () => {
                 onClear={() => _updateAuthor(id, '')}
               />
               <Pressable style={styles.removeAuthorButton} onPress={() => _removeAuthor(id)}>
-                <CloseIcon width={CLOSE_ICON.width} height={CLOSE_ICON.height} fill={colors.neutral_light} />
+                <CloseIcon width={CLOSE_ICON.width} height={CLOSE_ICON.height} fill={themeColors.neutral_light} />
               </Pressable>
             </View>
           ))}

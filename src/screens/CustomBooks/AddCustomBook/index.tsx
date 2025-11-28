@@ -14,12 +14,13 @@ import { SECONDARY } from '~constants/themes';
 import { clearAddCustomBookState, setCurrentStep, setStatus } from '~redux/actions/customBookActions';
 import { getAddedCustomBook, getAvailableStep, getCurrentStep, getSavingCustomBookStatus, getStatus } from '~redux/selectors/customBook';
 import InSuspense from '~screens/Main/InSuspense';
+import { useThemedStyles } from '~theme/useThemedStyles';
 import { BookStatus } from '~types/books';
 import Button from '~UI/Button';
 import { Spinner } from '~UI/Spinner';
 import Stepper from '~UI/Stepper';
 
-import styles from './styles';
+import createStyles from './styles';
 
 const Step1 = lazy(() => import('./Step1'));
 const Step2 = lazy(() => import('./Step2'));
@@ -49,6 +50,7 @@ const AddCustomBook = () => {
   const addedCustomBook = useAppSelector(getAddedCustomBook);
   const savingCustomBookStatus = useAppSelector(getSavingCustomBookStatus);
   const customBookStatus = useAppSelector(getStatus);
+  const styles = useThemedStyles(createStyles);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const navigation = useNavigation<any>();

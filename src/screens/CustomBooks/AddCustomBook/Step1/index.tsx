@@ -15,15 +15,17 @@ import {
   clearStep3,
 } from '~redux/actions/customBookActions';
 import { getNewCustomBookName } from '~redux/selectors/customBook';
+import { useThemedStyles } from '~theme/useThemedStyles';
 import Button from '~UI/Button';
 import Input from '~UI/TextInput';
 
-import styles from './styles';
+import createStyles from './styles';
 
 const Step1 = () => {
   const { t } = useTranslation(['customBook, common, errors']);
   const dispatch = useAppDispatch();
   const bookName = useAppSelector(getNewCustomBookName);
+  const styles = useThemedStyles(createStyles);
 
   const [bookNameTemp, setBookNameTemp] = useState<string>(bookName.value);
 
