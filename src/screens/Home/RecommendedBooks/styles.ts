@@ -21,9 +21,13 @@ export default (colors: ThemeColors) =>
       alignItems: 'center',
     },
     footerRefreshButton: {
-      paddingHorizontal: 20,
+      width: 'auto',
+      alignSelf: 'center',
+      paddingHorizontal: 24,
+      paddingVertical: 10,
       height: 40,
-      borderRadius: 8,
+      borderRadius: 20,
+      minWidth: 160,
     },
     emptyContainer: {
       flex: 1,
@@ -69,7 +73,7 @@ export default (colors: ThemeColors) =>
     },
     retryButtonTitle: {
       color: colors.neutral_white,
-      fontWeight: '600',
+      fontSize: 15,
     },
     loadingContainer: {
       flex: 1,
