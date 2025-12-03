@@ -1,11 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { Animated, Dimensions, LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Dimensions, Easing, LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SceneMap, TabView } from 'react-native-tab-view';
 
+import { useAppSelector } from '~hooks';
+
+import { PENDING } from '~constants/loadingStatuses';
+import { getRecommendationsLoadingStatus } from '~redux/selectors/recommendations';
 import { useThemeColors } from '~theme/hooks';
 import { useThemedStyles } from '~theme/useThemedStyles';
 
@@ -39,6 +43,42 @@ const Home = () => {
   const [indicatorVisible, setIndicatorVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const layoutTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  // Check if recommendations are loading
+  const recommendationsLoadingStatus = useAppSelector(getRecommendationsLoadingStatus);
+  const isRecommendationsLoading = recommendationsLoadingStatus === PENDING;
+
+  // Blinking animation for "Recommended" tab when loading
+  const blinkAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (isRecommendationsLoading && index !== 0) {
+      // Only blink when not on the Recommended tab
+      const animation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(blinkAnim, {
+            toValue: 0.3,
+            duration: 900,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(blinkAnim, {
+            toValue: 1,
+            duration: 900,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+      animation.start();
+      return () => {
+        animation.stop();
+        blinkAnim.setValue(1);
+      };
+    } else {
+      blinkAnim.setValue(1);
+    }
+  }, [isRecommendationsLoading, index, blinkAnim]);
 
   const renderLazyPlaceholder = () => <View style={{ flex: 1, backgroundColor: themeColors.primary_dark }} />;
 
@@ -230,6 +270,8 @@ const Home = () => {
             >
               {routes.map((route, i) => {
                 const isFocused = index === i;
+                const isRecommendedTab = route.key === 'recommended';
+                const shouldBlink = isRecommendedTab && isRecommendationsLoading && !isFocused;
 
                 return (
                   <Pressable
@@ -238,7 +280,15 @@ const Home = () => {
                     onPress={() => handleTabPress(i)}
                     style={tabBarStyles.tab}
                   >
-                    <Text style={[styles.tabBarLabel, { color: isFocused ? themeColors.neutral_light : themeColors.neutral_medium }]}>{route.title}</Text>
+                    {shouldBlink ? (
+                      <Animated.Text
+                        style={[styles.tabBarLabel, { color: themeColors.accent, opacity: blinkAnim }]}
+                      >
+                        {route.title}
+                      </Animated.Text>
+                    ) : (
+                      <Text style={[styles.tabBarLabel, { color: isFocused ? themeColors.neutral_light : themeColors.neutral_medium }]}>{route.title}</Text>
+                    )}
                   </Pressable>
                 );
               })}
@@ -281,10 +331,20 @@ const Home = () => {
           >
             {routes.map((route, i) => {
               const isFocused = index === i;
+              const isRecommendedTab = route.key === 'recommended';
+              const shouldBlink = isRecommendedTab && isRecommendationsLoading && !isFocused;
 
               return (
                 <Pressable key={route.key} onLayout={(event) => handleTabLayout(i, event)} onPress={() => handleTabPress(i)} style={tabBarStyles.tab}>
-                  <Text style={[styles.tabBarLabel, { color: isFocused ? themeColors.neutral_light : themeColors.neutral_medium }]}>{route.title}</Text>
+                  {shouldBlink ? (
+                    <Animated.Text
+                      style={[styles.tabBarLabel, { color: themeColors.accent, opacity: blinkAnim }]}
+                    >
+                      {route.title}
+                    </Animated.Text>
+                  ) : (
+                    <Text style={[styles.tabBarLabel, { color: isFocused ? themeColors.neutral_light : themeColors.neutral_medium }]}>{route.title}</Text>
+                  )}
                 </Pressable>
               );
             })}
@@ -302,7 +362,7 @@ const Home = () => {
         </View>
       );
     },
-    [routes, index, handleTabLayout, handleTabPress, indicatorData, indicatorVisible, tabBarStyles, styles, themeColors],
+    [routes, index, handleTabLayout, handleTabPress, indicatorData, indicatorVisible, tabBarStyles, styles, themeColors, isRecommendationsLoading, blinkAnim],
   );
 
   return (

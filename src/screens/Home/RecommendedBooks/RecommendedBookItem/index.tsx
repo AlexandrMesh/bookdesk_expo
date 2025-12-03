@@ -1,6 +1,6 @@
 import React, { FC, memo, useCallback, useEffect, useMemo, useState } from 'react';
 
-import { Text, View, Pressable } from 'react-native';
+import { Text, View, Pressable, ToastAndroid } from 'react-native';
 
 import { Image } from 'expo-image';
 import { BookOpen, ZoomIn } from 'lucide-react-native';
@@ -111,6 +111,7 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
           );
 
           setLocalAddedStatus(newStatus);
+          ToastAndroid.show(t('recommendations:statusUpdated'), ToastAndroid.SHORT);
         } catch (error) {
           console.error('Error updating book status:', error);
         } finally {
@@ -167,13 +168,14 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
         );
 
         setLocalAddedStatus(newStatus);
+        ToastAndroid.show(t('recommendations:statusUpdated'), ToastAndroid.SHORT);
       } catch (error) {
         console.error('Error adding recommended book:', error);
       } finally {
         setIsAdding(false);
       }
     },
-    [dispatch, title, displayAuthor, pages, coverUrl, isAdding, existingBook, currentStatus],
+    [dispatch, title, displayAuthor, pages, coverUrl, isAdding, existingBook, currentStatus, t],
   );
 
   const getStatusColor = useCallback(
