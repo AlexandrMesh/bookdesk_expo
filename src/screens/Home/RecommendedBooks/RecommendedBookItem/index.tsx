@@ -27,7 +27,7 @@ export type Props = {
 };
 
 const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
-  const { title, author, pages, coverUrl, coverUrlHQ, genreRu, genre } = book;
+  const { title, author, pages, coverUrl, genreRu, genre } = book;
   const { t } = useTranslation(['books', 'common']);
   const dispatch = useAppDispatch();
   const styles = useThemedStyles(createStyles);
@@ -192,20 +192,13 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
   );
 
   const handleCoverPress = useCallback(() => {
-    // For Google Books, try to get the best quality cover
-    // Remove zoom parameter and edge=curl to get full image
-    let fullUrl = coverUrlHQ || coverUrl;
-    if (fullUrl) {
-      // Clean up Google Books URL for better quality
-      fullUrl = fullUrl
-        .replace(/&zoom=\d/, '')
-        .replace('&edge=curl', '')
-        .replace('zoom=1', 'zoom=0');
-
-      dispatch(setCoverUrl(fullUrl));
+    // Use the same URL that's already loaded and cached by expo-image
+    // No additional network request needed
+    if (coverUrl) {
+      dispatch(setCoverUrl(coverUrl));
       dispatch(showModal(COVER_VIEWER));
     }
-  }, [coverUrl, coverUrlHQ, dispatch]);
+  }, [coverUrl, dispatch]);
 
   const handleCoverError = useCallback(() => {
     setCoverError(true);

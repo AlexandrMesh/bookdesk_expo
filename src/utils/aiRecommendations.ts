@@ -238,6 +238,7 @@ const generateBooksHash = (books: IBook[]): string => {
 
 /**
  * Get cached recommendations if still valid
+ * Normalizes cover URLs to use HQ version for backward compatibility
  */
 export const getCachedRecommendations = async (): Promise<{ books: IRecommendedBook[]; isExpired: boolean } | null> => {
   try {
@@ -247,7 +248,13 @@ export const getCachedRecommendations = async (): Promise<{ books: IRecommendedB
     const data: CachedRecommendations = JSON.parse(cached);
     const isExpired = Date.now() - data.timestamp > CACHE_EXPIRY_MS;
 
-    return { books: data.books, isExpired };
+    // Normalize covers to use HQ version (backward compatibility with old cache)
+    const normalizedBooks = data.books.map((book) => ({
+      ...book,
+      coverUrl: book.coverUrlHQ || book.coverUrl,
+    }));
+
+    return { books: normalizedBooks, isExpired };
   } catch {
     return null;
   }
@@ -323,6 +330,7 @@ const searchGoogleBooks = async (query: string, maxResults: number = 10, startIn
         const categories = volumeInfo.categories as string[] | undefined;
         const genre = categories ? categories[0] : undefined;
 
+        // Always use high quality cover - remove zoom restrictions and edge curl
         const thumbnail = imageLinks.thumbnail?.replace('http://', 'https://');
         const coverUrlHQ = thumbnail
           ? thumbnail
@@ -336,7 +344,7 @@ const searchGoogleBooks = async (query: string, maxResults: number = 10, startIn
           title: (volumeInfo.title as string) || 'Unknown Title',
           author: (volumeInfo.authors as string[])?.join(', ') || '',
           pages: (volumeInfo.pageCount as number) || undefined,
-          coverUrl: thumbnail,
+          coverUrl: coverUrlHQ || thumbnail, // Use HQ cover as primary
           coverUrlHQ: coverUrlHQ,
           description: (volumeInfo.description as string)?.substring(0, 200) + '...' || undefined,
           genre: genre,
