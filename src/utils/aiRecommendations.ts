@@ -162,16 +162,81 @@ export const clearRecommendationsCache = async (): Promise<void> => {
 };
 
 /**
+ * Analyze user's library to extract preferences
+ */
+const analyzeUserLibrary = (userBooks: IBook[]) => {
+  // Sort by rating and votes to find favorites
+  const booksWithMetrics = userBooks
+    .filter((b) => b.title)
+    .map((b) => ({
+      ...b,
+      score: (b.rating || 0) * 2 + (b.votesCount || 0),
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  // Favorite books (highly rated or liked)
+  const favoriteBooks = booksWithMetrics
+    .filter((b) => b.rating && b.rating >= 4 || b.votesCount && b.votesCount > 0)
+    .slice(0, 10);
+
+  // Extract favorite authors (from highly rated books)
+  const authorCounts = new Map<string, number>();
+  booksWithMetrics.forEach((book) => {
+    book.authorsList?.forEach((author) => {
+      if (author && author.trim()) {
+        const count = authorCounts.get(author) || 0;
+        const weight = book.score > 0 ? 2 : 1;
+        authorCounts.set(author, count + weight);
+      }
+    });
+  });
+  const topAuthors = Array.from(authorCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([author]) => author);
+
+  // Extract genres/categories
+  const genreCounts = new Map<string, number>();
+  booksWithMetrics.forEach((book) => {
+    if (book.categoryValue) {
+      const count = genreCounts.get(book.categoryValue) || 0;
+      const weight = book.score > 0 ? 2 : 1;
+      genreCounts.set(book.categoryValue, count + weight);
+    }
+  });
+  const topGenres = Array.from(genreCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([genre]) => genre);
+
+  // All books for exclusion
+  const allBooks = booksWithMetrics.slice(0, 40);
+
+  return { favoriteBooks, topAuthors, topGenres, allBooks };
+};
+
+/**
  * Call Groq AI to analyze user's library and get book recommendations
  */
 const getAIRecommendations = async (userBooks: IBook[], apiKey: string): Promise<AIRecommendation[]> => {
   const { language } = i18n;
   const isRussian = language === 'ru';
 
-  // Prepare user's library summary
-  const booksList = userBooks
-    .filter((b) => b.title)
-    .slice(0, 30) // Limit to avoid token limits
+  // Analyze user's library
+  const { favoriteBooks, topAuthors, topGenres, allBooks } = analyzeUserLibrary(userBooks);
+
+  // Format favorite books with ratings
+  const favoritesText = favoriteBooks
+    .map((b) => {
+      const authors = b.authorsList?.join(', ') || '';
+      const ratingText = b.rating ? ` [оценка: ${b.rating}/5]` : '';
+      const likedText = b.votesCount ? ' [понравилась]' : '';
+      return `"${b.title}"${authors ? ` - ${authors}` : ''}${ratingText}${likedText}`;
+    })
+    .join('\n');
+
+  // Format all books list
+  const allBooksText = allBooks
     .map((b) => {
       const authors = b.authorsList?.join(', ') || '';
       return authors ? `"${b.title}" - ${authors}` : `"${b.title}"`;
@@ -179,46 +244,79 @@ const getAIRecommendations = async (userBooks: IBook[], apiKey: string): Promise
     .join('\n');
 
   const systemPrompt = isRussian
-    ? `Ты - эксперт по книгам и литературный критик. Твоя задача - анализировать библиотеку пользователя и рекомендовать книги, которые ему понравятся.
+    ? `Ты - эксперт по книгам и литературный критик с глубоким знанием мировой литературы. Твоя задача - анализировать библиотеку пользователя и рекомендовать книги, которые ему понравятся.
 
-Правила:
+ВАЖНЫЕ ПРАВИЛА:
 1. Рекомендуй только известные, качественные книги (бестселлеры, классику, признанные произведения)
-2. Учитывай жанры, авторов и темы из библиотеки пользователя
-3. НЕ рекомендуй книги, которые уже есть в библиотеке пользователя
-4. Рекомендуй разнообразные книги - не только от тех же авторов
-5. Отвечай ТОЛЬКО в формате JSON без дополнительного текста`
-    : `You are a book expert and literary critic. Your task is to analyze the user's library and recommend books they will enjoy.
+2. ПРИОРИТЕТ: книги, похожие на те, что пользователь оценил высоко или лайкнул
+3. Учитывай любимых авторов пользователя - рекомендуй их другие произведения или похожих авторов
+4. Учитывай жанровые предпочтения пользователя
+5. НЕ рекомендуй книги, которые уже есть в библиотеке пользователя
+6. Рекомендуй разнообразные книги - миксуй жанры и авторов
+7. Отвечай ТОЛЬКО в формате JSON без дополнительного текста`
+    : `You are a book expert and literary critic with deep knowledge of world literature. Your task is to analyze the user's library and recommend books they will enjoy.
 
-Rules:
+IMPORTANT RULES:
 1. Only recommend well-known, quality books (bestsellers, classics, acclaimed works)
-2. Consider genres, authors, and themes from the user's library
-3. DO NOT recommend books already in the user's library
-4. Recommend diverse books - not only from the same authors
-5. Respond ONLY in JSON format without additional text`;
+2. PRIORITY: books similar to those the user rated highly or liked
+3. Consider user's favorite authors - recommend their other works or similar authors
+4. Consider user's genre preferences
+5. DO NOT recommend books already in the user's library
+6. Recommend diverse books - mix genres and authors
+7. Respond ONLY in JSON format without additional text`;
 
-  const userPrompt = isRussian
-    ? `Библиотека пользователя:
-${booksList}
+  // Build detailed user prompt
+  let userPromptParts: string[] = [];
 
-На основе этих книг порекомендуй 20 книг, которые понравятся пользователю.
+  if (isRussian) {
+    if (favoriteBooks.length > 0) {
+      userPromptParts.push(`ЛЮБИМЫЕ КНИГИ (высокий рейтинг или лайк):\n${favoritesText}`);
+    }
+    if (topAuthors.length > 0) {
+      userPromptParts.push(`ЛЮБИМЫЕ АВТОРЫ: ${topAuthors.join(', ')}`);
+    }
+    if (topGenres.length > 0) {
+      userPromptParts.push(`ПРЕДПОЧИТАЕМЫЕ ЖАНРЫ: ${topGenres.join(', ')}`);
+    }
+    userPromptParts.push(`\nВСЕ КНИГИ В БИБЛИОТЕКЕ (не рекомендуй эти):\n${allBooksText}`);
+    userPromptParts.push(`\nНа основе анализа предпочтений порекомендуй 25 книг.
+Особый приоритет:
+- Книгам похожим на любимые (с высоким рейтингом)
+- Другим произведениям любимых авторов
+- Книгам в предпочитаемых жанрах
 
 Ответь в формате JSON:
 {
   "recommendations": [
     {"title": "Название книги", "author": "Автор"}
   ]
-}`
-    : `User's library:
-${booksList}
-
-Based on these books, recommend 20 books the user will enjoy.
+}`);
+  } else {
+    if (favoriteBooks.length > 0) {
+      userPromptParts.push(`FAVORITE BOOKS (highly rated or liked):\n${favoritesText}`);
+    }
+    if (topAuthors.length > 0) {
+      userPromptParts.push(`FAVORITE AUTHORS: ${topAuthors.join(', ')}`);
+    }
+    if (topGenres.length > 0) {
+      userPromptParts.push(`PREFERRED GENRES: ${topGenres.join(', ')}`);
+    }
+    userPromptParts.push(`\nALL BOOKS IN LIBRARY (do not recommend these):\n${allBooksText}`);
+    userPromptParts.push(`\nBased on preference analysis, recommend 25 books.
+Special priority:
+- Books similar to favorites (highly rated)
+- Other works by favorite authors
+- Books in preferred genres
 
 Respond in JSON format:
 {
   "recommendations": [
     {"title": "Book Title", "author": "Author"}
   ]
-}`;
+}`);
+  }
+
+  const userPrompt = userPromptParts.join('\n\n');
 
   try {
     const response = await axios.post(
@@ -256,18 +354,32 @@ Respond in JSON format:
 };
 
 /**
- * Get default recommendations for new users (no library analysis needed)
+ * Get default recommendations for new users (popular bestsellers)
  */
 const getDefaultAIRecommendations = async (apiKey: string): Promise<AIRecommendation[]> => {
   const { language } = i18n;
   const isRussian = language === 'ru';
 
   const systemPrompt = isRussian
-    ? `Ты - эксперт по книгам. Порекомендуй популярные книги для нового читателя.`
-    : `You are a book expert. Recommend popular books for a new reader.`;
+    ? `Ты - эксперт по книгам с глубоким знанием мировых бестселлеров и классики. Твоя задача - составить список самых популярных и читаемых книг в мире.`
+    : `You are a book expert with deep knowledge of world bestsellers and classics. Your task is to compile a list of the most popular and widely read books in the world.`;
 
   const userPrompt = isRussian
-    ? `Порекомендуй 20 самых популярных и интересных книг разных жанров (классика, современная проза, детективы, фантастика, психология и т.д.).
+    ? `Составь список из 25 самых ПОПУЛЯРНЫХ книг всех времён. Включи:
+
+1. МИРОВЫЕ БЕСТСЕЛЛЕРЫ - книги с миллионами проданных копий:
+   - "Гарри Поттер", "Властелин колец", "Код да Винчи", "Алхимик" и подобные
+
+2. КЛАССИКУ МИРОВОЙ ЛИТЕРАТУРЫ:
+   - Толстой, Достоевский, Булгаков, Оруэлл, Хемингуэй и др.
+
+3. СОВРЕМЕННЫЕ ХИТЫ:
+   - Популярные триллеры, детективы, романы последних лет
+
+4. КНИГИ ПО САМОРАЗВИТИЮ:
+   - Самые известные и полезные
+
+Разнообразь жанры. Рекомендуй только ПРОВЕРЕННЫЕ временем и читателями книги.
 
 Ответь в формате JSON:
 {
@@ -275,7 +387,21 @@ const getDefaultAIRecommendations = async (apiKey: string): Promise<AIRecommenda
     {"title": "Название книги", "author": "Автор"}
   ]
 }`
-    : `Recommend 20 most popular and interesting books from different genres (classics, modern fiction, mystery, fantasy, psychology, etc.).
+    : `Compile a list of 25 most POPULAR books of all time. Include:
+
+1. WORLD BESTSELLERS - books with millions of copies sold:
+   - "Harry Potter", "Lord of the Rings", "Da Vinci Code", "The Alchemist" etc.
+
+2. CLASSIC WORLD LITERATURE:
+   - Tolstoy, Dostoevsky, Orwell, Hemingway, etc.
+
+3. MODERN HITS:
+   - Popular thrillers, mysteries, novels from recent years
+
+4. SELF-IMPROVEMENT BOOKS:
+   - Most famous and useful ones
+
+Diversify genres. Only recommend books PROVEN by time and readers.
 
 Respond in JSON format:
 {

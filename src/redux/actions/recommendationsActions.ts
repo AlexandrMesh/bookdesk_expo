@@ -2,7 +2,7 @@ import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
 
 import { COMPLETED, IN_PROGRESS, PLANNED } from '~constants/boardType';
 import { AppThunkAPI } from '~redux/store/configureStore';
-import { BookStatus, IBook } from '~types/books';
+import { BookStatus, IBook, IRating } from '~types/books';
 import {
   generateRecommendations,
   generateDefaultRecommendations,
@@ -10,9 +10,10 @@ import {
   clearRecommendationsCache,
   getCachedRecommendations,
 } from '~utils/aiRecommendations';
-import { loadAllBoardData } from '~utils/boardStorage';
+import { loadAllBoardData, loadBookRatings } from '~utils/boardStorage';
 
 const PREFIX = 'RECOMMENDATIONS';
+const MIN_BOOKS_FOR_PERSONALIZATION = 10;
 
 // Simple actions
 export const clearRecommendations = createAction(`${PREFIX}/clearRecommendations`);
@@ -22,6 +23,17 @@ export const clearRecommendations = createAction(`${PREFIX}/clearRecommendations
  */
 const extractBooksFromBoardData = (boardDataArray: { data: IBook[] }[]): IBook[] => {
   return boardDataArray.flatMap((bd) => bd.data || []);
+};
+
+/**
+ * Merge ratings into books
+ */
+const mergeRatingsIntoBooks = (books: IBook[], ratings: IRating[]): IBook[] => {
+  const ratingsMap = new Map(ratings.map((r) => [r.bookId, r.rating]));
+  return books.map((book) => ({
+    ...book,
+    rating: ratingsMap.get(book.bookId) || book.rating,
+  }));
 };
 
 export const loadRecommendations = createAsyncThunk(
@@ -46,13 +58,21 @@ export const loadRecommendations = createAsyncThunk(
       const inProgressBooks = extractBooksFromBoardData(inProgressBoardData);
       const plannedBooks = extractBooksFromBoardData(plannedBoardData);
 
+      // Load user ratings
+      const ratings = await loadBookRatings();
+
+      // Merge ratings into books
+      const completedWithRatings = mergeRatingsIntoBooks(completedBooks, ratings);
+      const inProgressWithRatings = mergeRatingsIntoBooks(inProgressBooks, ratings);
+      const plannedWithRatings = mergeRatingsIntoBooks(plannedBooks, ratings);
+
       // Combine books for analysis (prioritize completed and in-progress)
-      const allUserBooks: IBook[] = [...completedBooks, ...inProgressBooks, ...plannedBooks];
+      const allUserBooks: IBook[] = [...completedWithRatings, ...inProgressWithRatings, ...plannedWithRatings];
 
       let recommendations: IRecommendedBook[];
 
-      if (allUserBooks.length === 0) {
-        // For new users, show default/popular recommendations
+      if (allUserBooks.length < MIN_BOOKS_FOR_PERSONALIZATION) {
+        // For new users with less than 10 books, show popular recommendations
         recommendations = await generateDefaultRecommendations(forceRefresh);
       } else {
         // Generate personalized recommendations based on user's library
@@ -64,8 +84,8 @@ export const loadRecommendations = createAsyncThunk(
       }
 
       return recommendations;
-    } catch (error: any) {
-      const errorMessage = error.message || 'UNKNOWN_ERROR';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'UNKNOWN_ERROR';
       return rejectWithValue(errorMessage);
     }
   },
