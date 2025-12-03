@@ -13,6 +13,7 @@ export default {
   completed: '#1bb572',
 
   gold: '#d4af37',
+  accent: '#7c4dff',
 
   disabled: '#686e74',
   error: '#f24c67',

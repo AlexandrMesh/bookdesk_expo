@@ -12,11 +12,13 @@ import { useThemedStyles } from '~theme/useThemedStyles';
 import CompletedBooks from './CompletedBooks';
 import InProgressBooks from './InProgressBooks';
 import PlannedBooks from './PlannedBooks';
+import RecommendedBooks from './RecommendedBooks';
 import createStyles from './styles';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 const renderScene = SceneMap({
+  recommended: RecommendedBooks,
   planned: PlannedBooks,
   inProgress: InProgressBooks,
   completed: CompletedBooks,
@@ -42,6 +44,7 @@ const Home = () => {
 
   const routes = useMemo(
     () => [
+      { key: 'recommended', title: t('recommended') },
       { key: 'planned', title: t('planned') },
       { key: 'inProgress', title: t('inProgress') },
       { key: 'completed', title: t('completed') },

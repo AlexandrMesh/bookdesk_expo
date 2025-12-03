@@ -12,6 +12,7 @@ import customBookEn from './locales/en/customBook.json';
 import errorsEn from './locales/en/errors.json';
 import goalsEn from './locales/en/goals.json';
 import profileEn from './locales/en/profile.json';
+import recommendationsEn from './locales/en/recommendations.json';
 import searchEn from './locales/en/search.json';
 import statisticEn from './locales/en/statistic.json';
 import app from './locales/ru/app.json';
@@ -23,6 +24,7 @@ import customBook from './locales/ru/customBook.json';
 import errors from './locales/ru/errors.json';
 import goals from './locales/ru/goals.json';
 import profile from './locales/ru/profile.json';
+import recommendations from './locales/ru/recommendations.json';
 import search from './locales/ru/search.json';
 import statistic from './locales/ru/statistic.json';
 
@@ -55,6 +57,7 @@ i18n.use(LanguageDetector).init({
       categories,
       customBook,
       statistic,
+      recommendations,
     },
     [EN]: {
       common: commonEn,
@@ -68,6 +71,7 @@ i18n.use(LanguageDetector).init({
       categories: categoriesEn,
       customBook: customBookEn,
       statistic: statisticEn,
+      recommendations: recommendationsEn,
     },
   },
 });

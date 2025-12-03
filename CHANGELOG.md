@@ -2,6 +2,16 @@
 
 ## bookdesk
 
+## 6.2.0
+###### 2025-12-03
+- [New] Added "Рекомендуем" (Recommendations) board with personalized book suggestions
+- [New] Uses Google Books API and Open Library API for recommendations (no API key required)
+- [New] Smart recommendation algorithm based on: authors, genres, keywords from titles, similar books
+- [New] Animated AI icon during loading
+- [New] Recommendations cached for 7 days with manual refresh option
+- [New] High quality cover images on tap
+- [New] Genre names translated to Russian
+
 ## 6.1.0
 ###### 2025-11-28
 - [New] Added light theme and theme switcher

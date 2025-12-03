@@ -13,6 +13,7 @@ export interface ThemeColors {
   planned: string;
   completed: string;
   gold: string;
+  accent: string;
   disabled: string;
   error: string;
   success: string;

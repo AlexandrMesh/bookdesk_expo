@@ -1,0 +1,11 @@
+{
+  "loadingRecommendations": "Finding books for you",
+  "loadingSubtext": "Analyzing your library...",
+  "poweredByAI": "Recommendations based on your library",
+  "refresh": "Refresh recommendations",
+  "emptyTitle": "No Recommendations",
+  "emptyDescription": "Add books to your boards to get personalized recommendations based on your interests.",
+  "errorNoRecommendations": "Could not find recommendations. Try adding more books to your library.",
+  "errorNetwork": "Network error. Please check your internet connection.",
+  "errorGeneric": "An error occurred while fetching recommendations. Please try again."
+}
