@@ -2,6 +2,7 @@ import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
 
 import { COMPLETED, IN_PROGRESS, PLANNED } from '~constants/boardType';
 import { AppThunkAPI } from '~redux/store/configureStore';
+import i18n from '~translations/i18n';
 import { BookStatus, IBook, IRating } from '~types/books';
 import {
   generateRecommendations,
@@ -48,10 +49,11 @@ export const loadRecommendations = createAsyncThunk(
         }
       }
 
-      // Load user's books from local database
-      const completedBoardData = await loadAllBoardData(COMPLETED as BookStatus, [], '', '', 'ru');
-      const inProgressBoardData = await loadAllBoardData(IN_PROGRESS as BookStatus, [], '', '', 'ru');
-      const plannedBoardData = await loadAllBoardData(PLANNED as BookStatus, [], '', '', 'ru');
+      // Load user's books from local database (all books, no filters)
+      const currentLanguage = i18n.language || 'ru';
+      const completedBoardData = await loadAllBoardData(COMPLETED as BookStatus, [], '', '', currentLanguage);
+      const inProgressBoardData = await loadAllBoardData(IN_PROGRESS as BookStatus, [], '', '', currentLanguage);
+      const plannedBoardData = await loadAllBoardData(PLANNED as BookStatus, [], '', '', currentLanguage);
 
       // Extract books from board data
       const completedBooks = extractBooksFromBoardData(completedBoardData);
@@ -71,11 +73,13 @@ export const loadRecommendations = createAsyncThunk(
 
       let recommendations: IRecommendedBook[];
 
+      // Logic: If user has less than 10 books → show top popular books
+      //        If user has 10+ books → generate personalized recommendations based on their library
       if (allUserBooks.length < MIN_BOOKS_FOR_PERSONALIZATION) {
-        // For new users with less than 10 books, show popular recommendations
+        // For new users with less than 10 books, show popular bestsellers
         recommendations = await generateDefaultRecommendations(forceRefresh);
       } else {
-        // Generate personalized recommendations based on user's library
+        // Generate personalized recommendations based on user's library analysis
         recommendations = await generateRecommendations(allUserBooks, forceRefresh);
       }
 
