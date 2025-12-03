@@ -111,7 +111,7 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
           );
 
           setLocalAddedStatus(newStatus);
-          ToastAndroid.show(t('recommendations:statusUpdated'), ToastAndroid.SHORT);
+          ToastAndroid.show(t('statusUpdated'), ToastAndroid.SHORT);
         } catch (error) {
           console.error('Error updating book status:', error);
         } finally {
@@ -168,7 +168,7 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
         );
 
         setLocalAddedStatus(newStatus);
-        ToastAndroid.show(t('recommendations:statusUpdated'), ToastAndroid.SHORT);
+        ToastAndroid.show(t('statusUpdated'), ToastAndroid.SHORT);
       } catch (error) {
         console.error('Error adding recommended book:', error);
       } finally {

@@ -1,6 +1,6 @@
 import React, { FC, memo, useCallback, useMemo, useState } from 'react';
 
-import { StyleProp, TextStyle, ViewStyle } from 'react-native';
+import { StyleProp, TextStyle, ToastAndroid, ViewStyle } from 'react-native';
 
 import { useTranslation } from 'react-i18next';
 
@@ -83,11 +83,12 @@ const BookStatusDropdown: FC<Props> = ({ bookStatus, bookId, dropdownLeftPositio
             boardType,
           }),
         );
+        ToastAndroid.show(t('statusUpdated'), ToastAndroid.SHORT);
       } finally {
         setIsLoading(false);
       }
     },
-    [boardType, bookId, bookStatus, dispatch, isLoading, currentBoard],
+    [boardType, bookId, bookStatus, dispatch, isLoading, currentBoard, t],
   );
 
   return (
