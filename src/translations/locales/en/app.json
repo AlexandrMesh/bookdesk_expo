@@ -30,5 +30,7 @@
     "line2": "As you may have noticed, BookDesk is actively developing, but the application needs your support with a review. It will take a couple of minutes of your time.",
     "line3": "Please rate and write a review on Google Play, this will greatly help the development of BookDesk! Every review and every rating is important. Thank you!"
   },
-  "shareApp": "Share the app"
+  "shareApp": "Share the app",
+  "updateCheckError": "Error checking for updates",
+  "updateDownloadError": "Error downloading update"
 }

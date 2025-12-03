@@ -24,7 +24,7 @@ type Props = {
   googlePlayUrl: string;
 };
 
-const Profile: FC<Props> = ({ isUpdateAvailable, googlePlayUrl }) => {
+const Profile: FC<Props> = ({ isUpdateAvailable }) => {
   const { t, i18n } = useTranslation(['profile', 'common', 'app']);
   const navigation = useNavigation<any>();
   const styles = useThemedStyles(createStyles);
@@ -62,7 +62,7 @@ const Profile: FC<Props> = ({ isUpdateAvailable, googlePlayUrl }) => {
   const email = useAppSelector(getUserEmail);
   const registered = useAppSelector(getRegistered);
   const userId = useAppSelector(getUserId);
-  const { downloadAndInstallUpdate, isDownloading } = useAppUpdates();
+  const { handleUpdate, isDownloading, latestVersion, currentVersion } = useAppUpdates();
 
   // Проверяем, является ли пользователь гостевым (нет email)
   const isGuestUser = !email || email.trim() === '';
@@ -95,12 +95,17 @@ const Profile: FC<Props> = ({ isUpdateAvailable, googlePlayUrl }) => {
             {isUpdateAvailable && (
               <View style={styles.marginBottom}>
                 <Text style={[styles.updateLabel]}>{t('newVersionAvailable')}</Text>
+                {latestVersion && (
+                  <Text style={[styles.versionInfo]}>
+                    {currentVersion} → {latestVersion}
+                  </Text>
+                )}
                 <Button
                   disabled={isDownloading}
                   style={styles.profileButton}
                   titleStyle={styles.profileButtonTitle}
-                  onPress={downloadAndInstallUpdate}
-                  title={isDownloading ? t('common:downloading', { defaultValue: 'Загрузка...' }) : t('common:update')}
+                  onPress={handleUpdate}
+                  title={isDownloading ? t('common:downloading') : t('common:update')}
                 />
               </View>
             )}

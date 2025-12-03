@@ -45,6 +45,12 @@ export default (colors: ThemeColors) =>
     fontSize: 18,
     textAlign: 'center',
     color: colors.success,
+    marginBottom: 5,
+  },
+  versionInfo: {
+    fontSize: 14,
+    textAlign: 'center',
+    color: colors.neutral_medium,
     marginBottom: 10,
   },
   mTop: {
