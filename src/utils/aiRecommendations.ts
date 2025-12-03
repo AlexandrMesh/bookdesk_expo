@@ -11,6 +11,7 @@ import i18n from '~translations/i18n';
 import { IBook } from '~types/books';
 
 const RECOMMENDATIONS_CACHE_KEY = 'book_recommendations_cache';
+const PREVIOUS_RECOMMENDATIONS_KEY = 'previous_recommendations_titles';
 const CACHE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 // Groq API - Free tier: 30 RPM, 14,400 requests/day
@@ -155,10 +156,38 @@ const cacheRecommendations = async (books: IRecommendedBook[], userBooksHash: st
 };
 
 /**
- * Clear recommendations cache
+ * Clear recommendations cache and save previous titles for exclusion
  */
 export const clearRecommendationsCache = async (): Promise<void> => {
+  // Get current recommendations to add to exclusion list
+  const cached = await getCachedRecommendations();
+  if (cached && cached.books.length > 0) {
+    const existingTitles = await getPreviousRecommendationTitles();
+    const newTitles = cached.books.map((b) => b.title.toLowerCase().trim());
+    const allTitles = [...new Set([...existingTitles, ...newTitles])].slice(-100); // Keep last 100
+    await AsyncStorage.setItem(PREVIOUS_RECOMMENDATIONS_KEY, JSON.stringify(allTitles));
+  }
   await AsyncStorage.removeItem(RECOMMENDATIONS_CACHE_KEY);
+};
+
+/**
+ * Get previously recommended titles (for exclusion on refresh)
+ */
+const getPreviousRecommendationTitles = async (): Promise<string[]> => {
+  try {
+    const data = await AsyncStorage.getItem(PREVIOUS_RECOMMENDATIONS_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * Clear all recommendation history (full reset)
+ */
+export const clearAllRecommendationHistory = async (): Promise<void> => {
+  await AsyncStorage.removeItem(RECOMMENDATIONS_CACHE_KEY);
+  await AsyncStorage.removeItem(PREVIOUS_RECOMMENDATIONS_KEY);
 };
 
 /**
@@ -218,7 +247,11 @@ const analyzeUserLibrary = (userBooks: IBook[]) => {
 /**
  * Call Groq AI to analyze user's library and get book recommendations
  */
-const getAIRecommendations = async (userBooks: IBook[], apiKey: string): Promise<AIRecommendation[]> => {
+const getAIRecommendations = async (
+  userBooks: IBook[],
+  apiKey: string,
+  previousTitles: string[] = [],
+): Promise<AIRecommendation[]> => {
   const { language } = i18n;
   const isRussian = language === 'ru';
 
@@ -229,91 +262,109 @@ const getAIRecommendations = async (userBooks: IBook[], apiKey: string): Promise
   const favoritesText = favoriteBooks
     .map((b) => {
       const authors = b.authorsList?.join(', ') || '';
-      const ratingText = b.rating ? ` [оценка: ${b.rating}/5]` : '';
-      const likedText = b.votesCount ? ' [понравилась]' : '';
-      return `"${b.title}"${authors ? ` - ${authors}` : ''}${ratingText}${likedText}`;
+      const ratingText = b.rating ? ` [рейтинг: ${b.rating}/5]` : '';
+      const likedText = b.votesCount ? ' [❤️ понравилась]' : '';
+      return `• "${b.title}"${authors ? ` — ${authors}` : ''}${ratingText}${likedText}`;
     })
     .join('\n');
 
-  // Format all books list
+  // Format all books list for exclusion
   const allBooksText = allBooks
-    .map((b) => {
-      const authors = b.authorsList?.join(', ') || '';
-      return authors ? `"${b.title}" - ${authors}` : `"${b.title}"`;
-    })
-    .join('\n');
+    .map((b) => `"${b.title}"`)
+    .join(', ');
+
+  // Format previous recommendations for exclusion (only if refreshing)
+  const previousText = previousTitles.length > 0 ? previousTitles.slice(0, 30).join(', ') : '';
 
   const systemPrompt = isRussian
-    ? `Ты - эксперт по книгам и литературный критик с глубоким знанием мировой литературы. Твоя задача - анализировать библиотеку пользователя и рекомендовать книги, которые ему понравятся.
+    ? `Ты - ведущий литературный эксперт и книжный критик с энциклопедическими знаниями мировой литературы. 
 
-ВАЖНЫЕ ПРАВИЛА:
-1. Рекомендуй только известные, качественные книги (бестселлеры, классику, признанные произведения)
-2. ПРИОРИТЕТ: книги, похожие на те, что пользователь оценил высоко или лайкнул
-3. Учитывай любимых авторов пользователя - рекомендуй их другие произведения или похожих авторов
-4. Учитывай жанровые предпочтения пользователя
-5. НЕ рекомендуй книги, которые уже есть в библиотеке пользователя
-6. Рекомендуй разнообразные книги - миксуй жанры и авторов
-7. Отвечай ТОЛЬКО в формате JSON без дополнительного текста`
-    : `You are a book expert and literary critic with deep knowledge of world literature. Your task is to analyze the user's library and recommend books they will enjoy.
+ТВОЯ МИССИЯ: Создать идеальную персонализированную подборку книг, которые точно понравятся читателю.
 
-IMPORTANT RULES:
-1. Only recommend well-known, quality books (bestsellers, classics, acclaimed works)
-2. PRIORITY: books similar to those the user rated highly or liked
-3. Consider user's favorite authors - recommend their other works or similar authors
-4. Consider user's genre preferences
-5. DO NOT recommend books already in the user's library
-6. Recommend diverse books - mix genres and authors
-7. Respond ONLY in JSON format without additional text`;
+ПРИНЦИПЫ РЕКОМЕНДАЦИЙ:
+1. КАЧЕСТВО: Только проверенные временем книги — бестселлеры, классика, признанные шедевры
+2. ПЕРСОНАЛИЗАЦИЯ: Анализируй любимые книги пользователя и находи похожие по духу, стилю, тематике
+3. АВТОРЫ: Если пользователь любит автора — рекомендуй его другие работы И похожих авторов
+4. ЖАНРЫ: Учитывай жанровые предпочтения, но добавляй разнообразие
+5. ОТКРЫТИЯ: Включай менее известные, но выдающиеся произведения в любимых жанрах
+6. СТРОГО: Никогда не повторяй книги из библиотеки пользователя
+7. ФОРМАТ: Только JSON, без пояснений`
+    : `You are a leading literary expert and book critic with encyclopedic knowledge of world literature.
+
+YOUR MISSION: Create the perfect personalized book selection that the reader will definitely enjoy.
+
+RECOMMENDATION PRINCIPLES:
+1. QUALITY: Only time-tested books — bestsellers, classics, recognized masterpieces
+2. PERSONALIZATION: Analyze user's favorite books and find similar in spirit, style, theme
+3. AUTHORS: If user likes an author — recommend their other works AND similar authors
+4. GENRES: Consider genre preferences but add variety
+5. DISCOVERIES: Include lesser-known but outstanding works in favorite genres
+6. STRICT: Never repeat books from user's library
+7. FORMAT: JSON only, no explanations`;
 
   // Build detailed user prompt
-  let userPromptParts: string[] = [];
+  const userPromptParts: string[] = [];
 
   if (isRussian) {
+    userPromptParts.push('📚 АНАЛИЗ ЧИТАТЕЛЬСКОГО ПРОФИЛЯ:\n');
+    
     if (favoriteBooks.length > 0) {
-      userPromptParts.push(`ЛЮБИМЫЕ КНИГИ (высокий рейтинг или лайк):\n${favoritesText}`);
+      userPromptParts.push(`⭐ ЛЮБИМЫЕ КНИГИ (высоко оценённые):\n${favoritesText}`);
     }
     if (topAuthors.length > 0) {
-      userPromptParts.push(`ЛЮБИМЫЕ АВТОРЫ: ${topAuthors.join(', ')}`);
+      userPromptParts.push(`✍️ ЛЮБИМЫЕ АВТОРЫ: ${topAuthors.join(', ')}`);
     }
     if (topGenres.length > 0) {
-      userPromptParts.push(`ПРЕДПОЧИТАЕМЫЕ ЖАНРЫ: ${topGenres.join(', ')}`);
+      userPromptParts.push(`📖 ЛЮБИМЫЕ ЖАНРЫ: ${topGenres.join(', ')}`);
     }
-    userPromptParts.push(`\nВСЕ КНИГИ В БИБЛИОТЕКЕ (не рекомендуй эти):\n${allBooksText}`);
-    userPromptParts.push(`\nНа основе анализа предпочтений порекомендуй 25 книг.
-Особый приоритет:
-- Книгам похожим на любимые (с высоким рейтингом)
-- Другим произведениям любимых авторов
-- Книгам в предпочитаемых жанрах
+    
+    userPromptParts.push(`\n🚫 ИСКЛЮЧИТЬ (уже в библиотеке): ${allBooksText}`);
+    
+    if (previousText) {
+      userPromptParts.push(`\n🔄 ТАКЖЕ ИСКЛЮЧИТЬ (уже рекомендовались): ${previousText}`);
+    }
+    
+    userPromptParts.push(`
+📋 ЗАДАНИЕ: Подбери 30 НОВЫХ книг для этого читателя.
 
-Ответь в формате JSON:
-{
-  "recommendations": [
-    {"title": "Название книги", "author": "Автор"}
-  ]
-}`);
+СТРАТЕГИЯ ПОДБОРА:
+1. 30% — похожие на любимые книги (по атмосфере, стилю, темам)
+2. 25% — другие произведения любимых авторов
+3. 25% — лучшие книги в любимых жанрах
+4. 20% — потенциальные открытия (качественные книги смежных жанров)
+
+Ответ строго в JSON:
+{"recommendations": [{"title": "Название", "author": "Автор"}]}`);
   } else {
+    userPromptParts.push('📚 READER PROFILE ANALYSIS:\n');
+    
     if (favoriteBooks.length > 0) {
-      userPromptParts.push(`FAVORITE BOOKS (highly rated or liked):\n${favoritesText}`);
+      userPromptParts.push(`⭐ FAVORITE BOOKS (highly rated):\n${favoritesText}`);
     }
     if (topAuthors.length > 0) {
-      userPromptParts.push(`FAVORITE AUTHORS: ${topAuthors.join(', ')}`);
+      userPromptParts.push(`✍️ FAVORITE AUTHORS: ${topAuthors.join(', ')}`);
     }
     if (topGenres.length > 0) {
-      userPromptParts.push(`PREFERRED GENRES: ${topGenres.join(', ')}`);
+      userPromptParts.push(`📖 FAVORITE GENRES: ${topGenres.join(', ')}`);
     }
-    userPromptParts.push(`\nALL BOOKS IN LIBRARY (do not recommend these):\n${allBooksText}`);
-    userPromptParts.push(`\nBased on preference analysis, recommend 25 books.
-Special priority:
-- Books similar to favorites (highly rated)
-- Other works by favorite authors
-- Books in preferred genres
+    
+    userPromptParts.push(`\n🚫 EXCLUDE (already in library): ${allBooksText}`);
+    
+    if (previousText) {
+      userPromptParts.push(`\n🔄 ALSO EXCLUDE (previously recommended): ${previousText}`);
+    }
+    
+    userPromptParts.push(`
+📋 TASK: Select 30 NEW books for this reader.
 
-Respond in JSON format:
-{
-  "recommendations": [
-    {"title": "Book Title", "author": "Author"}
-  ]
-}`);
+SELECTION STRATEGY:
+1. 30% — similar to favorite books (atmosphere, style, themes)
+2. 25% — other works by favorite authors
+3. 25% — best books in favorite genres
+4. 20% — potential discoveries (quality books in adjacent genres)
+
+Response strictly in JSON:
+{"recommendations": [{"title": "Title", "author": "Author"}]}`);
   }
 
   const userPrompt = userPromptParts.join('\n\n');
@@ -327,8 +378,8 @@ Respond in JSON format:
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        temperature: 0.7,
-        max_tokens: 2000,
+        temperature: 0.85, // Higher for more variety
+        max_tokens: 2500,
         response_format: { type: 'json_object' },
       },
       {
@@ -356,59 +407,65 @@ Respond in JSON format:
 /**
  * Get default recommendations for new users (popular bestsellers)
  */
-const getDefaultAIRecommendations = async (apiKey: string): Promise<AIRecommendation[]> => {
+const getDefaultAIRecommendations = async (
+  apiKey: string,
+  previousTitles: string[] = [],
+): Promise<AIRecommendation[]> => {
   const { language } = i18n;
   const isRussian = language === 'ru';
 
+  // Format previous recommendations for exclusion
+  const previousText = previousTitles.length > 0 ? previousTitles.slice(0, 30).join(', ') : '';
+
   const systemPrompt = isRussian
-    ? `Ты - эксперт по книгам с глубоким знанием мировых бестселлеров и классики. Твоя задача - составить список самых популярных и читаемых книг в мире.`
-    : `You are a book expert with deep knowledge of world bestsellers and classics. Your task is to compile a list of the most popular and widely read books in the world.`;
+    ? `Ты - ведущий книжный эксперт с энциклопедическими знаниями мировой литературы. Твоя задача - составить идеальный список книг для нового читателя.`
+    : `You are a leading book expert with encyclopedic knowledge of world literature. Your task is to compile the perfect book list for a new reader.`;
 
-  const userPrompt = isRussian
-    ? `Составь список из 25 самых ПОПУЛЯРНЫХ книг всех времён. Включи:
+  let userPrompt = isRussian
+    ? `📚 Составь список из 30 ЛУЧШИХ книг для нового читателя:
 
-1. МИРОВЫЕ БЕСТСЕЛЛЕРЫ - книги с миллионами проданных копий:
-   - "Гарри Поттер", "Властелин колец", "Код да Винчи", "Алхимик" и подобные
+🌟 КАТЕГОРИИ (по 6-8 книг каждая):
 
-2. КЛАССИКУ МИРОВОЙ ЛИТЕРАТУРЫ:
-   - Толстой, Достоевский, Булгаков, Оруэлл, Хемингуэй и др.
+1. МИРОВЫЕ БЕСТСЕЛЛЕРЫ
+   Книги-феномены с миллионами продаж: Гарри Поттер, Властелин колец, Код да Винчи, Алхимик, Игра престолов, Голодные игры и подобные
 
-3. СОВРЕМЕННЫЕ ХИТЫ:
-   - Популярные триллеры, детективы, романы последних лет
+2. ЗОЛОТАЯ КЛАССИКА
+   Признанные шедевры: Толстой, Достоевский, Булгаков, Ремарк, Оруэлл, Хемингуэй, Фицджеральд
 
-4. КНИГИ ПО САМОРАЗВИТИЮ:
-   - Самые известные и полезные
+3. СОВРЕМЕННЫЕ ХИТЫ
+   Популярные книги последних 20 лет: триллеры, детективы, романы, фантастика
 
-Разнообразь жанры. Рекомендуй только ПРОВЕРЕННЫЕ временем и читателями книги.
+4. НЕХУДОЖЕСТВЕННАЯ ЛИТЕРАТУРА
+   Бестселлеры по саморазвитию, психологии, бизнесу, науке
 
-Ответь в формате JSON:
-{
-  "recommendations": [
-    {"title": "Название книги", "author": "Автор"}
-  ]
-}`
-    : `Compile a list of 25 most POPULAR books of all time. Include:
+🎯 ВАЖНО: Рекомендуй только ПРОВЕРЕННЫЕ книги с отличными отзывами!`
+    : `📚 Compile a list of 30 BEST books for a new reader:
 
-1. WORLD BESTSELLERS - books with millions of copies sold:
-   - "Harry Potter", "Lord of the Rings", "Da Vinci Code", "The Alchemist" etc.
+🌟 CATEGORIES (6-8 books each):
 
-2. CLASSIC WORLD LITERATURE:
-   - Tolstoy, Dostoevsky, Orwell, Hemingway, etc.
+1. WORLD BESTSELLERS
+   Phenomenon books with millions of sales: Harry Potter, Lord of the Rings, Da Vinci Code, The Alchemist, Game of Thrones, Hunger Games etc.
 
-3. MODERN HITS:
-   - Popular thrillers, mysteries, novels from recent years
+2. GOLDEN CLASSICS
+   Recognized masterpieces: Tolstoy, Dostoevsky, Orwell, Hemingway, Fitzgerald, etc.
 
-4. SELF-IMPROVEMENT BOOKS:
-   - Most famous and useful ones
+3. MODERN HITS
+   Popular books from the last 20 years: thrillers, mysteries, novels, fantasy
 
-Diversify genres. Only recommend books PROVEN by time and readers.
+4. NON-FICTION
+   Bestsellers in self-improvement, psychology, business, science
 
-Respond in JSON format:
-{
-  "recommendations": [
-    {"title": "Book Title", "author": "Author"}
-  ]
-}`;
+🎯 IMPORTANT: Only recommend PROVEN books with excellent reviews!`;
+
+  if (previousText) {
+    userPrompt += isRussian
+      ? `\n\n🚫 ИСКЛЮЧИТЬ (уже рекомендовались ранее): ${previousText}`
+      : `\n\n🚫 EXCLUDE (previously recommended): ${previousText}`;
+  }
+
+  userPrompt += isRussian
+    ? `\n\nОтвет строго в JSON:\n{"recommendations": [{"title": "Название", "author": "Автор"}]}`
+    : `\n\nResponse strictly in JSON:\n{"recommendations": [{"title": "Title", "author": "Author"}]}`;
 
   try {
     const response = await axios.post(
@@ -576,24 +633,37 @@ export const generateRecommendations = async (userBooks: IBook[], forceNew: bool
     }
   }
 
+  // Get previously recommended titles for exclusion (only when refreshing)
+  const previousTitles = forceNew ? await getPreviousRecommendationTitles() : [];
+
   const recommendations: IRecommendedBook[] = [];
-  const seenTitles = new Set<string>(booksWithTitles.map((b) => b.title?.toLowerCase().trim() || ''));
+  // Exclude user's existing books AND previous recommendations
+  const seenTitles = new Set<string>([
+    ...booksWithTitles.map((b) => b.title?.toLowerCase().trim() || ''),
+    ...previousTitles,
+  ]);
   const seenIds = new Set<string>();
 
   try {
-    // Get AI recommendations
-    const aiRecs = await getAIRecommendations(booksWithTitles, GROQ_API_KEY);
+    // Get AI recommendations with exclusion lists
+    const aiRecs = await getAIRecommendations(booksWithTitles, GROQ_API_KEY, previousTitles);
 
     // Fetch each book from Google Books
     for (const rec of shuffleArray(aiRecs)) {
       if (recommendations.length >= 20) break;
 
       const titleLower = rec.title.toLowerCase().trim();
+      // Skip if already in user's library or previously recommended
       if (seenTitles.has(titleLower)) continue;
 
       const book = await searchGoogleBooks(rec.title, rec.author);
       if (book && !seenIds.has(book.id) && isQualityBook(book)) {
+        // Double-check the fetched book title isn't in exclusion list
+        const fetchedTitleLower = book.title.toLowerCase().trim();
+        if (seenTitles.has(fetchedTitleLower)) continue;
+
         seenTitles.add(titleLower);
+        seenTitles.add(fetchedTitleLower);
         seenIds.add(book.id);
         recommendations.push(book);
       }
@@ -622,13 +692,16 @@ export const generateDefaultRecommendations = async (forceNew: boolean = false):
     }
   }
 
+  // Get previously recommended titles for exclusion (only when refreshing)
+  const previousTitles = forceNew ? await getPreviousRecommendationTitles() : [];
+
   const recommendations: IRecommendedBook[] = [];
-  const seenTitles = new Set<string>();
+  const seenTitles = new Set<string>(previousTitles);
   const seenIds = new Set<string>();
 
   try {
-    // Get AI recommendations for new users
-    const aiRecs = await getDefaultAIRecommendations(GROQ_API_KEY);
+    // Get AI recommendations for new users with exclusion list
+    const aiRecs = await getDefaultAIRecommendations(GROQ_API_KEY, previousTitles);
 
     // Fetch each book from Google Books
     for (const rec of shuffleArray(aiRecs)) {
@@ -639,7 +712,12 @@ export const generateDefaultRecommendations = async (forceNew: boolean = false):
 
       const book = await searchGoogleBooks(rec.title, rec.author);
       if (book && !seenIds.has(book.id) && isQualityBook(book)) {
+        // Double-check the fetched book title isn't in exclusion list
+        const fetchedTitleLower = book.title.toLowerCase().trim();
+        if (seenTitles.has(fetchedTitleLower)) continue;
+
         seenTitles.add(titleLower);
+        seenTitles.add(fetchedTitleLower);
         seenIds.add(book.id);
         recommendations.push(book);
       }

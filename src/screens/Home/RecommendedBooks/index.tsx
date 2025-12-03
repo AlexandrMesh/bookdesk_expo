@@ -43,14 +43,36 @@ const RecommendedBooks = () => {
   const inProgressBoard = useAppSelector(deriveBoard(IN_PROGRESS));
   const completedBoard = useAppSelector(deriveBoard(COMPLETED));
 
-  const userBooksCount = useMemo(() => {
-    const plannedCount = plannedBoard?.data?.length || 0;
-    const inProgressCount = inProgressBoard?.data?.length || 0;
-    const completedCount = completedBoard?.data?.length || 0;
-    return plannedCount + inProgressCount + completedCount;
+  // Calculate user books count and create set of existing titles for filtering
+  const { userBooksCount, existingBookTitles } = useMemo(() => {
+    const plannedBooks = plannedBoard?.data || [];
+    const inProgressBooks = inProgressBoard?.data || [];
+    const completedBooks = completedBoard?.data || [];
+    const allUserBooks = [...plannedBooks, ...inProgressBooks, ...completedBooks];
+
+    // Create set of existing book titles (lowercase for comparison)
+    const titles = new Set<string>();
+    allUserBooks.forEach((book) => {
+      if (book.title) {
+        titles.add(book.title.toLowerCase().trim());
+      }
+    });
+
+    return {
+      userBooksCount: allUserBooks.length,
+      existingBookTitles: titles,
+    };
   }, [plannedBoard, inProgressBoard, completedBoard]);
 
   const hasEnoughBooks = userBooksCount >= MIN_BOOKS_FOR_ANALYSIS;
+
+  // Filter out books that are already in user's library
+  const filteredRecommendations = useMemo(() => {
+    return recommendations.filter((rec) => {
+      const recTitleLower = rec.title.toLowerCase().trim();
+      return !existingBookTitles.has(recTitleLower);
+    });
+  }, [recommendations, existingBookTitles]);
 
   // Animations for sparkle stars
   const star1Opacity = useRef(new Animated.Value(0)).current;
@@ -203,8 +225,8 @@ const RecommendedBooks = () => {
     );
   }
 
-  // Empty state
-  if (loadingStatus === SUCCEEDED && recommendations.length === 0) {
+  // Empty state (no recommendations or all filtered out)
+  if (loadingStatus === SUCCEEDED && filteredRecommendations.length === 0) {
     return (
       <View style={styles.wrapper}>
         <View style={styles.emptyContainer}>
@@ -219,7 +241,7 @@ const RecommendedBooks = () => {
     );
   }
 
-  // Recommendations list
+  // Recommendations list (filtered to exclude books already in user's library)
   return (
     <View style={styles.wrapper}>
       <View style={styles.headerWrapper}>
@@ -233,7 +255,7 @@ const RecommendedBooks = () => {
       </View>
       <View style={styles.container}>
         <VirtualizedFlashList
-          data={recommendations}
+          data={filteredRecommendations}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           estimatedItemSize={ITEM_HEIGHT}
