@@ -183,6 +183,8 @@ const RecommendedBooks = () => {
           return t('recommendations:errorNoRecommendations');
         case 'NETWORK_ERROR':
           return t('recommendations:errorNetwork');
+        case 'RATE_LIMIT_EXCEEDED':
+          return t('recommendations:errorRateLimit');
         default:
           return t('recommendations:errorGeneric');
       }

@@ -9,5 +9,6 @@
   "emptyDescription": "Add books to your boards to get personalized recommendations based on your interests.",
   "errorNoRecommendations": "Could not find recommendations. Please try again later.",
   "errorNetwork": "Network error. Please check your internet connection.",
+  "errorRateLimit": "Rate limit reached. Please try again in a few minutes.",
   "errorGeneric": "An error occurred while fetching recommendations. Please try again."
 }

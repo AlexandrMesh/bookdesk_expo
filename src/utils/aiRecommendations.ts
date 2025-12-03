@@ -212,9 +212,7 @@ const analyzeUserLibrary = (userBooks: IBook[]) => {
     .sort((a, b) => b.score - a.score);
 
   // Favorite books (highly rated or liked)
-  const favoriteBooks = booksWithMetrics
-    .filter((b) => b.rating && b.rating >= 4 || b.votesCount && b.votesCount > 0)
-    .slice(0, 10);
+  const favoriteBooks = booksWithMetrics.filter((b) => (b.rating && b.rating >= 4) || (b.votesCount && b.votesCount > 0)).slice(0, 10);
 
   // Extract favorite authors (from highly rated books)
   const authorCounts = new Map<string, number>();
@@ -255,11 +253,7 @@ const analyzeUserLibrary = (userBooks: IBook[]) => {
 /**
  * Call Groq AI to analyze user's library and get book recommendations
  */
-const getAIRecommendations = async (
-  userBooks: IBook[],
-  apiKey: string,
-  previousTitles: string[] = [],
-): Promise<AIRecommendation[]> => {
+const getAIRecommendations = async (userBooks: IBook[], apiKey: string, previousTitles: string[] = []): Promise<AIRecommendation[]> => {
   const { language } = i18n;
   const isRussian = language === 'ru';
 
@@ -277,9 +271,7 @@ const getAIRecommendations = async (
     .join('\n');
 
   // Format all books list for exclusion
-  const allBooksText = allBooks
-    .map((b) => `"${b.title}"`)
-    .join(', ');
+  const allBooksText = allBooks.map((b) => `"${b.title}"`).join(', ');
 
   // Format previous recommendations for exclusion (only if refreshing)
   const previousText = previousTitles.length > 0 ? previousTitles.slice(0, 30).join(', ') : '';
@@ -315,7 +307,7 @@ RECOMMENDATION PRINCIPLES:
 
   if (isRussian) {
     userPromptParts.push('📚 АНАЛИЗ ЧИТАТЕЛЬСКОГО ПРОФИЛЯ:\n');
-    
+
     if (favoriteBooks.length > 0) {
       userPromptParts.push(`⭐ ЛЮБИМЫЕ КНИГИ (высоко оценённые):\n${favoritesText}`);
     }
@@ -325,13 +317,13 @@ RECOMMENDATION PRINCIPLES:
     if (topGenres.length > 0) {
       userPromptParts.push(`📖 ЛЮБИМЫЕ ЖАНРЫ: ${topGenres.join(', ')}`);
     }
-    
+
     userPromptParts.push(`\n🚫 ИСКЛЮЧИТЬ (уже в библиотеке): ${allBooksText}`);
-    
+
     if (previousText) {
       userPromptParts.push(`\n🔄 ТАКЖЕ ИСКЛЮЧИТЬ (уже рекомендовались): ${previousText}`);
     }
-    
+
     userPromptParts.push(`
 📋 ЗАДАНИЕ: Подбери 30 НОВЫХ книг для этого читателя.
 
@@ -345,7 +337,7 @@ RECOMMENDATION PRINCIPLES:
 {"recommendations": [{"title": "Название", "author": "Автор"}]}`);
   } else {
     userPromptParts.push('📚 READER PROFILE ANALYSIS:\n');
-    
+
     if (favoriteBooks.length > 0) {
       userPromptParts.push(`⭐ FAVORITE BOOKS (highly rated):\n${favoritesText}`);
     }
@@ -355,13 +347,13 @@ RECOMMENDATION PRINCIPLES:
     if (topGenres.length > 0) {
       userPromptParts.push(`📖 FAVORITE GENRES: ${topGenres.join(', ')}`);
     }
-    
+
     userPromptParts.push(`\n🚫 EXCLUDE (already in library): ${allBooksText}`);
-    
+
     if (previousText) {
       userPromptParts.push(`\n🔄 ALSO EXCLUDE (previously recommended): ${previousText}`);
     }
-    
+
     userPromptParts.push(`
 📋 TASK: Select 30 NEW books for this reader.
 
@@ -408,7 +400,12 @@ Response strictly in JSON:
     const recs = parsed.recommendations || [];
     // Filter out invalid recommendations
     return recs.filter((r: AIRecommendation) => r && r.title && typeof r.title === 'string');
-  } catch (error) {
+  } catch (error: unknown) {
+    // Handle rate limit errors specifically
+    if (axios.isAxiosError(error) && error.response?.status === 429) {
+      console.warn('Groq API rate limit reached');
+      throw new Error('RATE_LIMIT_EXCEEDED');
+    }
     console.error('Groq AI error:', error);
     throw error;
   }
@@ -417,10 +414,7 @@ Response strictly in JSON:
 /**
  * Get default recommendations for new users (popular bestsellers)
  */
-const getDefaultAIRecommendations = async (
-  apiKey: string,
-  previousTitles: string[] = [],
-): Promise<AIRecommendation[]> => {
+const getDefaultAIRecommendations = async (apiKey: string, previousTitles: string[] = []): Promise<AIRecommendation[]> => {
   const { language } = i18n;
   const isRussian = language === 'ru';
 
@@ -508,7 +502,12 @@ const getDefaultAIRecommendations = async (
     const recs = parsed.recommendations || [];
     // Filter out invalid recommendations
     return recs.filter((r: AIRecommendation) => r && r.title && typeof r.title === 'string');
-  } catch (error) {
+  } catch (error: unknown) {
+    // Handle rate limit errors specifically
+    if (axios.isAxiosError(error) && error.response?.status === 429) {
+      console.warn('Groq API rate limit reached');
+      throw new Error('RATE_LIMIT_EXCEEDED');
+    }
     console.error('Groq AI error:', error);
     throw error;
   }
@@ -650,10 +649,7 @@ export const generateRecommendations = async (userBooks: IBook[], forceNew: bool
 
   const recommendations: IRecommendedBook[] = [];
   // Exclude user's existing books AND previous recommendations
-  const seenTitles = new Set<string>([
-    ...booksWithTitles.map((b) => b.title?.toLowerCase().trim() || ''),
-    ...previousTitles,
-  ]);
+  const seenTitles = new Set<string>([...booksWithTitles.map((b) => b.title?.toLowerCase().trim() || ''), ...previousTitles]);
   const seenIds = new Set<string>();
 
   try {
