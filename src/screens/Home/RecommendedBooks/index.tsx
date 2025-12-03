@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 
-import { View, Text, Pressable, Animated, Easing, ToastAndroid } from 'react-native';
+import { View, Text, TouchableOpacity, Animated, Easing, ToastAndroid } from 'react-native';
 
 import { FlashList } from '@shopify/flash-list';
 import { Sparkles, AlertCircle, BookOpen, RefreshCw, Star } from 'lucide-react-native';
@@ -271,9 +271,9 @@ const RecommendedBooks = () => {
       <View style={styles.headerWrapper}>
         <Sparkles size={16} color={themeColors.accent} />
         <Text style={styles.headerTitle}>{hasEnoughBooks ? t('recommendations:poweredByAI') : t('recommendations:selectionForYou')}</Text>
-        <Pressable style={styles.refreshButton} onPress={handleRefresh} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} activeOpacity={0.7}>
           <RefreshCw size={18} color={themeColors.neutral_light} />
-        </Pressable>
+        </TouchableOpacity>
       </View>
       <View style={styles.container}>
         <VirtualizedFlashList

@@ -136,4 +136,15 @@ export default (colors: ThemeColors) =>
   editButton: {
     marginTop: 10,
   },
+  categoryBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    backgroundColor: colors.neutral_medium,
+    alignSelf: 'flex-start',
+  },
+  categoryText: {
+    fontSize: 12,
+    color: colors.neutral_light,
+  },
   });

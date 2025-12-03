@@ -153,9 +153,11 @@ const BookItemComponent: FC<Props> = ({ bookItem, itemStyle, imgUrl, isEditable:
             )}
           <View style={styles.info}>
             {categoryLabel ? (
-              <Text style={[styles.lightColor]} numberOfLines={1} ellipsizeMode='tail'>
-                {categoryLabel}
-              </Text>
+              <View style={styles.categoryBadge}>
+                <Text style={styles.categoryText} numberOfLines={1} ellipsizeMode='tail'>
+                  {categoryLabel}
+                </Text>
+              </View>
             ) : null}
             {!!pages && (
               <Text style={[styles.pagesBlock, styles.item, styles.mediumColor]}>
