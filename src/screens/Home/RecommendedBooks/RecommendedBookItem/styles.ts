@@ -44,7 +44,6 @@ export default (colors: ThemeColors) =>
     cover: {
       width: 126,
       height: 180,
-      borderRadius: 4,
     },
     zoomIconContainer: {
       position: 'absolute',
@@ -57,7 +56,6 @@ export default (colors: ThemeColors) =>
     coverPlaceholder: {
       width: 126,
       height: 180,
-      borderRadius: 4,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -99,28 +97,11 @@ export default (colors: ThemeColors) =>
     mediumColor: {
       color: colors.neutral_medium,
     },
-    buttonWrapper: {
-      width: '100%',
-    },
     dropdownWrapper: {
       width: 126,
       height: 30,
-      borderRadius: 4,
     },
     dropdownLabel: {
       fontSize: 14,
-    },
-    statusButton: {
-      width: 126,
-      height: 30,
-      borderRadius: 4,
-      justifyContent: 'center',
-      alignItems: 'center',
-      borderWidth: 1,
-    },
-    statusButtonText: {
-      color: colors.neutral_white,
-      fontSize: 14,
-      fontWeight: '500',
     },
   });

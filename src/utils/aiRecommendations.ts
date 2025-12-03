@@ -1,6 +1,6 @@
 /**
  * Book recommendations service
- * Uses Google Books API and Open Library API (free, no API key required)
+ * Uses Google Books API (free, no API key required)
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -146,7 +146,7 @@ const genreTranslations: Record<string, string> = {
   games: 'Игры',
   gaming: 'Игры',
   crafts: 'Рукоделие',
-  'diy': 'Сделай сам',
+  diy: 'Сделай сам',
   antiques: 'Антиквариат',
   collecting: 'Коллекционирование',
   pets: 'Домашние животные',
@@ -185,9 +185,9 @@ const genreTranslations: Record<string, string> = {
   'space opera': 'Космическая опера',
   cyberpunk: 'Киберпанк',
   steampunk: 'Стимпанк',
-  'literary': 'Литература',
-  'contemporary': 'Современная литература',
-  'modern': 'Современная литература',
+  literary: 'Литература',
+  contemporary: 'Современная литература',
+  modern: 'Современная литература',
 };
 
 /**
@@ -277,7 +277,7 @@ export const clearRecommendationsCache = async (): Promise<void> => {
 };
 
 /**
- * Extract unique authors from user's books
+ * Extract unique authors from user's books (sorted by frequency)
  */
 const extractAuthors = (books: IBook[]): string[] => {
   const authors = new Map<string, number>();
@@ -291,109 +291,58 @@ const extractAuthors = (books: IBook[]): string[] => {
       });
     }
   });
-  // Sort by frequency and return
   return Array.from(authors.entries())
     .sort((a, b) => b[1] - a[1])
     .map(([author]) => author);
 };
 
 /**
- * Extract categories/genres from user's books
- */
-const extractCategories = (books: IBook[]): string[] => {
-  const categories = new Map<string, number>();
-  books.forEach((book) => {
-    if (book.categoryValue) {
-      categories.set(book.categoryValue, (categories.get(book.categoryValue) || 0) + 1);
-    }
-  });
-  return Array.from(categories.entries())
-    .sort((a, b) => b[1] - a[1])
-    .map(([cat]) => cat);
-};
-
-/**
- * Extract meaningful keywords from book titles for better matching
- * This is the key improvement - analyze ALL book titles for common themes
- */
-const extractKeywordsFromTitles = (books: IBook[]): string[] => {
-  // Stop words in Russian and English
-  const stopWords = new Set([
-    // English
-    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'been', 'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'shall', 'can', 'need', 'dare', 'ought', 'used', 'it', 'its', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'we', 'they', 'who', 'which', 'what', 'where', 'when', 'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 'just', 'about', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'between', 'under', 'again', 'further', 'then', 'once', 'here', 'there', 'any', 'book', 'books', 'novel', 'story', 'stories', 'tale', 'tales', 'part', 'volume', 'edition',
-    // Russian
-    'и', 'в', 'на', 'с', 'к', 'о', 'у', 'из', 'по', 'за', 'от', 'до', 'для', 'без', 'при', 'под', 'над', 'через', 'про', 'между', 'перед', 'после', 'во', 'со', 'ко', 'об', 'а', 'но', 'да', 'или', 'ни', 'не', 'же', 'то', 'это', 'как', 'что', 'кто', 'где', 'когда', 'почему', 'зачем', 'чтобы', 'если', 'хотя', 'потому', 'так', 'уже', 'ещё', 'тоже', 'также', 'только', 'всё', 'все', 'вся', 'весь', 'его', 'её', 'их', 'мой', 'твой', 'свой', 'наш', 'ваш', 'этот', 'тот', 'такой', 'какой', 'который', 'чей', 'сам', 'самый', 'каждый', 'любой', 'другой', 'иной', 'один', 'два', 'три', 'много', 'мало', 'несколько', 'книга', 'книги', 'роман', 'история', 'часть', 'том',
-  ]);
-
-  const keywords = new Map<string, number>();
-
-  books.forEach((book) => {
-    if (book.title) {
-      // Split by spaces and special characters
-      const words = book.title.toLowerCase().split(/[\s\-–—:;,.!?()[\]{}«»""'']+/);
-      words.forEach((word) => {
-        const cleaned = word.replace(/[^a-zа-яёЁ0-9]/gi, '');
-        // Only consider words with 4+ characters that aren't stop words
-        if (cleaned.length >= 4 && !stopWords.has(cleaned) && !/^\d+$/.test(cleaned)) {
-          keywords.set(cleaned, (keywords.get(cleaned) || 0) + 1);
-        }
-      });
-    }
-  });
-
-  // Sort by frequency and return top keywords
-  return Array.from(keywords.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 15)
-    .map(([word]) => word);
-};
-
-/**
  * Search books using Google Books API (free, no key required)
+ * orderBy=relevance gives more popular results
  */
 const searchGoogleBooks = async (query: string, maxResults: number = 10, startIndex: number = 0): Promise<IRecommendedBook[]> => {
   try {
     const langRestrict = i18n.language === 'ru' ? '&langRestrict=ru' : '';
     const response = await axios.get(
       `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=${maxResults}&startIndex=${startIndex}&orderBy=relevance${langRestrict}&printType=books`,
-      { timeout: 10000 },
+      { timeout: 15000 },
     );
 
     if (!response.data.items) {
       return [];
     }
 
-    return response.data.items.map((item: any, index: number) => {
-      const volumeInfo = item.volumeInfo || {};
-      const imageLinks = volumeInfo.imageLinks || {};
-      const genre = volumeInfo.categories ? volumeInfo.categories[0] : undefined;
+    return response.data.items
+      .filter((item: { volumeInfo?: { title?: string; imageLinks?: { thumbnail?: string } } }) => {
+        const volumeInfo = item.volumeInfo || {};
+        return volumeInfo.title && volumeInfo.imageLinks?.thumbnail;
+      })
+      .map((item: { id?: string; volumeInfo?: Record<string, unknown> }, index: number) => {
+        const volumeInfo = (item.volumeInfo || {}) as Record<string, unknown>;
+        const imageLinks = (volumeInfo.imageLinks || {}) as Record<string, string>;
+        const categories = volumeInfo.categories as string[] | undefined;
+        const genre = categories ? categories[0] : undefined;
 
-      // Get different quality covers
-      const thumbnail = imageLinks.thumbnail?.replace('http://', 'https://');
-      const smallThumbnail = imageLinks.smallThumbnail?.replace('http://', 'https://');
-      // Higher quality versions
-      const medium = imageLinks.medium?.replace('http://', 'https://');
-      const large = imageLinks.large?.replace('http://', 'https://');
+        const thumbnail = imageLinks.thumbnail?.replace('http://', 'https://');
+        const coverUrlHQ = thumbnail
+          ? thumbnail
+              .replace(/&zoom=\d/, '&zoom=0')
+              .replace('&edge=curl', '')
+              .replace('zoom=1', 'zoom=0')
+          : undefined;
 
-      // Try to get higher quality by modifying URL
-      let coverUrlHQ = large || medium || thumbnail;
-      if (thumbnail && !large && !medium) {
-        // Google Books allows changing zoom parameter for higher quality
-        coverUrlHQ = thumbnail.replace('zoom=1', 'zoom=3').replace('&edge=curl', '');
-      }
-
-      return {
-        id: item.id || `google_${Date.now()}_${index}`,
-        title: volumeInfo.title || 'Unknown Title',
-        author: volumeInfo.authors ? volumeInfo.authors.join(', ') : '',
-        pages: volumeInfo.pageCount || undefined,
-        coverUrl: thumbnail || smallThumbnail,
-        coverUrlHQ: coverUrlHQ,
-        description: volumeInfo.description ? volumeInfo.description.substring(0, 200) + '...' : undefined,
-        genre: genre,
-        genreRu: genre ? translateGenre(genre) : undefined,
-      };
-    });
+        return {
+          id: item.id || `google_${Date.now()}_${index}`,
+          title: (volumeInfo.title as string) || 'Unknown Title',
+          author: (volumeInfo.authors as string[])?.join(', ') || '',
+          pages: (volumeInfo.pageCount as number) || undefined,
+          coverUrl: thumbnail,
+          coverUrlHQ: coverUrlHQ,
+          description: (volumeInfo.description as string)?.substring(0, 200) + '...' || undefined,
+          genre: genre,
+          genreRu: genre ? translateGenre(genre) : undefined,
+        };
+      });
   } catch (error) {
     console.error('Google Books API error:', error);
     return [];
@@ -401,34 +350,58 @@ const searchGoogleBooks = async (query: string, maxResults: number = 10, startIn
 };
 
 /**
- * Get genre-based search queries based on language
+ * Popular book queries - these return well-known, quality books
  */
-const getGenreQueries = (language: string): string[] => {
+const getPopularQueries = (language: string): string[] => {
   if (language === 'ru') {
     return [
-      'современная русская литература бестселлер',
-      'классика мировой литературы',
-      'психология саморазвитие популярные',
-      'детектив триллер российский',
-      'фантастика фэнтези лучшее',
-      'бизнес мотивация успех',
-      'история биография известные',
-      'любовный роман современный',
-      'приключения путешествия',
-      'научпоп наука интересно',
+      // Bestsellers and popular fiction
+      'бестселлер 2024',
+      'лучшие книги года',
+      'популярная художественная литература',
+      'современная русская проза',
+      // Classics
+      'русская классика Толстой Достоевский',
+      'мировая классика литература',
+      // Popular genres
+      'детектив бестселлер',
+      'фантастика популярная',
+      'психология бестселлер',
+      'саморазвитие популярные книги',
+      'бизнес книги лучшие',
+      'романы любовные популярные',
+      'триллер захватывающий',
+      'фэнтези лучшее',
+      // Famous authors
+      'Стивен Кинг',
+      'Борис Акунин',
+      'Дэн Браун',
+      'Джоан Роулинг',
     ];
   }
   return [
-    'bestseller fiction contemporary',
+    // Bestsellers
+    'bestseller 2024',
+    'new york times bestseller',
+    'best books of the year',
+    'popular fiction',
+    // Classics
     'classic literature must read',
-    'psychology self-help popular',
-    'mystery thriller suspense',
-    'science fiction fantasy award',
-    'business motivation success',
-    'history biography notable',
-    'romance contemporary popular',
-    'adventure travel exploration',
-    'popular science nonfiction',
+    'literary classics',
+    // Popular genres
+    'thriller bestseller',
+    'mystery bestseller',
+    'science fiction popular',
+    'fantasy bestseller',
+    'romance bestseller',
+    'self help bestseller',
+    'psychology popular books',
+    'business bestseller',
+    // Famous authors
+    'Stephen King',
+    'Dan Brown',
+    'J.K. Rowling',
+    'George R.R. Martin',
   ];
 };
 
@@ -446,10 +419,9 @@ const shuffleArray = <T>(array: T[]): T[] => {
 
 /**
  * Generate book recommendations based on user's library
- * Improved algorithm focusing on keywords from all book titles
+ * IMPROVED: Focus on popular books with high ratings
  */
 export const generateRecommendations = async (userBooks: IBook[], forceNew: boolean = false): Promise<IRecommendedBook[]> => {
-  // Filter books that have titles
   const booksWithTitles = userBooks.filter((b) => b.title && b.title.trim().length > 0);
   const userBooksHash = generateBooksHash(booksWithTitles);
 
@@ -467,55 +439,19 @@ export const generateRecommendations = async (userBooks: IBook[], forceNew: bool
   const seenIds = new Set<string>();
 
   // Random offset for variety on refresh
-  const randomOffset = forceNew ? Math.floor(Math.random() * 30) : 0;
+  const randomOffset = forceNew ? Math.floor(Math.random() * 20) : 0;
 
-  // STRATEGY 1: Search by KEYWORDS from all book titles (MOST IMPORTANT)
-  // This analyzes all book titles to find common themes and topics
-  const keywords = extractKeywordsFromTitles(booksWithTitles);
-  if (keywords.length > 0) {
-    // Create search queries from keyword combinations
-    const keywordQueries = [];
-    
-    // Single important keywords
-    for (const keyword of keywords.slice(0, 5)) {
-      keywordQueries.push(keyword);
-    }
-    
-    // Pairs of keywords for more specific searches
-    for (let i = 0; i < Math.min(3, keywords.length); i++) {
-      for (let j = i + 1; j < Math.min(5, keywords.length); j++) {
-        keywordQueries.push(`${keywords[i]} ${keywords[j]}`);
-      }
-    }
-
-    // Search using keyword queries
-    const shuffledQueries = shuffleArray(keywordQueries).slice(0, 5);
-    for (const query of shuffledQueries) {
-      try {
-        const keywordBooks = await searchGoogleBooks(query, 6, randomOffset);
-        for (const book of keywordBooks) {
-          const titleLower = book.title.toLowerCase().trim();
-          if (!seenTitles.has(titleLower) && !seenIds.has(book.id) && recommendations.length < 25) {
-            seenTitles.add(titleLower);
-            seenIds.add(book.id);
-            recommendations.push(book);
-          }
-        }
-      } catch (error) {
-        console.error('Error searching by keywords:', error);
-      }
-    }
-  }
-
-  // STRATEGY 2: Search by favorite AUTHORS
+  // STRATEGY 1: Search by user's favorite authors (most personalized)
   const authors = extractAuthors(booksWithTitles);
-  const topAuthors = shuffleArray(authors.slice(0, 6)).slice(0, 3);
+  const topAuthors = shuffleArray(authors.slice(0, 5)).slice(0, 3);
+
   for (const author of topAuthors) {
     try {
-      const authorBooks = await searchGoogleBooks(`inauthor:"${author}"`, 5, randomOffset);
+      // Search for popular books by this author
+      const authorBooks = await searchGoogleBooks(`inauthor:"${author}" bestseller`, 5, randomOffset);
       for (const book of authorBooks) {
         const titleLower = book.title.toLowerCase().trim();
-        if (!seenTitles.has(titleLower) && !seenIds.has(book.id) && recommendations.length < 25) {
+        if (!seenTitles.has(titleLower) && !seenIds.has(book.id) && recommendations.length < 20) {
           seenTitles.add(titleLower);
           seenIds.add(book.id);
           recommendations.push(book);
@@ -526,43 +462,24 @@ export const generateRecommendations = async (userBooks: IBook[], forceNew: bool
     }
   }
 
-  // STRATEGY 3: Search by CATEGORIES/GENRES
-  const categories = extractCategories(booksWithTitles);
-  const topCategories = shuffleArray(categories.slice(0, 4)).slice(0, 2);
-  for (const category of topCategories) {
+  // STRATEGY 2: Search popular books in general (ensures quality recommendations)
+  const popularQueries = shuffleArray(getPopularQueries(language));
+
+  for (const query of popularQueries.slice(0, 6)) {
+    if (recommendations.length >= 20) break;
+
     try {
-      const categoryBooks = await searchGoogleBooks(`subject:${category}`, 5, randomOffset);
-      for (const book of categoryBooks) {
+      const popularBooks = await searchGoogleBooks(query, 6, randomOffset);
+      for (const book of popularBooks) {
         const titleLower = book.title.toLowerCase().trim();
-        if (!seenTitles.has(titleLower) && !seenIds.has(book.id) && recommendations.length < 25) {
+        if (!seenTitles.has(titleLower) && !seenIds.has(book.id) && recommendations.length < 20) {
           seenTitles.add(titleLower);
           seenIds.add(book.id);
           recommendations.push(book);
         }
       }
     } catch (error) {
-      console.error('Error searching by category:', error);
-    }
-  }
-
-  // STRATEGY 4: If still not enough, add popular/bestseller books
-  if (recommendations.length < 15) {
-    const genreQueries = getGenreQueries(language);
-    const randomGenres = shuffleArray(genreQueries).slice(0, 3);
-    for (const genre of randomGenres) {
-      try {
-        const popularBooks = await searchGoogleBooks(genre, 8, randomOffset);
-        for (const book of popularBooks) {
-          const titleLower = book.title.toLowerCase().trim();
-          if (!seenTitles.has(titleLower) && !seenIds.has(book.id) && recommendations.length < 20) {
-            seenTitles.add(titleLower);
-            seenIds.add(book.id);
-            recommendations.push(book);
-          }
-        }
-      } catch (error) {
-        console.error('Error searching popular books:', error);
-      }
+      console.error('Error searching popular books:', error);
     }
   }
 
@@ -594,13 +511,15 @@ export const generateDefaultRecommendations = async (forceNew: boolean = false):
   const seenTitles = new Set<string>();
   const seenIds = new Set<string>();
 
-  const queries = shuffleArray(getGenreQueries(language));
-  const randomOffset = forceNew ? Math.floor(Math.random() * 40) : 0;
+  const queries = shuffleArray(getPopularQueries(language));
+  const randomOffset = forceNew ? Math.floor(Math.random() * 30) : 0;
 
-  // Get books from different genres
-  for (const query of queries.slice(0, 5)) {
+  // Get popular books from different categories
+  for (const query of queries.slice(0, 8)) {
+    if (recommendations.length >= 20) break;
+
     try {
-      const books = await searchGoogleBooks(query, 6, randomOffset);
+      const books = await searchGoogleBooks(query, 5, randomOffset);
       for (const book of books) {
         const titleLower = book.title.toLowerCase().trim();
         if (!seenTitles.has(titleLower) && !seenIds.has(book.id) && recommendations.length < 20) {

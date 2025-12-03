@@ -11,7 +11,7 @@ import { useAppDispatch } from '~hooks';
 
 import { PLANNED, IN_PROGRESS, COMPLETED, ALL } from '~constants/boardType';
 import { COVER_VIEWER } from '~constants/modalTypes';
-import { setCoverUrl, showModal } from '~redux/actions/booksActions';
+import { setCoverUrl, showModal, updateUserBook } from '~redux/actions/booksActions';
 import { updateBookOnBoardAndSearch } from '~redux/actions/sharedActions';
 import { deriveBoard } from '~redux/selectors/books';
 import { useThemeColors } from '~theme/hooks';
@@ -48,15 +48,14 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
   const displayGenre = genreRu || genre;
 
   // Check if this book is already in user's library by title
-  const existingBookStatus = useMemo(() => {
+  const existingBook = useMemo(() => {
     const titleLower = title?.toLowerCase().trim();
     if (!titleLower) return null;
 
     // Check in all boards
-    const findBookByTitle = (boardData: { data?: IBook[] } | null): BookStatus | null => {
+    const findBookByTitle = (boardData: { data?: IBook[] } | null): IBook | null => {
       if (!boardData?.data) return null;
-      const found = boardData.data.find((b) => b.title?.toLowerCase().trim() === titleLower);
-      return found?.bookStatus || null;
+      return boardData.data.find((b) => b.title?.toLowerCase().trim() === titleLower) || null;
     };
 
     const inPlanned = findBookByTitle(plannedBoard);
@@ -72,16 +71,14 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
   }, [title, plannedBoard, inProgressBoard, completedBoard]);
 
   // Combined status: existing book status OR locally added status
-  const currentStatus = existingBookStatus || localAddedStatus;
+  const currentStatus = existingBook?.bookStatus || localAddedStatus;
 
   // Reset local status if book was removed from boards
   useEffect(() => {
-    if (localAddedStatus && !existingBookStatus) {
-      // Check if the book was removed - if localAddedStatus was set but existingBookStatus is now null
-      // This means user removed the book from boards
+    if (localAddedStatus && !existingBook) {
       setLocalAddedStatus(null);
     }
-  }, [existingBookStatus, localAddedStatus]);
+  }, [existingBook, localAddedStatus]);
 
   const actionTypes: { title: string; value: BookStatus }[] = useMemo(
     () => [
@@ -92,10 +89,37 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
     [t],
   );
 
-  const handleAddToBoard = useCallback(
-    async (status: BookStatus) => {
-      if (isAdding || status === ALL) return;
+  const handleStatusChange = useCallback(
+    async (newStatus: BookStatus) => {
+      if (isAdding || newStatus === ALL) return;
 
+      // If changing status of existing book - use updateUserBook for proper board management
+      if (existingBook && existingBook.bookId && currentStatus && currentStatus !== newStatus) {
+        setIsAdding(true);
+        try {
+          const added = Date.now();
+
+          // Use the proper updateUserBook action which handles removing from old board
+          // and adding to new board correctly
+          await dispatch(
+            updateUserBook({
+              book: existingBook,
+              newBookStatus: newStatus,
+              added,
+              boardType: currentStatus, // Current board type (where the book is now)
+            }),
+          );
+
+          setLocalAddedStatus(newStatus);
+        } catch (error) {
+          console.error('Error updating book status:', error);
+        } finally {
+          setIsAdding(false);
+        }
+        return;
+      }
+
+      // Adding new book (book doesn't exist in library yet)
       setIsAdding(true);
       try {
         const bookId = `rec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -108,15 +132,15 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
           authorsList: displayAuthor ? [displayAuthor] : [],
           pages: pages || 0,
           coverPath: coverUrl || undefined,
-          bookStatus: status,
+          bookStatus: newStatus,
           added,
         };
 
         // Save book date/status locally
         try {
           const { saveBookDate, addBookToCache } = await import('~utils/boardStorage');
-          await saveBookDate(bookId, added, status);
-          await addBookToCache(status, newBook);
+          await saveBookDate(bookId, added, newStatus);
+          await addBookToCache(newStatus, newBook);
         } catch (e) {
           console.error('Failed to save recommended book in SQLite', e);
         }
@@ -133,7 +157,7 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
         dispatch(
           updateBookOnBoardAndSearch({
             bookId,
-            bookStatus: status,
+            bookStatus: newStatus,
             title: title || '',
             pages: pages || 0,
             authorsList: displayAuthor ? [displayAuthor] : [],
@@ -142,59 +166,55 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
           }),
         );
 
-        setLocalAddedStatus(status);
+        setLocalAddedStatus(newStatus);
       } catch (error) {
         console.error('Error adding recommended book:', error);
       } finally {
         setIsAdding(false);
       }
     },
-    [dispatch, title, displayAuthor, pages, coverUrl, isAdding],
+    [dispatch, title, displayAuthor, pages, coverUrl, isAdding, existingBook, currentStatus],
   );
-
-  const statusLabel = useMemo(() => {
-    if (!currentStatus) return null;
-    switch (currentStatus) {
-      case PLANNED:
-        return t('planned');
-      case IN_PROGRESS:
-        return t('inProgress');
-      case COMPLETED:
-        return t('completed');
-      default:
-        return null;
-    }
-  }, [currentStatus, t]);
 
   const getStatusColor = useCallback(
     (status: BookStatus | null) => {
-      if (!status) return themeColors.neutral_medium;
+      if (!status) return themeColors.accent;
       return (
         {
           [PLANNED]: themeColors.planned,
           [IN_PROGRESS]: themeColors.in_progress,
           [COMPLETED]: themeColors.completed,
           [ALL]: themeColors.neutral_light,
-        }[status] || themeColors.neutral_medium
+        }[status] || themeColors.accent
       );
     },
     [themeColors],
   );
 
   const handleCoverPress = useCallback(() => {
-    // Use high quality cover URL if available, fallback to regular
-    const fullUrl = coverUrlHQ || coverUrl;
-    if (fullUrl && !coverError) {
+    // For Google Books, try to get the best quality cover
+    // Remove zoom parameter and edge=curl to get full image
+    let fullUrl = coverUrlHQ || coverUrl;
+    if (fullUrl) {
+      // Clean up Google Books URL for better quality
+      fullUrl = fullUrl
+        .replace(/&zoom=\d/, '')
+        .replace('&edge=curl', '')
+        .replace('zoom=1', 'zoom=0');
+
       dispatch(setCoverUrl(fullUrl));
       dispatch(showModal(COVER_VIEWER));
     }
-  }, [coverUrl, coverUrlHQ, coverError, dispatch]);
+  }, [coverUrl, coverUrlHQ, dispatch]);
 
   const handleCoverError = useCallback(() => {
     setCoverError(true);
   }, []);
 
   const showCover = coverUrl && !coverError;
+
+  const buttonLabel = currentStatus ? t(currentStatus) : t('common:add');
+  const statusColor = getStatusColor(currentStatus);
 
   return (
     <View style={styles.wrapper}>
@@ -217,25 +237,17 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
               </View>
             )}
           </View>
-          <View style={styles.buttonWrapper}>
-            {currentStatus ? (
-              <View style={[styles.statusButton, { backgroundColor: getStatusColor(currentStatus), borderColor: getStatusColor(currentStatus) }]}>
-                <Text style={styles.statusButtonText}>{statusLabel}</Text>
-              </View>
-            ) : (
-              <Dropdown
-                items={actionTypes}
-                isLoading={isAdding}
-                wrapperStyle={[styles.dropdownWrapper, { borderColor: themeColors.accent }]}
-                buttonLabelStyle={styles.dropdownLabel}
-                selectedItem={ALL}
-                buttonLabel={t('common:add')}
-                onChange={handleAddToBoard}
-                dropdownLeftPosition={16}
-                fillBackground={true}
-              />
-            )}
-          </View>
+          <Dropdown
+            items={actionTypes}
+            isLoading={isAdding}
+            wrapperStyle={[styles.dropdownWrapper, { borderColor: statusColor }]}
+            buttonLabelStyle={styles.dropdownLabel}
+            selectedItem={currentStatus || ALL}
+            buttonLabel={buttonLabel}
+            onChange={handleStatusChange}
+            dropdownLeftPosition={16}
+            fillBackground={true}
+          />
         </View>
         <View style={styles.rightSide}>
           <Text style={[styles.title, styles.lightColor]}>{title}</Text>
