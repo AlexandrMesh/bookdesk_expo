@@ -1,7 +1,9 @@
 {
   "loadingRecommendations": "Finding books for you",
   "loadingSubtext": "Analyzing your library...",
+  "loadingSimple": "Finding books for you",
   "poweredByAI": "Recommendations based on your library",
+  "selectionForYou": "Book selection for you",
   "refresh": "Refresh recommendations",
   "emptyTitle": "No Recommendations",
   "emptyDescription": "Add books to your boards to get personalized recommendations based on your interests.",

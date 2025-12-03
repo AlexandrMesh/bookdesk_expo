@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { View, Text, Pressable, Animated, Easing } from 'react-native';
 
@@ -8,8 +8,10 @@ import { useTranslation } from 'react-i18next';
 
 import { useAppDispatch, useAppSelector } from '~hooks';
 
+import { PLANNED, IN_PROGRESS, COMPLETED } from '~constants/boardType';
 import { PENDING, SUCCEEDED, FAILED, IDLE } from '~constants/loadingStatuses';
 import { loadRecommendations, refreshRecommendations } from '~redux/actions/recommendationsActions';
+import { deriveBoard } from '~redux/selectors/books';
 import { getRecommendations, getRecommendationsLoadingStatus, getRecommendationsError } from '~redux/selectors/recommendations';
 import { useThemeColors } from '~theme/hooks';
 import { useThemedStyles } from '~theme/useThemedStyles';
@@ -18,6 +20,8 @@ import { IRecommendedBook } from '~utils/aiRecommendations';
 
 import RecommendedBookItem from './RecommendedBookItem';
 import createStyles from './styles';
+
+const MIN_BOOKS_FOR_ANALYSIS = 10;
 
 const ITEM_HEIGHT = 240;
 
@@ -33,6 +37,20 @@ const RecommendedBooks = () => {
   const recommendations = useAppSelector(getRecommendations);
   const loadingStatus = useAppSelector(getRecommendationsLoadingStatus);
   const error = useAppSelector(getRecommendationsError);
+
+  // Get user's total book count from all boards
+  const plannedBoard = useAppSelector(deriveBoard(PLANNED));
+  const inProgressBoard = useAppSelector(deriveBoard(IN_PROGRESS));
+  const completedBoard = useAppSelector(deriveBoard(COMPLETED));
+
+  const userBooksCount = useMemo(() => {
+    const plannedCount = plannedBoard?.data?.length || 0;
+    const inProgressCount = inProgressBoard?.data?.length || 0;
+    const completedCount = completedBoard?.data?.length || 0;
+    return plannedCount + inProgressCount + completedCount;
+  }, [plannedBoard, inProgressBoard, completedBoard]);
+
+  const hasEnoughBooks = userBooksCount >= MIN_BOOKS_FOR_ANALYSIS;
 
   // Animations for sparkle stars
   const star1Opacity = useRef(new Animated.Value(0)).current;
@@ -163,8 +181,10 @@ const RecommendedBooks = () => {
               <Star size={16} color={themeColors.gold} fill={themeColors.gold} />
             </Animated.View>
           </View>
-          <Text style={styles.loadingText}>{t('recommendations:loadingRecommendations')}</Text>
-          <Text style={styles.loadingSubtext}>{t('recommendations:loadingSubtext')}</Text>
+          <Text style={styles.loadingText}>
+            {hasEnoughBooks ? t('recommendations:loadingRecommendations') : t('recommendations:loadingSimple')}
+          </Text>
+          {hasEnoughBooks && <Text style={styles.loadingSubtext}>{t('recommendations:loadingSubtext')}</Text>}
         </View>
       </View>
     );
@@ -204,7 +224,9 @@ const RecommendedBooks = () => {
     <View style={styles.wrapper}>
       <View style={styles.headerWrapper}>
         <Sparkles size={16} color={themeColors.accent} />
-        <Text style={styles.headerTitle}>{t('recommendations:poweredByAI')}</Text>
+        <Text style={styles.headerTitle}>
+          {hasEnoughBooks ? t('recommendations:poweredByAI') : t('recommendations:selectionForYou')}
+        </Text>
         <Pressable style={styles.refreshButton} onPress={handleRefresh} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <RefreshCw size={18} color={themeColors.neutral_light} />
         </Pressable>

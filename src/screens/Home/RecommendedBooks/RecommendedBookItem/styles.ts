@@ -36,14 +36,20 @@ export default (colors: ThemeColors) =>
       fontWeight: '600',
     },
     coverWrapper: {
-      marginBottom: 10,
+      marginBottom: 0,
     },
     coverPressable: {
       position: 'relative',
+      width: 126,
+      height: 180,
+      backgroundColor: colors.primary_darkest,
     },
     cover: {
       width: 126,
       height: 180,
+    },
+    buttonsWrapper: {
+      marginTop: 4,
     },
     zoomIconContainer: {
       position: 'absolute',

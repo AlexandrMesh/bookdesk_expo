@@ -216,7 +216,15 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
           <View style={styles.coverWrapper}>
             {showCover ? (
               <Pressable onPress={handleCoverPress} style={styles.coverPressable}>
-                <Image style={styles.cover} source={{ uri: coverUrl }} contentFit='cover' transition={200} onError={handleCoverError} />
+                <Image
+                  style={styles.cover}
+                  source={{ uri: coverUrl }}
+                  contentFit='contain'
+                  transition={0}
+                  cachePolicy='memory-disk'
+                  recyclingKey={book.id}
+                  onError={handleCoverError}
+                />
                 <View style={styles.zoomIconContainer}>
                   <ZoomIn size={20} color={themeColors.neutral_white} />
                 </View>
@@ -230,17 +238,19 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
               </View>
             )}
           </View>
-          <Dropdown
-            items={actionTypes}
-            isLoading={isAdding}
-            wrapperStyle={[styles.dropdownWrapper, { borderColor: statusColor }]}
-            buttonLabelStyle={styles.dropdownLabel}
-            selectedItem={currentStatus || ALL}
-            buttonLabel={buttonLabel}
-            onChange={handleStatusChange}
-            dropdownLeftPosition={16}
-            fillBackground={true}
-          />
+          <View style={styles.buttonsWrapper}>
+            <Dropdown
+              items={actionTypes}
+              isLoading={isAdding}
+              wrapperStyle={[styles.dropdownWrapper, { borderColor: statusColor }]}
+              buttonLabelStyle={styles.dropdownLabel}
+              selectedItem={currentStatus || ALL}
+              buttonLabel={buttonLabel}
+              onChange={handleStatusChange}
+              dropdownLeftPosition={16}
+              fillBackground={true}
+            />
+          </View>
         </View>
         <View style={styles.rightSide}>
           <Text style={[styles.title, styles.lightColor]}>{title}</Text>
