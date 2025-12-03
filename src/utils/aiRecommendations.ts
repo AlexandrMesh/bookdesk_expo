@@ -30,82 +30,164 @@ interface CachedRecommendations {
   userBooksHash: string;
 }
 
-// Genre translations map
+// Genre translations map - comprehensive Russian translations
 const genreTranslations: Record<string, string> = {
-  'fiction': 'Художественная литература',
+  fiction: 'Художественная литература',
   'non-fiction': 'Нон-фикшн',
+  nonfiction: 'Нон-фикшн',
   'science fiction': 'Научная фантастика',
-  'fantasy': 'Фэнтези',
-  'mystery': 'Детектив',
-  'thriller': 'Триллер',
-  'romance': 'Романтика',
-  'horror': 'Ужасы',
-  'biography': 'Биография',
-  'autobiography': 'Автобиография',
-  'history': 'История',
-  'science': 'Наука',
+  'sci-fi': 'Научная фантастика',
+  fantasy: 'Фэнтези',
+  mystery: 'Детектив',
+  thriller: 'Триллер',
+  romance: 'Романтика',
+  'love story': 'Романтика',
+  horror: 'Ужасы',
+  biography: 'Биография',
+  autobiography: 'Автобиография',
+  history: 'История',
+  historical: 'Историческая литература',
+  science: 'Наука',
   'self-help': 'Саморазвитие',
-  'psychology': 'Психология',
-  'philosophy': 'Философия',
-  'poetry': 'Поэзия',
-  'drama': 'Драма',
-  'comedy': 'Комедия',
-  'adventure': 'Приключения',
-  'children': 'Детская литература',
+  'self help': 'Саморазвитие',
+  'personal development': 'Саморазвитие',
+  psychology: 'Психология',
+  philosophy: 'Философия',
+  poetry: 'Поэзия',
+  poems: 'Поэзия',
+  drama: 'Драма',
+  comedy: 'Комедия',
+  adventure: 'Приключения',
+  action: 'Экшн',
+  children: 'Детская литература',
+  "children's": 'Детская литература',
+  juvenile: 'Детская литература',
   'young adult': 'Молодёжная литература',
-  'classics': 'Классика',
+  ya: 'Молодёжная литература',
+  teen: 'Подростковая литература',
+  classics: 'Классика',
+  classic: 'Классика',
   'literary fiction': 'Художественная проза',
   'historical fiction': 'Историческая проза',
-  'crime': 'Криминал',
-  'war': 'Военная проза',
-  'humor': 'Юмор',
-  'cooking': 'Кулинария',
-  'art': 'Искусство',
-  'music': 'Музыка',
-  'travel': 'Путешествия',
-  'religion': 'Религия',
-  'spirituality': 'Духовность',
-  'business': 'Бизнес',
-  'economics': 'Экономика',
-  'politics': 'Политика',
-  'law': 'Право',
-  'education': 'Образование',
-  'reference': 'Справочники',
-  'comics': 'Комиксы',
+  crime: 'Криминал',
+  detective: 'Детектив',
+  war: 'Военная проза',
+  military: 'Военная литература',
+  humor: 'Юмор',
+  humour: 'Юмор',
+  satire: 'Сатира',
+  cooking: 'Кулинария',
+  cookbooks: 'Кулинария',
+  food: 'Кулинария',
+  art: 'Искусство',
+  arts: 'Искусство',
+  music: 'Музыка',
+  travel: 'Путешествия',
+  religion: 'Религия',
+  religious: 'Религия',
+  spirituality: 'Духовность',
+  spiritual: 'Духовность',
+  business: 'Бизнес',
+  management: 'Менеджмент',
+  economics: 'Экономика',
+  finance: 'Финансы',
+  politics: 'Политика',
+  political: 'Политика',
+  law: 'Право',
+  legal: 'Право',
+  education: 'Образование',
+  educational: 'Образование',
+  reference: 'Справочники',
+  comics: 'Комиксы',
   'graphic novels': 'Графические романы',
-  'manga': 'Манга',
+  'graphic novel': 'Графический роман',
+  manga: 'Манга',
+  anime: 'Аниме',
   'literary collections': 'Литературные сборники',
-  'essays': 'Эссе',
-  'journalism': 'Журналистика',
+  anthology: 'Антология',
+  essays: 'Эссе',
+  essay: 'Эссе',
+  journalism: 'Журналистика',
   'true crime': 'Документальный криминал',
-  'memoir': 'Мемуары',
-  'nature': 'Природа',
-  'sports': 'Спорт',
-  'health': 'Здоровье',
-  'family': 'Семья',
-  'relationships': 'Отношения',
-  'parenting': 'Воспитание',
+  memoir: 'Мемуары',
+  memoirs: 'Мемуары',
+  nature: 'Природа',
+  environment: 'Экология',
+  sports: 'Спорт',
+  sport: 'Спорт',
+  fitness: 'Фитнес',
+  health: 'Здоровье',
+  wellness: 'Здоровье',
+  medicine: 'Медицина',
+  medical: 'Медицина',
+  family: 'Семья',
+  relationships: 'Отношения',
+  parenting: 'Воспитание',
   'literary criticism': 'Литературная критика',
+  criticism: 'Критика',
   'social science': 'Социология',
-  'technology': 'Технологии',
-  'computers': 'Компьютеры',
-  'mathematics': 'Математика',
-  'medical': 'Медицина',
-  'architecture': 'Архитектура',
-  'design': 'Дизайн',
-  'photography': 'Фотография',
+  sociology: 'Социология',
+  technology: 'Технологии',
+  tech: 'Технологии',
+  computers: 'Компьютеры',
+  programming: 'Программирование',
+  software: 'Программирование',
+  mathematics: 'Математика',
+  math: 'Математика',
+  architecture: 'Архитектура',
+  design: 'Дизайн',
+  photography: 'Фотография',
   'performing arts': 'Сценическое искусство',
-  'film': 'Кино',
-  'games': 'Игры',
-  'crafts': 'Рукоделие',
-  'antiques': 'Антиквариат',
-  'pets': 'Домашние животные',
-  'gardening': 'Садоводство',
+  theater: 'Театр',
+  theatre: 'Театр',
+  film: 'Кино',
+  cinema: 'Кино',
+  movies: 'Кино',
+  games: 'Игры',
+  gaming: 'Игры',
+  crafts: 'Рукоделие',
+  'diy': 'Сделай сам',
+  antiques: 'Антиквариат',
+  collecting: 'Коллекционирование',
+  pets: 'Домашние животные',
+  animals: 'Животные',
+  gardening: 'Садоводство',
+  garden: 'Садоводство',
   'house & home': 'Дом и быт',
-  'transportation': 'Транспорт',
+  home: 'Дом и быт',
+  interior: 'Интерьер',
+  transportation: 'Транспорт',
+  cars: 'Автомобили',
   'foreign language study': 'Изучение языков',
+  language: 'Языки',
+  linguistics: 'Лингвистика',
   'study aids': 'Учебные пособия',
+  textbook: 'Учебник',
   'body, mind & spirit': 'Тело, разум и дух',
+  'mind body': 'Тело и разум',
+  paranormal: 'Паранормальное',
+  supernatural: 'Сверхъестественное',
+  dystopian: 'Антиутопия',
+  dystopia: 'Антиутопия',
+  utopian: 'Утопия',
+  apocalyptic: 'Апокалиптика',
+  'post-apocalyptic': 'Постапокалипсис',
+  western: 'Вестерн',
+  noir: 'Нуар',
+  espionage: 'Шпионаж',
+  spy: 'Шпионский роман',
+  suspense: 'Саспенс',
+  'cozy mystery': 'Уютный детектив',
+  'urban fantasy': 'Городское фэнтези',
+  'epic fantasy': 'Эпическое фэнтези',
+  'dark fantasy': 'Тёмное фэнтези',
+  'high fantasy': 'Высокое фэнтези',
+  'space opera': 'Космическая опера',
+  cyberpunk: 'Киберпанк',
+  steampunk: 'Стимпанк',
+  'literary': 'Литература',
+  'contemporary': 'Современная литература',
+  'modern': 'Современная литература',
 };
 
 /**
@@ -113,20 +195,27 @@ const genreTranslations: Record<string, string> = {
  */
 const translateGenre = (genre: string): string => {
   if (!genre) return '';
-  const lowerGenre = genre.toLowerCase();
-  
+  const lowerGenre = genre.toLowerCase().trim();
+
   // Direct match
   if (genreTranslations[lowerGenre]) {
     return genreTranslations[lowerGenre];
   }
-  
-  // Partial match
+
+  // Check if genre contains any known key
   for (const [key, value] of Object.entries(genreTranslations)) {
-    if (lowerGenre.includes(key) || key.includes(lowerGenre)) {
+    if (lowerGenre.includes(key)) {
       return value;
     }
   }
-  
+
+  // Check if any key contains the genre
+  for (const [key, value] of Object.entries(genreTranslations)) {
+    if (key.includes(lowerGenre) && lowerGenre.length > 3) {
+      return value;
+    }
+  }
+
   // Return original if no translation found
   return genre;
 };
@@ -191,55 +280,71 @@ export const clearRecommendationsCache = async (): Promise<void> => {
  * Extract unique authors from user's books
  */
 const extractAuthors = (books: IBook[]): string[] => {
-  const authors = new Set<string>();
+  const authors = new Map<string, number>();
   books.forEach((book) => {
     if (book.authorsList && book.authorsList.length > 0) {
       book.authorsList.forEach((author) => {
         if (author && author.trim().length > 2) {
-          authors.add(author.trim());
+          const authorName = author.trim();
+          authors.set(authorName, (authors.get(authorName) || 0) + 1);
         }
       });
     }
   });
-  return Array.from(authors);
+  // Sort by frequency and return
+  return Array.from(authors.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([author]) => author);
 };
 
 /**
  * Extract categories/genres from user's books
  */
 const extractCategories = (books: IBook[]): string[] => {
-  const categories = new Set<string>();
+  const categories = new Map<string, number>();
   books.forEach((book) => {
     if (book.categoryValue) {
-      categories.add(book.categoryValue);
+      categories.set(book.categoryValue, (categories.get(book.categoryValue) || 0) + 1);
     }
   });
-  return Array.from(categories);
+  return Array.from(categories.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([cat]) => cat);
 };
 
 /**
- * Extract keywords from book titles for better matching
+ * Extract meaningful keywords from book titles for better matching
+ * This is the key improvement - analyze ALL book titles for common themes
  */
 const extractKeywordsFromTitles = (books: IBook[]): string[] => {
-  const stopWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'с', 'и', 'в', 'на', 'к', 'о', 'у', 'из']);
+  // Stop words in Russian and English
+  const stopWords = new Set([
+    // English
+    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'been', 'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'shall', 'can', 'need', 'dare', 'ought', 'used', 'it', 'its', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'we', 'they', 'who', 'which', 'what', 'where', 'when', 'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 'just', 'about', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'between', 'under', 'again', 'further', 'then', 'once', 'here', 'there', 'any', 'book', 'books', 'novel', 'story', 'stories', 'tale', 'tales', 'part', 'volume', 'edition',
+    // Russian
+    'и', 'в', 'на', 'с', 'к', 'о', 'у', 'из', 'по', 'за', 'от', 'до', 'для', 'без', 'при', 'под', 'над', 'через', 'про', 'между', 'перед', 'после', 'во', 'со', 'ко', 'об', 'а', 'но', 'да', 'или', 'ни', 'не', 'же', 'то', 'это', 'как', 'что', 'кто', 'где', 'когда', 'почему', 'зачем', 'чтобы', 'если', 'хотя', 'потому', 'так', 'уже', 'ещё', 'тоже', 'также', 'только', 'всё', 'все', 'вся', 'весь', 'его', 'её', 'их', 'мой', 'твой', 'свой', 'наш', 'ваш', 'этот', 'тот', 'такой', 'какой', 'который', 'чей', 'сам', 'самый', 'каждый', 'любой', 'другой', 'иной', 'один', 'два', 'три', 'много', 'мало', 'несколько', 'книга', 'книги', 'роман', 'история', 'часть', 'том',
+  ]);
+
   const keywords = new Map<string, number>();
-  
+
   books.forEach((book) => {
     if (book.title) {
-      const words = book.title.toLowerCase().split(/\s+/);
+      // Split by spaces and special characters
+      const words = book.title.toLowerCase().split(/[\s\-–—:;,.!?()[\]{}«»""'']+/);
       words.forEach((word) => {
-        const cleaned = word.replace(/[^a-zа-яё]/gi, '');
-        if (cleaned.length > 3 && !stopWords.has(cleaned)) {
+        const cleaned = word.replace(/[^a-zа-яёЁ0-9]/gi, '');
+        // Only consider words with 4+ characters that aren't stop words
+        if (cleaned.length >= 4 && !stopWords.has(cleaned) && !/^\d+$/.test(cleaned)) {
           keywords.set(cleaned, (keywords.get(cleaned) || 0) + 1);
         }
       });
     }
   });
-  
+
   // Sort by frequency and return top keywords
   return Array.from(keywords.entries())
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
+    .slice(0, 15)
     .map(([word]) => word);
 };
 
@@ -250,7 +355,7 @@ const searchGoogleBooks = async (query: string, maxResults: number = 10, startIn
   try {
     const langRestrict = i18n.language === 'ru' ? '&langRestrict=ru' : '';
     const response = await axios.get(
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=${maxResults}&startIndex=${startIndex}&orderBy=relevance${langRestrict}`,
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=${maxResults}&startIndex=${startIndex}&orderBy=relevance${langRestrict}&printType=books`,
       { timeout: 10000 },
     );
 
@@ -269,12 +374,12 @@ const searchGoogleBooks = async (query: string, maxResults: number = 10, startIn
       // Higher quality versions
       const medium = imageLinks.medium?.replace('http://', 'https://');
       const large = imageLinks.large?.replace('http://', 'https://');
-      
+
       // Try to get higher quality by modifying URL
       let coverUrlHQ = large || medium || thumbnail;
       if (thumbnail && !large && !medium) {
         // Google Books allows changing zoom parameter for higher quality
-        coverUrlHQ = thumbnail.replace('zoom=1', 'zoom=2').replace('&edge=curl', '');
+        coverUrlHQ = thumbnail.replace('zoom=1', 'zoom=3').replace('&edge=curl', '');
       }
 
       return {
@@ -296,70 +401,34 @@ const searchGoogleBooks = async (query: string, maxResults: number = 10, startIn
 };
 
 /**
- * Search books using Open Library API (free, no key required)
- */
-const searchOpenLibrary = async (query: string, limit: number = 10, offset: number = 0): Promise<IRecommendedBook[]> => {
-  try {
-    const response = await axios.get(
-      `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}`,
-      { timeout: 10000 },
-    );
-
-    if (!response.data.docs) {
-      return [];
-    }
-
-    return response.data.docs.map((doc: any, index: number) => {
-      const genre = doc.subject ? doc.subject[0] : undefined;
-      const coverId = doc.cover_i;
-      
-      return {
-        id: doc.key || `openlibrary_${Date.now()}_${index}`,
-        title: doc.title || 'Unknown Title',
-        author: doc.author_name ? doc.author_name.join(', ') : '',
-        pages: doc.number_of_pages_median || undefined,
-        coverUrl: coverId ? `https://covers.openlibrary.org/b/id/${coverId}-M.jpg` : undefined,
-        coverUrlHQ: coverId ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg` : undefined,
-        description: doc.first_sentence ? doc.first_sentence.join(' ').substring(0, 200) + '...' : undefined,
-        genre: genre,
-        genreRu: genre ? translateGenre(genre) : undefined,
-      };
-    });
-  } catch (error) {
-    console.error('Open Library API error:', error);
-    return [];
-  }
-};
-
-/**
- * Get genre-based search queries
+ * Get genre-based search queries based on language
  */
 const getGenreQueries = (language: string): string[] => {
   if (language === 'ru') {
     return [
-      'бестселлер художественная литература',
-      'классика русская литература',
-      'современная проза',
-      'фантастика научная',
-      'детектив триллер',
-      'психология саморазвитие',
-      'история биография',
-      'приключения роман',
-      'фэнтези магия',
-      'любовный роман',
+      'современная русская литература бестселлер',
+      'классика мировой литературы',
+      'психология саморазвитие популярные',
+      'детектив триллер российский',
+      'фантастика фэнтези лучшее',
+      'бизнес мотивация успех',
+      'история биография известные',
+      'любовный роман современный',
+      'приключения путешествия',
+      'научпоп наука интересно',
     ];
   }
   return [
-    'bestseller fiction',
-    'classic literature',
-    'contemporary fiction',
-    'science fiction fantasy',
-    'mystery thriller',
-    'psychology self-help',
-    'history biography',
-    'adventure novel',
-    'fantasy magic',
-    'romance novel',
+    'bestseller fiction contemporary',
+    'classic literature must read',
+    'psychology self-help popular',
+    'mystery thriller suspense',
+    'science fiction fantasy award',
+    'business motivation success',
+    'history biography notable',
+    'romance contemporary popular',
+    'adventure travel exploration',
+    'popular science nonfiction',
   ];
 };
 
@@ -377,6 +446,7 @@ const shuffleArray = <T>(array: T[]): T[] => {
 
 /**
  * Generate book recommendations based on user's library
+ * Improved algorithm focusing on keywords from all book titles
  */
 export const generateRecommendations = async (userBooks: IBook[], forceNew: boolean = false): Promise<IRecommendedBook[]> => {
   // Filter books that have titles
@@ -393,20 +463,59 @@ export const generateRecommendations = async (userBooks: IBook[], forceNew: bool
 
   const { language } = i18n;
   const recommendations: IRecommendedBook[] = [];
-  const seenTitles = new Set<string>(booksWithTitles.map((b) => b.title?.toLowerCase() || ''));
+  const seenTitles = new Set<string>(booksWithTitles.map((b) => b.title?.toLowerCase().trim() || ''));
   const seenIds = new Set<string>();
 
   // Random offset for variety on refresh
-  const randomOffset = forceNew ? Math.floor(Math.random() * 20) : 0;
+  const randomOffset = forceNew ? Math.floor(Math.random() * 30) : 0;
 
-  // Strategy 1: Search by authors (most relevant)
-  const authors = shuffleArray(extractAuthors(booksWithTitles)).slice(0, 4);
-  for (const author of authors) {
+  // STRATEGY 1: Search by KEYWORDS from all book titles (MOST IMPORTANT)
+  // This analyzes all book titles to find common themes and topics
+  const keywords = extractKeywordsFromTitles(booksWithTitles);
+  if (keywords.length > 0) {
+    // Create search queries from keyword combinations
+    const keywordQueries = [];
+    
+    // Single important keywords
+    for (const keyword of keywords.slice(0, 5)) {
+      keywordQueries.push(keyword);
+    }
+    
+    // Pairs of keywords for more specific searches
+    for (let i = 0; i < Math.min(3, keywords.length); i++) {
+      for (let j = i + 1; j < Math.min(5, keywords.length); j++) {
+        keywordQueries.push(`${keywords[i]} ${keywords[j]}`);
+      }
+    }
+
+    // Search using keyword queries
+    const shuffledQueries = shuffleArray(keywordQueries).slice(0, 5);
+    for (const query of shuffledQueries) {
+      try {
+        const keywordBooks = await searchGoogleBooks(query, 6, randomOffset);
+        for (const book of keywordBooks) {
+          const titleLower = book.title.toLowerCase().trim();
+          if (!seenTitles.has(titleLower) && !seenIds.has(book.id) && recommendations.length < 25) {
+            seenTitles.add(titleLower);
+            seenIds.add(book.id);
+            recommendations.push(book);
+          }
+        }
+      } catch (error) {
+        console.error('Error searching by keywords:', error);
+      }
+    }
+  }
+
+  // STRATEGY 2: Search by favorite AUTHORS
+  const authors = extractAuthors(booksWithTitles);
+  const topAuthors = shuffleArray(authors.slice(0, 6)).slice(0, 3);
+  for (const author of topAuthors) {
     try {
       const authorBooks = await searchGoogleBooks(`inauthor:"${author}"`, 5, randomOffset);
       for (const book of authorBooks) {
-        const titleLower = book.title.toLowerCase();
-        if (!seenTitles.has(titleLower) && !seenIds.has(book.id) && recommendations.length < 20) {
+        const titleLower = book.title.toLowerCase().trim();
+        if (!seenTitles.has(titleLower) && !seenIds.has(book.id) && recommendations.length < 25) {
           seenTitles.add(titleLower);
           seenIds.add(book.id);
           recommendations.push(book);
@@ -417,14 +526,15 @@ export const generateRecommendations = async (userBooks: IBook[], forceNew: bool
     }
   }
 
-  // Strategy 2: Search by categories/subjects
-  const categories = shuffleArray(extractCategories(booksWithTitles)).slice(0, 3);
-  for (const category of categories) {
+  // STRATEGY 3: Search by CATEGORIES/GENRES
+  const categories = extractCategories(booksWithTitles);
+  const topCategories = shuffleArray(categories.slice(0, 4)).slice(0, 2);
+  for (const category of topCategories) {
     try {
       const categoryBooks = await searchGoogleBooks(`subject:${category}`, 5, randomOffset);
       for (const book of categoryBooks) {
-        const titleLower = book.title.toLowerCase();
-        if (!seenTitles.has(titleLower) && !seenIds.has(book.id) && recommendations.length < 20) {
+        const titleLower = book.title.toLowerCase().trim();
+        if (!seenTitles.has(titleLower) && !seenIds.has(book.id) && recommendations.length < 25) {
           seenTitles.add(titleLower);
           seenIds.add(book.id);
           recommendations.push(book);
@@ -435,53 +545,15 @@ export const generateRecommendations = async (userBooks: IBook[], forceNew: bool
     }
   }
 
-  // Strategy 3: Search by keywords from titles
-  const keywords = extractKeywordsFromTitles(booksWithTitles);
-  if (keywords.length > 0) {
-    const keywordQuery = shuffleArray(keywords).slice(0, 3).join(' ');
-    try {
-      const keywordBooks = await searchGoogleBooks(keywordQuery, 5, randomOffset);
-      for (const book of keywordBooks) {
-        const titleLower = book.title.toLowerCase();
-        if (!seenTitles.has(titleLower) && !seenIds.has(book.id) && recommendations.length < 20) {
-          seenTitles.add(titleLower);
-          seenIds.add(book.id);
-          recommendations.push(book);
-        }
-      }
-    } catch (error) {
-      console.error('Error searching by keywords:', error);
-    }
-  }
-
-  // Strategy 4: Search "similar to" user's books via Open Library
-  const topBooks = shuffleArray(booksWithTitles).slice(0, 3);
-  for (const book of topBooks) {
-    if (recommendations.length >= 20) break;
-    try {
-      const similarBooks = await searchOpenLibrary(`${book.title}`, 3, randomOffset);
-      for (const simBook of similarBooks) {
-        const titleLower = simBook.title.toLowerCase();
-        if (!seenTitles.has(titleLower) && !seenIds.has(simBook.id) && recommendations.length < 20) {
-          seenTitles.add(titleLower);
-          seenIds.add(simBook.id);
-          recommendations.push(simBook);
-        }
-      }
-    } catch (error) {
-      console.error('Error searching similar books:', error);
-    }
-  }
-
-  // Strategy 5: If not enough, add popular/bestseller books
+  // STRATEGY 4: If still not enough, add popular/bestseller books
   if (recommendations.length < 15) {
     const genreQueries = getGenreQueries(language);
-    const randomGenres = shuffleArray(genreQueries).slice(0, 2);
+    const randomGenres = shuffleArray(genreQueries).slice(0, 3);
     for (const genre of randomGenres) {
       try {
         const popularBooks = await searchGoogleBooks(genre, 8, randomOffset);
         for (const book of popularBooks) {
-          const titleLower = book.title.toLowerCase();
+          const titleLower = book.title.toLowerCase().trim();
           if (!seenTitles.has(titleLower) && !seenIds.has(book.id) && recommendations.length < 20) {
             seenTitles.add(titleLower);
             seenIds.add(book.id);
@@ -523,14 +595,14 @@ export const generateDefaultRecommendations = async (forceNew: boolean = false):
   const seenIds = new Set<string>();
 
   const queries = shuffleArray(getGenreQueries(language));
-  const randomOffset = forceNew ? Math.floor(Math.random() * 30) : 0;
+  const randomOffset = forceNew ? Math.floor(Math.random() * 40) : 0;
 
   // Get books from different genres
   for (const query of queries.slice(0, 5)) {
     try {
-      const books = await searchGoogleBooks(query, 5, randomOffset);
+      const books = await searchGoogleBooks(query, 6, randomOffset);
       for (const book of books) {
-        const titleLower = book.title.toLowerCase();
+        const titleLower = book.title.toLowerCase().trim();
         if (!seenTitles.has(titleLower) && !seenIds.has(book.id) && recommendations.length < 20) {
           seenTitles.add(titleLower);
           seenIds.add(book.id);

@@ -38,10 +38,21 @@ export default (colors: ThemeColors) =>
     coverWrapper: {
       marginBottom: 10,
     },
+    coverPressable: {
+      position: 'relative',
+    },
     cover: {
       width: 126,
       height: 180,
       borderRadius: 4,
+    },
+    zoomIconContainer: {
+      position: 'absolute',
+      bottom: 5,
+      right: 5,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      borderRadius: 12,
+      padding: 4,
     },
     coverPlaceholder: {
       width: 126,

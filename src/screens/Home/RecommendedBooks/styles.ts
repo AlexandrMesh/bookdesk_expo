@@ -77,8 +77,31 @@ export default (colors: ThemeColors) =>
       alignItems: 'center',
       padding: 30,
     },
-    aiIconWrapper: {
-      marginBottom: 30,
+    aiIconContainer: {
+      width: 120,
+      height: 120,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    star: {
+      position: 'absolute',
+    },
+    star1: {
+      top: 5,
+      right: 15,
+    },
+    star2: {
+      top: 25,
+      left: 10,
+    },
+    star3: {
+      bottom: 20,
+      right: 10,
+    },
+    star4: {
+      bottom: 10,
+      left: 20,
     },
     loadingText: {
       fontSize: 18,

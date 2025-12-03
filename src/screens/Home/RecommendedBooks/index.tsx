@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import { View, Text, Pressable, Animated, Easing } from 'react-native';
 
 import { FlashList } from '@shopify/flash-list';
-import { Sparkles, AlertCircle, BookOpen, RefreshCw } from 'lucide-react-native';
+import { Sparkles, AlertCircle, BookOpen, RefreshCw, Star } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 
 import { useAppDispatch, useAppSelector } from '~hooks';
@@ -34,74 +34,82 @@ const RecommendedBooks = () => {
   const loadingStatus = useAppSelector(getRecommendationsLoadingStatus);
   const error = useAppSelector(getRecommendationsError);
 
-  // Animation for AI icon
-  const rotateAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const opacityAnim = useRef(new Animated.Value(1)).current;
+  // Animations for sparkle stars
+  const star1Opacity = useRef(new Animated.Value(0)).current;
+  const star2Opacity = useRef(new Animated.Value(0)).current;
+  const star3Opacity = useRef(new Animated.Value(0)).current;
+  const star4Opacity = useRef(new Animated.Value(0)).current;
+  const star1Scale = useRef(new Animated.Value(0.5)).current;
+  const star2Scale = useRef(new Animated.Value(0.5)).current;
+  const star3Scale = useRef(new Animated.Value(0.5)).current;
+  const star4Scale = useRef(new Animated.Value(0.5)).current;
 
-  // Start loading animation
+  // Start loading animation - blinking stars around the icon
   useEffect(() => {
     if (loadingStatus === PENDING) {
-      // Rotation animation
-      const rotateAnimation = Animated.loop(
-        Animated.timing(rotateAnim, {
-          toValue: 1,
-          duration: 3000,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-      );
+      const createStarAnimation = (opacityAnim: Animated.Value, scaleAnim: Animated.Value, delay: number) => {
+        return Animated.loop(
+          Animated.sequence([
+            Animated.delay(delay),
+            Animated.parallel([
+              Animated.timing(opacityAnim, {
+                toValue: 1,
+                duration: 400,
+                easing: Easing.out(Easing.ease),
+                useNativeDriver: true,
+              }),
+              Animated.timing(scaleAnim, {
+                toValue: 1,
+                duration: 400,
+                easing: Easing.out(Easing.ease),
+                useNativeDriver: true,
+              }),
+            ]),
+            Animated.parallel([
+              Animated.timing(opacityAnim, {
+                toValue: 0,
+                duration: 400,
+                easing: Easing.in(Easing.ease),
+                useNativeDriver: true,
+              }),
+              Animated.timing(scaleAnim, {
+                toValue: 0.5,
+                duration: 400,
+                easing: Easing.in(Easing.ease),
+                useNativeDriver: true,
+              }),
+            ]),
+            Animated.delay(800),
+          ]),
+        );
+      };
 
-      // Scale pulse animation
-      const scaleAnimation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(scaleAnim, {
-            toValue: 1.2,
-            duration: 800,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(scaleAnim, {
-            toValue: 1,
-            duration: 800,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ]),
-      );
+      const anim1 = createStarAnimation(star1Opacity, star1Scale, 0);
+      const anim2 = createStarAnimation(star2Opacity, star2Scale, 300);
+      const anim3 = createStarAnimation(star3Opacity, star3Scale, 600);
+      const anim4 = createStarAnimation(star4Opacity, star4Scale, 900);
 
-      // Opacity pulse animation
-      const opacityAnimation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(opacityAnim, {
-            toValue: 0.5,
-            duration: 1000,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(opacityAnim, {
-            toValue: 1,
-            duration: 1000,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ]),
-      );
-
-      rotateAnimation.start();
-      scaleAnimation.start();
-      opacityAnimation.start();
+      anim1.start();
+      anim2.start();
+      anim3.start();
+      anim4.start();
 
       return () => {
-        rotateAnimation.stop();
-        scaleAnimation.stop();
-        opacityAnimation.stop();
-        rotateAnim.setValue(0);
-        scaleAnim.setValue(1);
-        opacityAnim.setValue(1);
+        anim1.stop();
+        anim2.stop();
+        anim3.stop();
+        anim4.stop();
+        star1Opacity.setValue(0);
+        star2Opacity.setValue(0);
+        star3Opacity.setValue(0);
+        star4Opacity.setValue(0);
+        star1Scale.setValue(0.5);
+        star2Scale.setValue(0.5);
+        star3Scale.setValue(0.5);
+        star4Scale.setValue(0.5);
       };
     }
-  }, [loadingStatus, rotateAnim, scaleAnim, opacityAnim]);
+  }, [loadingStatus, star1Opacity, star2Opacity, star3Opacity, star4Opacity, star1Scale, star2Scale, star3Scale, star4Scale]);
 
   // Load recommendations on mount
   useEffect(() => {
@@ -132,27 +140,29 @@ const RecommendedBooks = () => {
 
   const keyExtractor = useCallback((item: IRecommendedBook) => item.id, []);
 
-  const rotateInterpolate = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
-
-  // Loading view with animated AI icon
+  // Loading view with animated sparkle stars
   if (loadingStatus === PENDING) {
     return (
       <View style={styles.wrapper}>
         <View style={styles.loadingContainer}>
-          <Animated.View
-            style={[
-              styles.aiIconWrapper,
-              {
-                transform: [{ rotate: rotateInterpolate }, { scale: scaleAnim }],
-                opacity: opacityAnim,
-              },
-            ]}
-          >
+          <View style={styles.aiIconContainer}>
+            {/* Main AI icon */}
             <Sparkles size={60} color={themeColors.accent} />
-          </Animated.View>
+            
+            {/* Animated stars around */}
+            <Animated.View style={[styles.star, styles.star1, { opacity: star1Opacity, transform: [{ scale: star1Scale }] }]}>
+              <Star size={16} color={themeColors.gold} fill={themeColors.gold} />
+            </Animated.View>
+            <Animated.View style={[styles.star, styles.star2, { opacity: star2Opacity, transform: [{ scale: star2Scale }] }]}>
+              <Star size={12} color={themeColors.gold} fill={themeColors.gold} />
+            </Animated.View>
+            <Animated.View style={[styles.star, styles.star3, { opacity: star3Opacity, transform: [{ scale: star3Scale }] }]}>
+              <Star size={14} color={themeColors.gold} fill={themeColors.gold} />
+            </Animated.View>
+            <Animated.View style={[styles.star, styles.star4, { opacity: star4Opacity, transform: [{ scale: star4Scale }] }]}>
+              <Star size={10} color={themeColors.gold} fill={themeColors.gold} />
+            </Animated.View>
+          </View>
           <Text style={styles.loadingText}>{t('recommendations:loadingRecommendations')}</Text>
           <Text style={styles.loadingSubtext}>{t('recommendations:loadingSubtext')}</Text>
         </View>
@@ -207,12 +217,7 @@ const RecommendedBooks = () => {
           estimatedItemSize={ITEM_HEIGHT}
           ListFooterComponent={
             <View style={styles.footerRefreshWrapper}>
-              <Button
-                style={styles.footerRefreshButton}
-                titleStyle={styles.retryButtonTitle}
-                title={t('recommendations:refresh')}
-                onPress={handleRefresh}
-              />
+              <Button style={styles.footerRefreshButton} titleStyle={styles.retryButtonTitle} title={t('recommendations:refresh')} onPress={handleRefresh} />
             </View>
           }
         />
