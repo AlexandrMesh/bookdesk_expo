@@ -343,7 +343,7 @@ export default createReducer(defaultState, (builder) => {
       },
     )
     .addCase(booksActions.updateBookOnBoardAndSearch, (state, { payload }) => {
-      const { bookId, bookStatus, title, pages, authorsList, coverPath, categoryPath, added, annotation } = payload;
+      const { bookId, bookStatus, title, pages, authorsList, coverPath, categoryPath, categoryValue, added, annotation } = payload;
       const targetBoard = bookStatus || ALL;
 
       // Проверяем, есть ли книга в списке доски
@@ -357,6 +357,7 @@ export default createReducer(defaultState, (builder) => {
         bookStatus,
         ...(coverPath && { coverPath }),
         ...(categoryPath && { categoryPath }),
+        ...(categoryValue && { categoryValue }),
         ...(added && { added }),
         ...(annotation && { annotation }),
       };

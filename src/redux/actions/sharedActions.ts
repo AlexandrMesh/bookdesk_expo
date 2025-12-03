@@ -17,6 +17,7 @@ export const updateBookOnBoardAndSearch = createAction<{
   authorsList: string[];
   coverPath?: string;
   categoryPath?: string;
+  categoryValue?: string;
   added?: number;
   annotation?: string;
 }>(`${PREFIX}/updateBookOnBoardAndSearch`);

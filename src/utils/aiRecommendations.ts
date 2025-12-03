@@ -48,8 +48,36 @@ interface AIRecommendation {
 // Cache for genre translations to avoid repeated API calls
 const genreTranslationCache: Map<string, string> = new Map();
 
+// Correct translations for common genres (API sometimes translates incorrectly)
+const correctGenreTranslations: Record<string, string> = {
+  fantasy: 'Фэнтези',
+  'science fiction': 'Научная фантастика',
+  'sci-fi': 'Научная фантастика',
+  fiction: 'Художественная литература',
+  'non-fiction': 'Нон-фикшн',
+  nonfiction: 'Нон-фикшн',
+  mystery: 'Детектив',
+  thriller: 'Триллер',
+  romance: 'Романтика',
+  horror: 'Ужасы',
+  biography: 'Биография',
+  'self-help': 'Саморазвитие',
+  psychology: 'Психология',
+  philosophy: 'Философия',
+  adventure: 'Приключения',
+  classics: 'Классика',
+  humor: 'Юмор',
+  manga: 'Манга',
+  comics: 'Комиксы',
+  memoir: 'Мемуары',
+  poetry: 'Поэзия',
+  drama: 'Драма',
+  'young adult': 'Молодёжная литература',
+  children: 'Детская литература',
+};
+
 /**
- * Translate genre using MyMemory Translation API (free)
+ * Translate genre using correct translations or MyMemory API
  */
 const translateGenreViaAPI = async (genre: string): Promise<string> => {
   if (!genre) return '';
@@ -59,12 +87,30 @@ const translateGenreViaAPI = async (genre: string): Promise<string> => {
     return genre;
   }
 
+  const lowerGenre = genre.toLowerCase().trim();
+
   // Check cache first
-  const cacheKey = `${genre.toLowerCase()}_ru`;
+  const cacheKey = `${lowerGenre}_ru`;
   if (genreTranslationCache.has(cacheKey)) {
     return genreTranslationCache.get(cacheKey)!;
   }
 
+  // Check correct translations first (for genres that API translates incorrectly)
+  if (correctGenreTranslations[lowerGenre]) {
+    const translated = correctGenreTranslations[lowerGenre];
+    genreTranslationCache.set(cacheKey, translated);
+    return translated;
+  }
+
+  // Check if genre contains a known key (e.g., "Fantasy Fiction" contains "fantasy")
+  for (const [key, value] of Object.entries(correctGenreTranslations)) {
+    if (lowerGenre.includes(key)) {
+      genreTranslationCache.set(cacheKey, value);
+      return value;
+    }
+  }
+
+  // Use API for other genres
   try {
     const response = await axios.get(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(genre)}&langpair=en|ru`, { timeout: 5000 });
 
