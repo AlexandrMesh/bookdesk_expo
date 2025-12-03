@@ -1,13 +1,13 @@
 {
   "loadingRecommendations": "Finding books for you",
-  "loadingSubtext": "Analyzing your library...",
+  "loadingSubtext": "AI is analyzing your library...",
   "loadingSimple": "Finding books for you",
-  "poweredByAI": "Recommendations based on your library",
+  "poweredByAI": "AI recommendations based on your library",
   "selectionForYou": "Book selection for you",
   "refresh": "Refresh recommendations",
   "emptyTitle": "No Recommendations",
   "emptyDescription": "Add books to your boards to get personalized recommendations based on your interests.",
-  "errorNoRecommendations": "Could not find recommendations. Try adding more books to your library.",
+  "errorNoRecommendations": "Could not find recommendations. Please try again later.",
   "errorNetwork": "Network error. Please check your internet connection.",
   "errorGeneric": "An error occurred while fetching recommendations. Please try again."
 }
