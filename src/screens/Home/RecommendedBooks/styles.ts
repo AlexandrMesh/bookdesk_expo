@@ -77,6 +77,38 @@ export default (colors: ThemeColors) =>
       alignItems: 'center',
       padding: 30,
     },
+    starsContainer: {
+      width: 120,
+      height: 80,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    starLoading: {
+      position: 'absolute',
+    },
+    starLoading1: {
+      top: 0,
+      left: '50%',
+      marginLeft: -14,
+    },
+    starLoading2: {
+      top: 20,
+      right: 5,
+    },
+    starLoading3: {
+      top: 25,
+      left: 5,
+    },
+    starLoading4: {
+      bottom: 5,
+      right: 20,
+    },
+    starLoading5: {
+      bottom: 0,
+      left: 25,
+    },
+    // Keep old styles for backwards compatibility
     aiIconContainer: {
       width: 120,
       height: 120,

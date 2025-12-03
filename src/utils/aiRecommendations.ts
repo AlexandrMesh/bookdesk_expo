@@ -358,59 +358,145 @@ const searchGoogleBooks = async (query: string, maxResults: number = 10, startIn
 };
 
 /**
- * Popular book queries - these return well-known, quality books
+ * Popular book queries - specific famous books and authors for quality results
+ * Using exact book titles and author names gives much better results than generic queries
  */
 const getPopularQueries = (language: string): string[] => {
   if (language === 'ru') {
     return [
-      // Bestsellers and popular fiction
-      'бестселлер 2024',
-      'лучшие книги года',
-      'популярная художественная литература',
-      'современная русская проза',
-      // Classics
-      'русская классика Толстой Достоевский',
-      'мировая классика литература',
-      // Popular genres
-      'детектив бестселлер',
-      'фантастика популярная',
-      'психология бестселлер',
-      'саморазвитие популярные книги',
-      'бизнес книги лучшие',
-      'романы любовные популярные',
-      'триллер захватывающий',
-      'фэнтези лучшее',
-      // Famous authors
-      'Стивен Кинг',
-      'Борис Акунин',
+      // Famous specific books (Russian editions)
+      '"Мастер и Маргарита" Булгаков',
+      '"1984" Оруэлл',
+      '"Гарри Поттер"',
+      '"Властелин колец" Толкин',
+      '"Преступление и наказание"',
+      '"Война и мир" Толстой',
+      '"Маленький принц"',
+      '"Над пропастью во ржи"',
+      '"Три товарища" Ремарк',
+      '"Граф Монте-Кристо"',
+      // Popular modern authors
+      'Стивен Кинг роман',
+      'Борис Акунин Фандорин',
       'Дэн Браун',
+      'Харуки Мураками',
       'Джоан Роулинг',
+      // Popular genres with quality filter
+      'бестселлер роман художественный',
+      'современный детектив роман',
+      'фантастика роман популярный',
+      'триллер бестселлер роман',
+      'психология популярная книга',
     ];
   }
   return [
-    // Bestsellers
-    'bestseller 2024',
-    'new york times bestseller',
-    'best books of the year',
-    'popular fiction',
-    // Classics
-    'classic literature must read',
-    'literary classics',
-    // Popular genres
-    'thriller bestseller',
-    'mystery bestseller',
-    'science fiction popular',
-    'fantasy bestseller',
-    'romance bestseller',
-    'self help bestseller',
-    'psychology popular books',
-    'business bestseller',
-    // Famous authors
-    'Stephen King',
-    'Dan Brown',
+    // Famous specific books
+    '"To Kill a Mockingbird"',
+    '"1984" George Orwell',
+    '"Harry Potter"',
+    '"The Lord of the Rings"',
+    '"The Great Gatsby"',
+    '"Pride and Prejudice"',
+    '"The Catcher in the Rye"',
+    '"The Alchemist" Paulo Coelho',
+    '"Gone Girl"',
+    '"The Da Vinci Code"',
+    // Popular modern authors
+    'Stephen King novel',
+    'Dan Brown thriller',
     'J.K. Rowling',
     'George R.R. Martin',
+    'Agatha Christie mystery',
+    // Popular genres with quality filter
+    'bestseller fiction novel',
+    'thriller bestseller novel',
+    'mystery bestseller novel',
+    'fantasy epic novel',
+    'romance bestseller novel',
   ];
+};
+
+/**
+ * Filter out low-quality results (textbooks, study guides, etc.)
+ */
+const isQualityBook = (book: IRecommendedBook): boolean => {
+  const title = book.title.toLowerCase();
+  const author = (book.author || '').toLowerCase();
+
+  // Exclude patterns for textbooks and study materials
+  const excludePatterns = [
+    'study guide',
+    'учебник',
+    'учебное пособие',
+    'рабочая тетрадь',
+    'workbook',
+    'textbook',
+    'exam',
+    'экзамен',
+    'тест',
+    'test prep',
+    'для студентов',
+    'for students',
+    'курс лекций',
+    'lecture',
+    'справочник',
+    'handbook',
+    'manual',
+    'руководство по',
+    'guide to',
+    'introduction to',
+    'введение в',
+    'основы ',
+    'fundamentals',
+    'encyclopedia',
+    'энциклопедия',
+    'словарь',
+    'dictionary',
+    'grammar',
+    'грамматика',
+    'самоучитель',
+    'краткое содержание',
+    'summary',
+    'notes on',
+    'sparknotes',
+    'cliffnotes',
+    'analysis of',
+    'анализ произведения',
+    'сочинение',
+    'essay on',
+    'dissertation',
+    'thesis',
+    'монография',
+    'volume ',
+    'том ',
+    'part ',
+    'часть ',
+    'book 1',
+    'книга 1',
+    '(illustrated)',
+    '(annotated)',
+    'coloring book',
+    'раскраска',
+    'activity book',
+  ];
+
+  for (const pattern of excludePatterns) {
+    if (title.includes(pattern) || author.includes(pattern)) {
+      return false;
+    }
+  }
+
+  // Must have a real author (not empty or generic)
+  if (!book.author || book.author.length < 3) {
+    return false;
+  }
+
+  // Title should be reasonable length (not too short or too long)
+  if (book.title.length < 3 || book.title.length > 150) {
+    return false;
+  }
+
+  return true;
 };
 
 /**
@@ -455,11 +541,11 @@ export const generateRecommendations = async (userBooks: IBook[], forceNew: bool
 
   for (const author of topAuthors) {
     try {
-      // Search for popular books by this author
-      const authorBooks = await searchGoogleBooks(`inauthor:"${author}" bestseller`, 5, randomOffset);
+      // Search for novels/fiction by this author (exclude textbooks)
+      const authorBooks = await searchGoogleBooks(`inauthor:"${author}" novel`, 8, randomOffset);
       for (const book of authorBooks) {
         const titleLower = book.title.toLowerCase().trim();
-        if (!seenTitles.has(titleLower) && !seenIds.has(book.id) && recommendations.length < 20) {
+        if (!seenTitles.has(titleLower) && !seenIds.has(book.id) && isQualityBook(book) && recommendations.length < 20) {
           seenTitles.add(titleLower);
           seenIds.add(book.id);
           recommendations.push(book);
@@ -470,17 +556,17 @@ export const generateRecommendations = async (userBooks: IBook[], forceNew: bool
     }
   }
 
-  // STRATEGY 2: Search popular books in general (ensures quality recommendations)
+  // STRATEGY 2: Search popular books (famous titles and authors)
   const popularQueries = shuffleArray(getPopularQueries(language));
 
-  for (const query of popularQueries.slice(0, 6)) {
+  for (const query of popularQueries.slice(0, 10)) {
     if (recommendations.length >= 20) break;
 
     try {
-      const popularBooks = await searchGoogleBooks(query, 6, randomOffset);
+      const popularBooks = await searchGoogleBooks(query, 8, randomOffset);
       for (const book of popularBooks) {
         const titleLower = book.title.toLowerCase().trim();
-        if (!seenTitles.has(titleLower) && !seenIds.has(book.id) && recommendations.length < 20) {
+        if (!seenTitles.has(titleLower) && !seenIds.has(book.id) && isQualityBook(book) && recommendations.length < 20) {
           seenTitles.add(titleLower);
           seenIds.add(book.id);
           recommendations.push(book);
@@ -520,17 +606,17 @@ export const generateDefaultRecommendations = async (forceNew: boolean = false):
   const seenIds = new Set<string>();
 
   const queries = shuffleArray(getPopularQueries(language));
-  const randomOffset = forceNew ? Math.floor(Math.random() * 30) : 0;
+  const randomOffset = forceNew ? Math.floor(Math.random() * 15) : 0;
 
-  // Get popular books from different categories
-  for (const query of queries.slice(0, 8)) {
+  // Get popular books from famous titles and authors
+  for (const query of queries.slice(0, 12)) {
     if (recommendations.length >= 20) break;
 
     try {
-      const books = await searchGoogleBooks(query, 5, randomOffset);
+      const books = await searchGoogleBooks(query, 8, randomOffset);
       for (const book of books) {
         const titleLower = book.title.toLowerCase().trim();
-        if (!seenTitles.has(titleLower) && !seenIds.has(book.id) && recommendations.length < 20) {
+        if (!seenTitles.has(titleLower) && !seenIds.has(book.id) && isQualityBook(book) && recommendations.length < 20) {
           seenTitles.add(titleLower);
           seenIds.add(book.id);
           recommendations.push(book);

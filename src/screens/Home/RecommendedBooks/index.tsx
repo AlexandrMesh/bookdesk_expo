@@ -140,27 +140,27 @@ const RecommendedBooks = () => {
 
   const keyExtractor = useCallback((item: IRecommendedBook) => item.id, []);
 
-  // Loading view with animated sparkle stars
+  // Loading view with animated sparkle stars only
   if (loadingStatus === PENDING) {
     return (
       <View style={styles.wrapper}>
         <View style={styles.loadingContainer}>
-          <View style={styles.aiIconContainer}>
-            {/* Main AI icon */}
-            <Sparkles size={60} color={themeColors.accent} />
-            
-            {/* Animated stars around */}
-            <Animated.View style={[styles.star, styles.star1, { opacity: star1Opacity, transform: [{ scale: star1Scale }] }]}>
+          <View style={styles.starsContainer}>
+            {/* Only animated stars - no main icon */}
+            <Animated.View style={[styles.starLoading, styles.starLoading1, { opacity: star1Opacity, transform: [{ scale: star1Scale }] }]}>
+              <Star size={28} color={themeColors.gold} fill={themeColors.gold} />
+            </Animated.View>
+            <Animated.View style={[styles.starLoading, styles.starLoading2, { opacity: star2Opacity, transform: [{ scale: star2Scale }] }]}>
+              <Star size={20} color={themeColors.gold} fill={themeColors.gold} />
+            </Animated.View>
+            <Animated.View style={[styles.starLoading, styles.starLoading3, { opacity: star3Opacity, transform: [{ scale: star3Scale }] }]}>
+              <Star size={24} color={themeColors.gold} fill={themeColors.gold} />
+            </Animated.View>
+            <Animated.View style={[styles.starLoading, styles.starLoading4, { opacity: star4Opacity, transform: [{ scale: star4Scale }] }]}>
+              <Star size={18} color={themeColors.gold} fill={themeColors.gold} />
+            </Animated.View>
+            <Animated.View style={[styles.starLoading, styles.starLoading5, { opacity: star1Opacity, transform: [{ scale: star2Scale }] }]}>
               <Star size={16} color={themeColors.gold} fill={themeColors.gold} />
-            </Animated.View>
-            <Animated.View style={[styles.star, styles.star2, { opacity: star2Opacity, transform: [{ scale: star2Scale }] }]}>
-              <Star size={12} color={themeColors.gold} fill={themeColors.gold} />
-            </Animated.View>
-            <Animated.View style={[styles.star, styles.star3, { opacity: star3Opacity, transform: [{ scale: star3Scale }] }]}>
-              <Star size={14} color={themeColors.gold} fill={themeColors.gold} />
-            </Animated.View>
-            <Animated.View style={[styles.star, styles.star4, { opacity: star4Opacity, transform: [{ scale: star4Scale }] }]}>
-              <Star size={10} color={themeColors.gold} fill={themeColors.gold} />
             </Animated.View>
           </View>
           <Text style={styles.loadingText}>{t('recommendations:loadingRecommendations')}</Text>
