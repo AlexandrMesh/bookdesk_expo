@@ -4,15 +4,7 @@
 
 ## 6.2.0
 ###### 2025-12-03
-- [New] Added "Рекомендуем" (Recommendations) board with personalized book suggestions
-- [New] Uses Google Books API for recommendations (no API key required)
-- [New] Smart recommendation algorithm: favorite authors + popular bestsellers
-- [New] Animated sparkle stars during loading
-- [New] Recommendations cached for 7 days with manual refresh option
-- [New] High quality full cover images on tap with zoom icon
-- [New] Genre names translated to Russian (170+ genres)
-- [New] Book status can be changed directly from recommendations board
-- [New] Detects if recommended book is already in user's library
+- [New] Added AI board with personalized book suggestions
 
 ## 6.1.0
 ###### 2025-11-28

@@ -29,10 +29,13 @@ const ITEM_HEIGHT = 240;
 const VirtualizedFlashList: any = FlashList;
 
 const RecommendedBooks = () => {
-  const { t } = useTranslation(['books', 'recommendations', 'common']);
+  const { t, i18n } = useTranslation(['books', 'recommendations', 'common']);
   const dispatch = useAppDispatch();
   const styles = useThemedStyles(createStyles);
   const themeColors = useThemeColors();
+
+  // Track language for auto-refresh on change
+  const previousLanguageRef = useRef(i18n.language);
 
   const recommendations = useAppSelector(getRecommendations);
   const loadingStatus = useAppSelector(getRecommendationsLoadingStatus);
@@ -151,12 +154,23 @@ const RecommendedBooks = () => {
     }
   }, [loadingStatus, star1Opacity, star2Opacity, star3Opacity, star4Opacity, star1Scale, star2Scale, star3Scale, star4Scale]);
 
-  // Load recommendations on mount
+  // Auto-load recommendations on mount for new users
+  // Triggers when: component mounts AND (status is IDLE AND no recommendations)
   useEffect(() => {
     if (loadingStatus === IDLE && recommendations.length === 0) {
       dispatch(loadRecommendations(false));
     }
   }, [loadingStatus, recommendations.length, dispatch]);
+
+  // Auto-refresh when language changes
+  useEffect(() => {
+    const currentLanguage = i18n.language;
+    if (previousLanguageRef.current !== currentLanguage && loadingStatus !== PENDING) {
+      previousLanguageRef.current = currentLanguage;
+      // Refresh recommendations with new language
+      dispatch(refreshRecommendations());
+    }
+  }, [i18n.language, loadingStatus, dispatch]);
 
   const handleRefresh = useCallback(() => {
     dispatch(refreshRecommendations());
@@ -203,9 +217,7 @@ const RecommendedBooks = () => {
               <Star size={16} color={themeColors.gold} fill={themeColors.gold} />
             </Animated.View>
           </View>
-          <Text style={styles.loadingText}>
-            {hasEnoughBooks ? t('recommendations:loadingRecommendations') : t('recommendations:loadingSimple')}
-          </Text>
+          <Text style={styles.loadingText}>{hasEnoughBooks ? t('recommendations:loadingRecommendations') : t('recommendations:loadingSimple')}</Text>
           {hasEnoughBooks && <Text style={styles.loadingSubtext}>{t('recommendations:loadingSubtext')}</Text>}
         </View>
       </View>
@@ -246,9 +258,7 @@ const RecommendedBooks = () => {
     <View style={styles.wrapper}>
       <View style={styles.headerWrapper}>
         <Sparkles size={16} color={themeColors.accent} />
-        <Text style={styles.headerTitle}>
-          {hasEnoughBooks ? t('recommendations:poweredByAI') : t('recommendations:selectionForYou')}
-        </Text>
+        <Text style={styles.headerTitle}>{hasEnoughBooks ? t('recommendations:poweredByAI') : t('recommendations:selectionForYou')}</Text>
         <Pressable style={styles.refreshButton} onPress={handleRefresh} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <RefreshCw size={18} color={themeColors.neutral_light} />
         </Pressable>
@@ -261,7 +271,12 @@ const RecommendedBooks = () => {
           estimatedItemSize={ITEM_HEIGHT}
           ListFooterComponent={
             <View style={styles.footerRefreshWrapper}>
-              <Button style={styles.footerRefreshButton} titleStyle={styles.retryButtonTitle} title={t('recommendations:refresh')} onPress={handleRefresh} />
+              <Button
+                style={styles.footerRefreshButton}
+                titleStyle={styles.retryButtonTitle}
+                title={t('recommendations:refresh')}
+                onPress={handleRefresh}
+              />
             </View>
           }
         />

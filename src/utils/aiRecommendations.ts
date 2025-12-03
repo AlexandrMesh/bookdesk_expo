@@ -88,6 +88,14 @@ const genreTranslations: Record<string, string> = {
 
 const translateGenre = (genre: string): string => {
   if (!genre) return '';
+
+  // Only translate to Russian if the app language is Russian
+  const { language } = i18n;
+  if (language !== 'ru') {
+    // For English and other languages, return original genre
+    return genre;
+  }
+
   const lowerGenre = genre.toLowerCase();
   if (genreTranslations[lowerGenre]) {
     return genreTranslations[lowerGenre];
