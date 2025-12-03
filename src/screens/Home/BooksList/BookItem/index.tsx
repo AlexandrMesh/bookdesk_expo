@@ -1,6 +1,6 @@
 import React, { FC, memo, useCallback, useMemo } from 'react';
 
-import { Pressable, StyleProp, Text, View, ViewStyle } from 'react-native';
+import { Pressable, StyleProp, Text, ToastAndroid, TouchableOpacity, View, ViewStyle } from 'react-native';
 
 import { NavigationProp, ParamListBase, useNavigation } from '@react-navigation/native';
 import { Image } from 'expo-image';
@@ -153,11 +153,15 @@ const BookItemComponent: FC<Props> = ({ bookItem, itemStyle, imgUrl, isEditable:
             )}
           <View style={styles.info}>
             {categoryLabel ? (
-              <View style={styles.categoryBadge}>
+              <TouchableOpacity
+                style={styles.categoryBadge}
+                onPress={() => ToastAndroid.show(categoryLabel, ToastAndroid.SHORT)}
+                activeOpacity={0.7}
+              >
                 <Text style={styles.categoryText} numberOfLines={1} ellipsizeMode='tail'>
                   {categoryLabel}
                 </Text>
-              </View>
+              </TouchableOpacity>
             ) : null}
             {!!pages && (
               <Text style={[styles.pagesBlock, styles.item, styles.mediumColor]}>

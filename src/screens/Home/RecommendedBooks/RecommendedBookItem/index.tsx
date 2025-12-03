@@ -1,6 +1,6 @@
 import React, { FC, memo, useCallback, useEffect, useMemo, useState } from 'react';
 
-import { Text, View, Pressable, ToastAndroid } from 'react-native';
+import { Text, ToastAndroid, TouchableOpacity, View, Pressable } from 'react-native';
 
 import { Image } from 'expo-image';
 import { BookOpen, ZoomIn } from 'lucide-react-native';
@@ -297,9 +297,9 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
           {displayAuthor && <Text style={[styles.item, styles.mediumColor]}>{displayAuthor}</Text>}
           <View style={styles.info}>
             {displayGenre && (
-              <View style={styles.genreBadge}>
+              <TouchableOpacity style={styles.genreBadge} onPress={() => ToastAndroid.show(displayGenre, ToastAndroid.SHORT)} activeOpacity={0.7}>
                 <Text style={[styles.genreText, styles.lightColor]}>{displayGenre}</Text>
-              </View>
+              </TouchableOpacity>
             )}
             {!!pages && (
               <Text style={[styles.pagesBlock, styles.item, styles.mediumColor]}>
