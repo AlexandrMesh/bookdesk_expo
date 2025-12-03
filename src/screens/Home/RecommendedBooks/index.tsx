@@ -253,15 +253,9 @@ const RecommendedBooks = () => {
       <View style={styles.wrapper}>
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconWrapper}>
-            {allRecommendationsAdded ? (
-              <Sparkles size={60} color={themeColors.accent} />
-            ) : (
-              <BookOpen size={60} color={themeColors.neutral_medium} />
-            )}
+            {allRecommendationsAdded ? <Sparkles size={60} color={themeColors.accent} /> : <BookOpen size={60} color={themeColors.neutral_medium} />}
           </View>
-          <Text style={styles.emptyTitle}>
-            {allRecommendationsAdded ? t('recommendations:allAddedTitle') : t('recommendations:emptyTitle')}
-          </Text>
+          <Text style={styles.emptyTitle}>{allRecommendationsAdded ? t('recommendations:allAddedTitle') : t('recommendations:emptyTitle')}</Text>
           <Text style={styles.emptyText}>
             {allRecommendationsAdded ? t('recommendations:allAddedDescription') : t('recommendations:emptyDescription')}
           </Text>
