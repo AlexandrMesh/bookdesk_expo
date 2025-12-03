@@ -18,6 +18,9 @@ const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_API_KEY = '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';
 
+// Google Books API - 1000 requests/day with key
+const GOOGLE_BOOKS_API_KEY = 'AIzaSyAlGlkhspmXa7b4FzIaOBgJFne6N_kQpQE';
+
 export interface IRecommendedBook {
   id: string;
   title: string;
@@ -63,10 +66,7 @@ const translateGenreViaAPI = async (genre: string): Promise<string> => {
   }
 
   try {
-    const response = await axios.get(
-      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(genre)}&langpair=en|ru`,
-      { timeout: 5000 },
-    );
+    const response = await axios.get(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(genre)}&langpair=en|ru`, { timeout: 5000 });
 
     if (response.data?.responseStatus === 200 && response.data?.responseData?.translatedText) {
       let translated = response.data.responseData.translatedText;
@@ -81,28 +81,6 @@ const translateGenreViaAPI = async (genre: string): Promise<string> => {
   }
 
   // Return original if translation fails
-  return genre;
-};
-
-/**
- * Synchronous genre translation using cache (for display)
- * Returns cached translation or original genre
- */
-const translateGenre = (genre: string): string => {
-  if (!genre) return '';
-
-  const { language } = i18n;
-  if (language !== 'ru') {
-    return genre;
-  }
-
-  // Check cache
-  const cacheKey = `${genre.toLowerCase()}_ru`;
-  if (genreTranslationCache.has(cacheKey)) {
-    return genreTranslationCache.get(cacheKey)!;
-  }
-
-  // Return original if not cached (async translation will update cache)
   return genre;
 };
 
@@ -549,7 +527,7 @@ const searchGoogleBooks = async (title: string, author: string, retryCount = 0):
     const langRestrict = i18n.language === 'ru' ? '&langRestrict=ru' : '';
 
     const response = await axios.get(
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=3&orderBy=relevance${langRestrict}&printType=books`,
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=3&orderBy=relevance${langRestrict}&printType=books&key=${GOOGLE_BOOKS_API_KEY}`,
       { timeout: 10000 },
     );
 
@@ -557,7 +535,7 @@ const searchGoogleBooks = async (title: string, author: string, retryCount = 0):
       // Try without author
       googleBooksRequestCount++;
       const fallbackResponse = await axios.get(
-        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(title)}&maxResults=3&orderBy=relevance${langRestrict}&printType=books`,
+        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(title)}&maxResults=3&orderBy=relevance${langRestrict}&printType=books&key=${GOOGLE_BOOKS_API_KEY}`,
         { timeout: 10000 },
       );
 
