@@ -514,9 +514,38 @@ const getDefaultAIRecommendations = async (apiKey: string, previousTitles: strin
 };
 
 /**
- * Search book in Google Books API
+ * Delay helper for rate limiting
  */
-const searchGoogleBooks = async (title: string, author: string): Promise<IRecommendedBook | null> => {
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Google Books API request counter for rate limiting
+ */
+let googleBooksRequestCount = 0;
+let googleBooksLastResetTime = Date.now();
+const GOOGLE_BOOKS_RATE_LIMIT = 10; // requests per second
+const GOOGLE_BOOKS_RESET_INTERVAL = 1000; // 1 second
+
+/**
+ * Search book in Google Books API with rate limiting
+ */
+const searchGoogleBooks = async (title: string, author: string, retryCount = 0): Promise<IRecommendedBook | null> => {
+  // Rate limiting: reset counter every second
+  const now = Date.now();
+  if (now - googleBooksLastResetTime >= GOOGLE_BOOKS_RESET_INTERVAL) {
+    googleBooksRequestCount = 0;
+    googleBooksLastResetTime = now;
+  }
+
+  // If we've made too many requests, wait
+  if (googleBooksRequestCount >= GOOGLE_BOOKS_RATE_LIMIT) {
+    await delay(GOOGLE_BOOKS_RESET_INTERVAL);
+    googleBooksRequestCount = 0;
+    googleBooksLastResetTime = Date.now();
+  }
+
+  googleBooksRequestCount++;
+
   try {
     const query = author ? `intitle:"${title}" inauthor:${author}` : `intitle:"${title}"`;
     const langRestrict = i18n.language === 'ru' ? '&langRestrict=ru' : '';
@@ -528,6 +557,7 @@ const searchGoogleBooks = async (title: string, author: string): Promise<IRecomm
 
     if (!response.data.items || response.data.items.length === 0) {
       // Try without author
+      googleBooksRequestCount++;
       const fallbackResponse = await axios.get(
         `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(title)}&maxResults=3&orderBy=relevance${langRestrict}&printType=books`,
         { timeout: 10000 },
@@ -569,7 +599,17 @@ const searchGoogleBooks = async (title: string, author: string): Promise<IRecomm
       genre: genre,
       genreRu: genre ? translateGenre(genre) : undefined,
     };
-  } catch (error) {
+  } catch (error: unknown) {
+    // Handle rate limit errors with retry
+    if (axios.isAxiosError(error) && error.response?.status === 429) {
+      if (retryCount < 3) {
+        console.warn(`Google Books API rate limit, retrying in ${(retryCount + 1) * 2}s...`);
+        await delay((retryCount + 1) * 2000); // Exponential backoff: 2s, 4s, 6s
+        return searchGoogleBooks(title, author, retryCount + 1);
+      }
+      console.warn('Google Books API rate limit exceeded after retries');
+      return null;
+    }
     console.error('Google Books API error:', error);
     return null;
   }
@@ -656,7 +696,7 @@ export const generateRecommendations = async (userBooks: IBook[], forceNew: bool
     // Get AI recommendations with exclusion lists
     const aiRecs = await getAIRecommendations(booksWithTitles, GROQ_API_KEY, previousTitles);
 
-    // Fetch each book from Google Books
+    // Fetch each book from Google Books with rate limiting
     for (const rec of shuffleArray(aiRecs)) {
       if (recommendations.length >= 20) break;
 
@@ -666,6 +706,11 @@ export const generateRecommendations = async (userBooks: IBook[], forceNew: bool
       const titleLower = rec.title.toLowerCase().trim();
       // Skip if already in user's library or previously recommended
       if (seenTitles.has(titleLower)) continue;
+
+      // Small delay between requests to avoid rate limiting
+      if (recommendations.length > 0) {
+        await delay(150);
+      }
 
       const book = await searchGoogleBooks(rec.title, rec.author || '');
       if (book && !seenIds.has(book.id) && isQualityBook(book)) {
@@ -714,7 +759,7 @@ export const generateDefaultRecommendations = async (forceNew: boolean = false):
     // Get AI recommendations for new users with exclusion list
     const aiRecs = await getDefaultAIRecommendations(GROQ_API_KEY, previousTitles);
 
-    // Fetch each book from Google Books
+    // Fetch each book from Google Books with rate limiting
     for (const rec of shuffleArray(aiRecs)) {
       if (recommendations.length >= 20) break;
 
@@ -723,6 +768,11 @@ export const generateDefaultRecommendations = async (forceNew: boolean = false):
 
       const titleLower = rec.title.toLowerCase().trim();
       if (seenTitles.has(titleLower)) continue;
+
+      // Small delay between requests to avoid rate limiting
+      if (recommendations.length > 0) {
+        await delay(150);
+      }
 
       const book = await searchGoogleBooks(rec.title, rec.author || '');
       if (book && !seenIds.has(book.id) && isQualityBook(book)) {
