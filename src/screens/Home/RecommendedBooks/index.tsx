@@ -245,16 +245,26 @@ const RecommendedBooks = () => {
     );
   }
 
-  // Empty state (no recommendations or all filtered out)
+  // Empty state - all recommendations added to boards
+  const allRecommendationsAdded = recommendations.length > 0 && filteredRecommendations.length === 0;
+
   if (loadingStatus === SUCCEEDED && filteredRecommendations.length === 0) {
     return (
       <View style={styles.wrapper}>
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconWrapper}>
-            <BookOpen size={60} color={themeColors.neutral_medium} />
+            {allRecommendationsAdded ? (
+              <Sparkles size={60} color={themeColors.accent} />
+            ) : (
+              <BookOpen size={60} color={themeColors.neutral_medium} />
+            )}
           </View>
-          <Text style={styles.emptyTitle}>{t('recommendations:emptyTitle')}</Text>
-          <Text style={styles.emptyText}>{t('recommendations:emptyDescription')}</Text>
+          <Text style={styles.emptyTitle}>
+            {allRecommendationsAdded ? t('recommendations:allAddedTitle') : t('recommendations:emptyTitle')}
+          </Text>
+          <Text style={styles.emptyText}>
+            {allRecommendationsAdded ? t('recommendations:allAddedDescription') : t('recommendations:emptyDescription')}
+          </Text>
           <Button style={styles.retryButton} titleStyle={styles.retryButtonTitle} title={t('recommendations:refresh')} onPress={handleRefresh} />
         </View>
       </View>

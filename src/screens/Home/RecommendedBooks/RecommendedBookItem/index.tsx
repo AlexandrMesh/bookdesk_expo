@@ -11,7 +11,7 @@ import { useAppDispatch } from '~hooks';
 
 import { PLANNED, IN_PROGRESS, COMPLETED, ALL } from '~constants/boardType';
 import { COVER_VIEWER } from '~constants/modalTypes';
-import { setCoverUrl, showModal, updateUserBook } from '~redux/actions/booksActions';
+import { setCoverUrl, showModal, updateUserBook, loadCategories } from '~redux/actions/booksActions';
 import { updateBookOnBoardAndSearch } from '~redux/actions/sharedActions';
 import { deriveBoard } from '~redux/selectors/books';
 import { useThemeColors } from '~theme/hooks';
@@ -28,7 +28,7 @@ export type Props = {
 
 const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
   const { title, author, pages, coverUrl, genreRu, genre } = book;
-  const { t } = useTranslation(['books', 'common']);
+  const { t, i18n } = useTranslation(['books', 'common']);
   const dispatch = useAppDispatch();
   const styles = useThemedStyles(createStyles);
   const themeColors = useThemeColors();
@@ -129,31 +129,35 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
         // Add genre to custom categories ("My Genres") if available
         let categoryPath: string | undefined;
         let categoryValue: string | undefined;
+        let genreAdded = false;
         if (displayGenre) {
           try {
             const { addCustomGenre, loadCustomGenres } = await import('~utils/database/customCategories');
-            const i18nModule = await import('~translations/i18n');
-            const currentLang = i18nModule.default.language || 'ru';
+            const currentLang = i18n.language || 'ru';
 
             // Check if genre already exists in custom categories
             const existingGenres = await loadCustomGenres(currentLang);
-            const existingGenre = existingGenres.find(
-              (g) => g.title.toLowerCase() === displayGenre.toLowerCase(),
-            );
+            const existingGenre = existingGenres.find((g) => g.title.toLowerCase() === displayGenre.toLowerCase());
 
             if (existingGenre) {
-              // Use existing genre
-              categoryPath = `1.my.${existingGenre.id}`;
+              // Use existing genre - path format: myGenres.{id}
+              categoryPath = `myGenres.${existingGenre.id}`;
               categoryValue = existingGenre.title;
             } else {
               // Add new genre to "My Genres"
               const newGenre = await addCustomGenre(displayGenre, currentLang);
-              categoryPath = `1.my.${newGenre.id}`;
+              categoryPath = `myGenres.${newGenre.id}`;
               categoryValue = newGenre.title;
+              genreAdded = true;
             }
           } catch (e) {
             console.error('Failed to add genre to custom categories', e);
           }
+        }
+
+        // Reload categories if a new genre was added
+        if (genreAdded) {
+          dispatch(loadCategories(true));
         }
 
         // Create book object
@@ -209,7 +213,7 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
         setIsAdding(false);
       }
     },
-    [dispatch, title, displayAuthor, pages, coverUrl, isAdding, existingBook, currentStatus, t, displayGenre],
+    [dispatch, title, displayAuthor, pages, coverUrl, isAdding, existingBook, currentStatus, t, displayGenre, i18n],
   );
 
   const getStatusColor = useCallback(
