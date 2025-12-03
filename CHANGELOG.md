@@ -5,6 +5,7 @@
 ## 6.2.0
 ###### 2025-12-03
 - [New] Added AI board with personalized book suggestions
+- [Fixed] Splash screen background and icons
 
 ## 6.1.0
 ###### 2025-11-28
