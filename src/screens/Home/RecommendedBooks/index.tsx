@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 
-import { View, Text, Pressable, Animated, Easing } from 'react-native';
+import { View, Text, Pressable, Animated, Easing, ToastAndroid } from 'react-native';
 
 import { FlashList } from '@shopify/flash-list';
 import { Sparkles, AlertCircle, BookOpen, RefreshCw, Star } from 'lucide-react-native';
@@ -10,6 +10,7 @@ import { useAppDispatch, useAppSelector } from '~hooks';
 
 import { PLANNED, IN_PROGRESS, COMPLETED } from '~constants/boardType';
 import { PENDING, SUCCEEDED, FAILED, IDLE } from '~constants/loadingStatuses';
+import useNetworkStatus from '~hooks/useNetworkStatus';
 import { loadRecommendations, refreshRecommendations } from '~redux/actions/recommendationsActions';
 import { deriveBoard } from '~redux/selectors/books';
 import { getRecommendations, getRecommendationsLoadingStatus, getRecommendationsError } from '~redux/selectors/recommendations';
@@ -33,6 +34,7 @@ const RecommendedBooks = () => {
   const dispatch = useAppDispatch();
   const styles = useThemedStyles(createStyles);
   const themeColors = useThemeColors();
+  const isOnline = useNetworkStatus();
 
   // Track language for auto-refresh on change
   const previousLanguageRef = useRef(i18n.language);
@@ -154,27 +156,31 @@ const RecommendedBooks = () => {
     }
   }, [loadingStatus, star1Opacity, star2Opacity, star3Opacity, star4Opacity, star1Scale, star2Scale, star3Scale, star4Scale]);
 
-  // Auto-load recommendations on mount for new users
-  // Triggers when: component mounts AND (status is IDLE AND no recommendations)
+  // Auto-load recommendations on mount (only if online)
+  // Triggers when: component mounts AND (status is IDLE AND no recommendations) AND online
   useEffect(() => {
-    if (loadingStatus === IDLE && recommendations.length === 0) {
+    if (loadingStatus === IDLE && recommendations.length === 0 && isOnline) {
       dispatch(loadRecommendations(false));
     }
-  }, [loadingStatus, recommendations.length, dispatch]);
+  }, [loadingStatus, recommendations.length, dispatch, isOnline]);
 
-  // Auto-refresh when language changes
+  // Auto-refresh when language changes (only if online)
   useEffect(() => {
     const currentLanguage = i18n.language;
-    if (previousLanguageRef.current !== currentLanguage && loadingStatus !== PENDING) {
+    if (previousLanguageRef.current !== currentLanguage && loadingStatus !== PENDING && isOnline) {
       previousLanguageRef.current = currentLanguage;
       // Refresh recommendations with new language
       dispatch(refreshRecommendations());
     }
-  }, [i18n.language, loadingStatus, dispatch]);
+  }, [i18n.language, loadingStatus, dispatch, isOnline]);
 
   const handleRefresh = useCallback(() => {
+    if (!isOnline) {
+      ToastAndroid.show(t('recommendations:errorNetwork'), ToastAndroid.SHORT);
+      return;
+    }
     dispatch(refreshRecommendations());
-  }, [dispatch]);
+  }, [dispatch, isOnline, t]);
 
   const getErrorMessage = useCallback(
     (errorCode: string): string => {

@@ -42,69 +42,67 @@ interface AIRecommendation {
   reason?: string;
 }
 
-// Genre translations
-const genreTranslations: Record<string, string> = {
-  fiction: 'Художественная литература',
-  'non-fiction': 'Нон-фикшн',
-  nonfiction: 'Нон-фикшн',
-  'science fiction': 'Научная фантастика',
-  'sci-fi': 'Научная фантастика',
-  fantasy: 'Фэнтези',
-  mystery: 'Детектив',
-  thriller: 'Триллер',
-  romance: 'Романтика',
-  horror: 'Ужасы',
-  biography: 'Биография',
-  history: 'История',
-  science: 'Наука',
-  'self-help': 'Саморазвитие',
-  psychology: 'Психология',
-  philosophy: 'Философия',
-  poetry: 'Поэзия',
-  drama: 'Драма',
-  adventure: 'Приключения',
-  children: 'Детская литература',
-  'young adult': 'Молодёжная литература',
-  classics: 'Классика',
-  crime: 'Криминал',
-  humor: 'Юмор',
-  cooking: 'Кулинария',
-  art: 'Искусство',
-  music: 'Музыка',
-  travel: 'Путешествия',
-  business: 'Бизнес',
-  economics: 'Экономика',
-  politics: 'Политика',
-  religion: 'Религия',
-  comics: 'Комиксы',
-  manga: 'Манга',
-  memoir: 'Мемуары',
-  nature: 'Природа',
-  sports: 'Спорт',
-  health: 'Здоровье',
-  technology: 'Технологии',
-  programming: 'Программирование',
-};
+// Cache for genre translations to avoid repeated API calls
+const genreTranslationCache: Map<string, string> = new Map();
 
-const translateGenre = (genre: string): string => {
+/**
+ * Translate genre using MyMemory Translation API (free)
+ */
+const translateGenreViaAPI = async (genre: string): Promise<string> => {
   if (!genre) return '';
 
-  // Only translate to Russian if the app language is Russian
   const { language } = i18n;
   if (language !== 'ru') {
-    // For English and other languages, return original genre
     return genre;
   }
 
-  const lowerGenre = genre.toLowerCase();
-  if (genreTranslations[lowerGenre]) {
-    return genreTranslations[lowerGenre];
+  // Check cache first
+  const cacheKey = `${genre.toLowerCase()}_ru`;
+  if (genreTranslationCache.has(cacheKey)) {
+    return genreTranslationCache.get(cacheKey)!;
   }
-  for (const [key, value] of Object.entries(genreTranslations)) {
-    if (lowerGenre.includes(key)) {
-      return value;
+
+  try {
+    const response = await axios.get(
+      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(genre)}&langpair=en|ru`,
+      { timeout: 5000 },
+    );
+
+    if (response.data?.responseStatus === 200 && response.data?.responseData?.translatedText) {
+      let translated = response.data.responseData.translatedText;
+      // Capitalize first letter
+      translated = translated.charAt(0).toUpperCase() + translated.slice(1).toLowerCase();
+      // Cache the result
+      genreTranslationCache.set(cacheKey, translated);
+      return translated;
     }
+  } catch (error) {
+    console.warn('Genre translation API error:', error);
   }
+
+  // Return original if translation fails
+  return genre;
+};
+
+/**
+ * Synchronous genre translation using cache (for display)
+ * Returns cached translation or original genre
+ */
+const translateGenre = (genre: string): string => {
+  if (!genre) return '';
+
+  const { language } = i18n;
+  if (language !== 'ru') {
+    return genre;
+  }
+
+  // Check cache
+  const cacheKey = `${genre.toLowerCase()}_ru`;
+  if (genreTranslationCache.has(cacheKey)) {
+    return genreTranslationCache.get(cacheKey)!;
+  }
+
+  // Return original if not cached (async translation will update cache)
   return genre;
 };
 
@@ -589,6 +587,12 @@ const searchGoogleBooks = async (title: string, author: string, retryCount = 0):
       return null;
     }
 
+    // Translate genre via API if Russian language is selected
+    let genreRu: string | undefined;
+    if (genre) {
+      genreRu = await translateGenreViaAPI(genre);
+    }
+
     return {
       id: item.id || `google_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       title: volumeInfo.title || title,
@@ -597,7 +601,7 @@ const searchGoogleBooks = async (title: string, author: string, retryCount = 0):
       coverUrl: coverUrlHQ,
       coverUrlHQ: coverUrlHQ,
       genre: genre,
-      genreRu: genre ? translateGenre(genre) : undefined,
+      genreRu: genreRu,
     };
   } catch (error: unknown) {
     // Handle rate limit errors with retry

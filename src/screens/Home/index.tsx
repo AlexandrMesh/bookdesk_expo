@@ -9,7 +9,8 @@ import { SceneMap, TabView } from 'react-native-tab-view';
 import { useAppSelector } from '~hooks';
 
 import { PENDING } from '~constants/loadingStatuses';
-import { getRecommendationsLoadingStatus } from '~redux/selectors/recommendations';
+import useNetworkStatus from '~hooks/useNetworkStatus';
+import { getRecommendations, getRecommendationsLoadingStatus, getRecommendationsLastUpdated } from '~redux/selectors/recommendations';
 import { useThemeColors } from '~theme/hooks';
 import { useThemedStyles } from '~theme/useThemedStyles';
 
@@ -21,8 +22,15 @@ import createStyles from './styles';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const renderScene = SceneMap({
+// Scene maps for with and without recommendations
+const renderSceneWithRecommendations = SceneMap({
   recommended: RecommendedBooks,
+  planned: PlannedBooks,
+  inProgress: InProgressBooks,
+  completed: CompletedBooks,
+});
+
+const renderSceneWithoutRecommendations = SceneMap({
   planned: PlannedBooks,
   inProgress: InProgressBooks,
   completed: CompletedBooks,
@@ -43,17 +51,42 @@ const Home = () => {
   const [indicatorVisible, setIndicatorVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const layoutTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [hasCachedRecommendations, setHasCachedRecommendations] = useState<boolean | null>(null);
 
-  // Check if recommendations are loading
+  // Check network status and recommendations
+  const isOnline = useNetworkStatus();
+  const recommendations = useAppSelector(getRecommendations);
   const recommendationsLoadingStatus = useAppSelector(getRecommendationsLoadingStatus);
+  const lastUpdated = useAppSelector(getRecommendationsLastUpdated);
   const isRecommendationsLoading = recommendationsLoadingStatus === PENDING;
+
+  // Check if we have cached recommendations (from Redux or local storage)
+  const hasRecommendations = recommendations.length > 0 || lastUpdated !== null;
+
+  // Check local cache for recommendations on mount
+  useEffect(() => {
+    const checkCachedRecommendations = async () => {
+      try {
+        const { getCachedRecommendations } = await import('~utils/aiRecommendations');
+        const cached = await getCachedRecommendations();
+        setHasCachedRecommendations(cached !== null && cached.books.length > 0);
+      } catch {
+        setHasCachedRecommendations(false);
+      }
+    };
+    checkCachedRecommendations();
+  }, []);
+
+  // Determine if we should show the Recommended tab
+  // Show if: has recommendations in Redux OR has cached recommendations OR is online (can load)
+  const showRecommendedTab = hasRecommendations || hasCachedRecommendations === true || isOnline;
 
   // Blinking animation for "Recommended" tab when loading
   const blinkAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (isRecommendationsLoading && index !== 0) {
-      // Only blink when not on the Recommended tab
+    // Only blink when: recommended tab is shown, loading, and not on the Recommended tab
+    if (showRecommendedTab && isRecommendationsLoading && index !== 0) {
       const animation = Animated.loop(
         Animated.sequence([
           Animated.timing(blinkAnim, {
@@ -78,19 +111,26 @@ const Home = () => {
     } else {
       blinkAnim.setValue(1);
     }
-  }, [isRecommendationsLoading, index, blinkAnim]);
+  }, [isRecommendationsLoading, index, blinkAnim, showRecommendedTab]);
 
   const renderLazyPlaceholder = () => <View style={{ flex: 1, backgroundColor: themeColors.primary_dark }} />;
 
-  const routes = useMemo(
-    () => [
-      { key: 'recommended', title: t('recommended') },
+  const routes = useMemo(() => {
+    const baseRoutes = [
       { key: 'planned', title: t('planned') },
       { key: 'inProgress', title: t('inProgress') },
       { key: 'completed', title: t('completed') },
-    ],
-    [t],
-  );
+    ];
+
+    if (showRecommendedTab) {
+      return [{ key: 'recommended', title: t('recommended') }, ...baseRoutes];
+    }
+
+    return baseRoutes;
+  }, [t, showRecommendedTab]);
+
+  // Select the appropriate scene renderer based on whether recommended tab is shown
+  const renderScene = showRecommendedTab ? renderSceneWithRecommendations : renderSceneWithoutRecommendations;
 
   const handleTabLayout = useCallback(
     (tabIndex: number, event: LayoutChangeEvent) => {
@@ -281,13 +321,11 @@ const Home = () => {
                     style={tabBarStyles.tab}
                   >
                     {shouldBlink ? (
-                      <Animated.Text
-                        style={[styles.tabBarLabel, { color: themeColors.accent, opacity: blinkAnim }]}
-                      >
-                        {route.title}
-                      </Animated.Text>
+                      <Animated.Text style={[styles.tabBarLabel, { color: themeColors.accent, opacity: blinkAnim }]}>{route.title}</Animated.Text>
                     ) : (
-                      <Text style={[styles.tabBarLabel, { color: isFocused ? themeColors.neutral_light : themeColors.neutral_medium }]}>{route.title}</Text>
+                      <Text style={[styles.tabBarLabel, { color: isFocused ? themeColors.neutral_light : themeColors.neutral_medium }]}>
+                        {route.title}
+                      </Text>
                     )}
                   </Pressable>
                 );
@@ -337,13 +375,11 @@ const Home = () => {
               return (
                 <Pressable key={route.key} onLayout={(event) => handleTabLayout(i, event)} onPress={() => handleTabPress(i)} style={tabBarStyles.tab}>
                   {shouldBlink ? (
-                    <Animated.Text
-                      style={[styles.tabBarLabel, { color: themeColors.accent, opacity: blinkAnim }]}
-                    >
-                      {route.title}
-                    </Animated.Text>
+                    <Animated.Text style={[styles.tabBarLabel, { color: themeColors.accent, opacity: blinkAnim }]}>{route.title}</Animated.Text>
                   ) : (
-                    <Text style={[styles.tabBarLabel, { color: isFocused ? themeColors.neutral_light : themeColors.neutral_medium }]}>{route.title}</Text>
+                    <Text style={[styles.tabBarLabel, { color: isFocused ? themeColors.neutral_light : themeColors.neutral_medium }]}>
+                      {route.title}
+                    </Text>
                   )}
                 </Pressable>
               );
@@ -362,7 +398,19 @@ const Home = () => {
         </View>
       );
     },
-    [routes, index, handleTabLayout, handleTabPress, indicatorData, indicatorVisible, tabBarStyles, styles, themeColors, isRecommendationsLoading, blinkAnim],
+    [
+      routes,
+      index,
+      handleTabLayout,
+      handleTabPress,
+      indicatorData,
+      indicatorVisible,
+      tabBarStyles,
+      styles,
+      themeColors,
+      isRecommendationsLoading,
+      blinkAnim,
+    ],
   );
 
   return (
@@ -381,6 +429,5 @@ const Home = () => {
     </SafeAreaView>
   );
 };
-
 
 export default Home;

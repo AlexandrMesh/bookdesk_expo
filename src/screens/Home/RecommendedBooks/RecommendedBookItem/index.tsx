@@ -126,6 +126,36 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
         const bookId = `rec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const added = Date.now();
 
+        // Add genre to custom categories ("My Genres") if available
+        let categoryPath: string | undefined;
+        let categoryValue: string | undefined;
+        if (displayGenre) {
+          try {
+            const { addCustomGenre, loadCustomGenres } = await import('~utils/database/customCategories');
+            const i18nModule = await import('~translations/i18n');
+            const currentLang = i18nModule.default.language || 'ru';
+
+            // Check if genre already exists in custom categories
+            const existingGenres = await loadCustomGenres(currentLang);
+            const existingGenre = existingGenres.find(
+              (g) => g.title.toLowerCase() === displayGenre.toLowerCase(),
+            );
+
+            if (existingGenre) {
+              // Use existing genre
+              categoryPath = `1.my.${existingGenre.id}`;
+              categoryValue = existingGenre.title;
+            } else {
+              // Add new genre to "My Genres"
+              const newGenre = await addCustomGenre(displayGenre, currentLang);
+              categoryPath = `1.my.${newGenre.id}`;
+              categoryValue = newGenre.title;
+            }
+          } catch (e) {
+            console.error('Failed to add genre to custom categories', e);
+          }
+        }
+
         // Create book object
         const newBook: IBook = {
           bookId,
@@ -135,6 +165,8 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
           coverPath: coverUrl || undefined,
           bookStatus: newStatus,
           added,
+          categoryPath,
+          categoryValue,
         };
 
         // Save book date/status locally
@@ -164,6 +196,8 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
             authorsList: displayAuthor ? [displayAuthor] : [],
             coverPath: coverUrl,
             added,
+            categoryPath,
+            categoryValue,
           }),
         );
 
@@ -175,7 +209,7 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
         setIsAdding(false);
       }
     },
-    [dispatch, title, displayAuthor, pages, coverUrl, isAdding, existingBook, currentStatus, t],
+    [dispatch, title, displayAuthor, pages, coverUrl, isAdding, existingBook, currentStatus, t, displayGenre],
   );
 
   const getStatusColor = useCallback(
