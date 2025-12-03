@@ -12,7 +12,7 @@ import { IBook } from '~types/books';
 
 const RECOMMENDATIONS_CACHE_KEY = 'book_recommendations_cache';
 const PREVIOUS_RECOMMENDATIONS_KEY = 'previous_recommendations_titles';
-const CACHE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // Groq API - Free tier: 30 RPM, 14,400 requests/day
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -397,7 +397,9 @@ Response strictly in JSON:
     }
 
     const parsed = JSON.parse(content);
-    return parsed.recommendations || [];
+    const recs = parsed.recommendations || [];
+    // Filter out invalid recommendations
+    return recs.filter((r: AIRecommendation) => r && r.title && typeof r.title === 'string');
   } catch (error) {
     console.error('Groq AI error:', error);
     throw error;
@@ -495,7 +497,9 @@ const getDefaultAIRecommendations = async (
     }
 
     const parsed = JSON.parse(content);
-    return parsed.recommendations || [];
+    const recs = parsed.recommendations || [];
+    // Filter out invalid recommendations
+    return recs.filter((r: AIRecommendation) => r && r.title && typeof r.title === 'string');
   } catch (error) {
     console.error('Groq AI error:', error);
     throw error;
@@ -652,11 +656,14 @@ export const generateRecommendations = async (userBooks: IBook[], forceNew: bool
     for (const rec of shuffleArray(aiRecs)) {
       if (recommendations.length >= 20) break;
 
+      // Skip invalid recommendations
+      if (!rec || !rec.title) continue;
+
       const titleLower = rec.title.toLowerCase().trim();
       // Skip if already in user's library or previously recommended
       if (seenTitles.has(titleLower)) continue;
 
-      const book = await searchGoogleBooks(rec.title, rec.author);
+      const book = await searchGoogleBooks(rec.title, rec.author || '');
       if (book && !seenIds.has(book.id) && isQualityBook(book)) {
         // Double-check the fetched book title isn't in exclusion list
         const fetchedTitleLower = book.title.toLowerCase().trim();
@@ -707,10 +714,13 @@ export const generateDefaultRecommendations = async (forceNew: boolean = false):
     for (const rec of shuffleArray(aiRecs)) {
       if (recommendations.length >= 20) break;
 
+      // Skip invalid recommendations
+      if (!rec || !rec.title) continue;
+
       const titleLower = rec.title.toLowerCase().trim();
       if (seenTitles.has(titleLower)) continue;
 
-      const book = await searchGoogleBooks(rec.title, rec.author);
+      const book = await searchGoogleBooks(rec.title, rec.author || '');
       if (book && !seenIds.has(book.id) && isQualityBook(book)) {
         // Double-check the fetched book title isn't in exclusion list
         const fetchedTitleLower = book.title.toLowerCase().trim();

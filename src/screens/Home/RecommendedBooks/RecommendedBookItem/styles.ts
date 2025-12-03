@@ -49,7 +49,7 @@ export default (colors: ThemeColors) =>
       height: 180,
     },
     buttonsWrapper: {
-      marginTop: 4,
+      marginTop: 2,
     },
     zoomIconContainer: {
       position: 'absolute',
