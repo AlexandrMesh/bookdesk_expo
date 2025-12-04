@@ -1,7 +1,9 @@
 import Constants from 'expo-constants';
 import * as semver from 'semver';
 
-const CONFIG_URL = 'https://omegaprokat.ru/bookdesk/config.json';
+// URL публичного ресурса Яндекс.Диска с конфигом приложения.
+// Из этого ответа берём поле `file` — прямую ссылку на config.json.
+const YANDEX_CONFIG_RESOURCE_URL = 'https://cloud-api.yandex.net/v1/disk/public/resources?public_key=https://disk.yandex.ru/d/AoLEwxwE9ksmaw';
 
 export interface RemoteConfig {
   apiUrl: string;
@@ -29,11 +31,15 @@ export const getCurrentAppVersion = (): string => {
 };
 
 /**
- * Получает удалённый конфиг приложения
+ * Получает удалённый конфиг приложения.
+ *
+ * Шаг 1: запрашиваем метаданные публичного ресурса Яндекс.Диска.
+ * Шаг 2: из поля `file` берём прямую ссылку и загружаем сам config.json.
  */
 export const fetchRemoteConfig = async (): Promise<RemoteConfig | null> => {
   try {
-    const response = await fetch(CONFIG_URL, {
+    // 1. Получаем метаданные публичного ресурса
+    const metaResponse = await fetch(YANDEX_CONFIG_RESOURCE_URL, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -41,12 +47,34 @@ export const fetchRemoteConfig = async (): Promise<RemoteConfig | null> => {
       },
     });
 
-    if (!response.ok) {
-      console.error(`Failed to fetch remote config: ${response.status}`);
+    if (!metaResponse.ok) {
+      console.error(`Failed to fetch Yandex Disk resource meta: ${metaResponse.status}`);
       return null;
     }
 
-    const config: RemoteConfig = await response.json();
+    const metaData: { file?: string } = await metaResponse.json();
+
+    if (!metaData.file) {
+      console.error('Yandex Disk meta does not contain `file` field with config URL');
+      return null;
+    }
+
+    // 2. Загружаем сам config.json по ссылке из поля `file`
+    const configResponse = await fetch(metaData.file, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+      },
+    });
+
+    if (!configResponse.ok) {
+      console.error(`Failed to fetch remote config from file URL: ${configResponse.status}`);
+      return null;
+    }
+
+    const config: RemoteConfig = await configResponse.json();
+    console.log(config, 'config');
     return config;
   } catch (error) {
     console.error('Error fetching remote config:', error);
@@ -120,4 +148,3 @@ export const checkForAppUpdate = async (): Promise<{
     };
   }
 };
-

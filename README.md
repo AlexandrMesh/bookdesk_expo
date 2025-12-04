@@ -1,50 +1,150 @@
-# Welcome to your Expo app 👋
+## Bookdesk
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Документация по разработке, сборке и обновлению приложения.
 
-## Get started
+---
 
-1. Install dependencies
+### Запуск приложения (локальная разработка)
+
+- **Установка зависимостей**
+
+  ```bash
+  npm install
+  ```
+
+- **Старт в режиме разработки (Expo / Expo Go)**
+
+  ```bash
+  npm start
+  # или
+  npx expo start
+  ```
+
+  - Откройте приложение в **Expo Go** на устройстве (QR‑код в терминале/браузере) или в эмуляторе Android/iOS.
+  - Все UI, навигация, Redux и логика работают в этом режиме.
+  - Нативные модули (Google Sign In, Yandex Ads) полноценно тестируются в сборках EAS, а не в Expo Go (подробнее см. `README_EXPO_GO.md`).
+
+---
+
+### Сборка приложений (EAS Build)
+
+Профили сборок настроены в `eas.json`. Основные команды (см. `package.json`):
+
+- **Android (preview / тестирование)**
+
+  ```bash
+  npm run build:android:preview
+  ```
+
+- **Android (production / релиз в Google Play)**
+
+  ```bash
+  npm run build:android:production
+  ```
+
+- **iOS (preview)**
+
+  ```bash
+  npm run build:ios:preview
+  ```
+
+- **iOS (production)**
+
+  ```bash
+  npm run build:ios:production
+  ```
+
+Замечания:
+
+- `prebuildCommand: "expo prebuild --clean"` выполняется **на серверах Expo**, локально prebuild обычно запускать не нужно.
+- Подробности по подписи и настройке ключей см. в файлах `ANDROID_SIGNING.md`, `SIGNING_CHEATSHEET.md`, `SIGNING_SUMMARY.md`, `EAS_BUILD_SETUP.md`.
+
+---
+
+### Обновление Expo SDK и зависимостей
+
+Рекомендуемый общий процесс:
+
+1. Зафиксировать текущее состояние в Git.
+2. Запустить команду обновления Expo SDK:
 
    ```bash
-   npm install
+   npx expo upgrade
    ```
 
-2. Start the app
+   Expo обновит `expo`, `react-native` и связанные пакеты, подскажет, что нужно изменить.
+
+3. Обновить EAS CLI до актуальной версии:
 
    ```bash
-   npx expo start
+   npm install -D eas-cli@latest
    ```
 
-In the output, you'll find options to open the app in a
+4. Проверить, что проект собирается и запускается:
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+   ```bash
+   npm run lint
+   npm start
+   npm run build:android:preview
+   ```
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+5. Протестировать основные сценарии в Expo Go и в preview/production сборке.
 
-## Get a fresh project
+---
 
-When you're ready, run:
+### Обновления через EAS Update (OTA)
 
-```bash
-npm run reset-project
-```
+Для выката OTA‑обновлений (JS/Assets без новой нативной сборки) используются команды:
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+- **Отправить обновление на канал `preview`**
 
-## Learn more
+  ```bash
+  npm run update:preview
+  ```
 
-To learn more about developing your project with Expo, look at the following resources:
+- **Отправить обновление на канал `production`**
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+  ```bash
+  npm run update:production
+  ```
 
-## Join the community
+- **Посмотреть историю обновлений**
 
-Join our community of developers creating universal apps.
+  ```bash
+  npm run update:list:preview
+  npm run update:list:production
+  ```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Важно:
+
+- OTA‑обновления подходят для изменений JS/стилей/ассетов.
+- Любые изменения, требующие обновления нативного кода (SDK, новые нативные модули и т.п.), требуют **новой EAS Build** и публикации новой версии приложения в стор.
+
+---
+
+### Удалённый конфиг и Яндекс.Диск (обновление версии приложения)
+
+Приложение получает удалённый конфиг (`config.json`) с Яндекс.Диска:
+
+- Используется публичный ресурс:
+  - `https://cloud-api.yandex.net/v1/disk/public/resources?public_key=https://disk.yandex.ru/d/AoLEwxwE9ksmaw`
+  - Из ответа берётся поле `file` — прямая ссылка на `config.json` на Яндекс.Диске.
+- Логика загрузки описана в `src/utils/versionCheck.ts` в функции `fetchRemoteConfig`.
+
+**После выпуска новой версии приложения (новая сборка и публикация в стор):**
+
+1. Откройте на Яндекс.Диске публичный ресурс с конфигом (`config.json`), который используется приложением.
+2. Обновите в `config.json` значение поля **`appVersion`**:
+   - Версия должна соответствовать актуальной версии приложения (той, что указана в `app.json` и используется в сторе).
+   - При необходимости скорректируйте поле `minimumSupportedAppVersion`, если хотите принудительно «отрубить» слишком старые версии.
+3. Сохраните/перезапишите файл `config.json` на Яндекс.Диске **так, чтобы публичная ссылка и `public_key` не менялись**.
+4. При следующем запуске приложения:
+   - `versionCheck.ts` загрузит новый конфиг,
+   - функция `checkForAppUpdate` сравнит локальную версию с `appVersion` из конфига,
+   - в профиле приложения отобразится информация о доступном обновлении (если на сервере версия больше).
+
+Таким образом, после каждого релиза достаточно:
+
+- собрать и опубликовать новую версию приложения;
+- обновить `appVersion` в удалённом `config.json` на Яндекс.Диске —
+  и приложение корректно покажет пользователю информацию об обновлении.
