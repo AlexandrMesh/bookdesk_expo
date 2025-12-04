@@ -74,7 +74,6 @@ export const fetchRemoteConfig = async (): Promise<RemoteConfig | null> => {
     }
 
     const config: RemoteConfig = await configResponse.json();
-    console.log(config, 'config');
     return config;
   } catch (error) {
     console.error('Error fetching remote config:', error);
