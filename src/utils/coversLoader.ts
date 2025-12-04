@@ -1,4 +1,5 @@
 import axios from 'axios';
+import Constants from 'expo-constants';
 
 import { RU } from '~constants/languages';
 import i18n from '~translations/i18n';
@@ -7,7 +8,11 @@ export interface ICover {
   coverPath: string;
 }
 
-const GOOGLE_SEARCH_API_KEY = 'AIzaSyD0Gx2sBVthtxNrNGLZwQYVpGSeKaBnvUM';
+const extra = (Constants.expoConfig?.extra || {}) as {
+  googleSearchApiKey?: string;
+};
+
+const GOOGLE_SEARCH_API_KEY = extra.googleSearchApiKey ?? '';
 const GOOGLE_SEARCH_ENGINE_ID = '42a8480a652154a54';
 const GOOGLE_SEARCH_API_URL = 'https://www.googleapis.com/customsearch/v1';
 

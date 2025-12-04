@@ -99,7 +99,8 @@
     "patch-package": "^8.0.1",
     "prettier": "^3.6.2",
     "react-native-svg-transformer": "^1.5.1",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "dotenv": "^16.4.5"
   },
   "private": true
 }

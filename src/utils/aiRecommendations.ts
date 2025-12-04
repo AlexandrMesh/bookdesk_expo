@@ -6,6 +6,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import Constants from 'expo-constants';
 
 import i18n from '~translations/i18n';
 import { IBook } from '~types/books';
@@ -16,10 +17,15 @@ const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // Groq API - Free tier: 30 RPM, 14,400 requests/day
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_API_KEY = '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';
 
-// Google Books API - 1000 requests/day with key
-const GOOGLE_BOOKS_API_KEY = 'AIzaSyAlGlkhspmXa7b4FzIaOBgJFne6N_kQpQE';
+// API keys are provided via Expo config (extra) from env/EAS secrets
+const extra = (Constants.expoConfig?.extra || {}) as {
+  groqApiKey?: string;
+  googleBooksApiKey?: string;
+};
+
+const GROQ_API_KEY = extra.groqApiKey ?? '';
+const GOOGLE_BOOKS_API_KEY = extra.googleBooksApiKey ?? '';
 
 export interface IRecommendedBook {
   id: string;
