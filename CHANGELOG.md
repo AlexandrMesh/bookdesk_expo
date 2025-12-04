@@ -2,6 +2,10 @@
 
 ## bookdesk
 
+## 6.2.2
+###### 2025-12-04
+- [Fix] API keys are in the `.env` for local dev and in the `eas secrets` for the prod builds
+
 ## 6.2.0
 ###### 2025-12-03
 - [New] Added AI board with personalized book suggestions

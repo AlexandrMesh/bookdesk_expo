@@ -26,6 +26,85 @@
 
 ---
 
+### Хранение API ключей
+
+Приложение использует следующие API ключи:
+
+- **GROQ_API_KEY** — для AI‑рекомендаций книг
+- **GOOGLE_BOOKS_API_KEY** — для поиска книг через Google Books API
+- **GOOGLE_SEARCH_API_KEY** — для загрузки обложек через Google Custom Search API
+
+#### Локальная разработка (`.env` файл)
+
+Для локальной разработки создайте файл `.env` в корне проекта:
+
+```env
+GROQ_API_KEY=your_groq_api_key_here
+GOOGLE_BOOKS_API_KEY=your_google_books_api_key_here
+GOOGLE_SEARCH_API_KEY=your_google_search_api_key_here
+```
+
+**Важно:**
+
+- Файл `.env` уже добавлен в `.gitignore` и **не коммитится** в репозиторий.
+- Ключи загружаются через `app.config.ts` (используется `dotenv`) и доступны в приложении через `Constants.expoConfig.extra.*`.
+
+#### Продакшн билды (EAS Environment Variables)
+
+Для продакшн сборок ключи хранятся в **EAS Environment Variables** (ранее назывались EAS Secrets).
+
+**Просмотр существующих переменных:**
+
+```bash
+eas env:list
+```
+
+**Создание/обновление переменных:**
+
+```bash
+# Для production окружения
+eas env:create --name GROQ_API_KEY --value "your_groq_api_key" --environment production
+eas env:create --name GOOGLE_BOOKS_API_KEY --value "your_google_books_key" --environment production
+eas env:create --name GOOGLE_SEARCH_API_KEY --value "your_google_search_key" --environment production
+
+# Для preview окружения (если нужно)
+eas env:create --name GROQ_API_KEY --value "your_groq_api_key" --environment preview
+```
+
+**Удаление переменной:**
+
+```bash
+eas env:delete --name GROQ_API_KEY --environment production
+```
+
+**Замена ключа (ротация):**
+
+1. Создайте новую переменную с тем же именем — EAS автоматически перезапишет старое значение:
+
+   ```bash
+   eas env:create --name GROQ_API_KEY --value "новый_ключ" --environment production
+   ```
+
+2. Или сначала удалите, затем создайте заново:
+
+   ```bash
+   eas env:delete --name GROQ_API_KEY --environment production
+   eas env:create --name GROQ_API_KEY --value "новый_ключ" --environment production
+   ```
+
+**Как это работает:**
+
+- При локальной разработке: `app.config.ts` читает `.env` через `dotenv/config` → ключи попадают в `process.env.*` → доступны в `Constants.expoConfig.extra.*`.
+- При EAS Build: EAS автоматически подставляет переменные окружения из `eas env` в `process.env.*` во время сборки → `app.config.ts` читает их → ключи доступны в `Constants.expoConfig.extra.*`.
+
+**Безопасность:**
+
+- ✅ Ключи **никогда не попадают в Git** (`.env` в `.gitignore`).
+- ✅ В продакшн билдах ключи хранятся на серверах EAS и доступны только во время сборки.
+- ✅ Ключи попадают в финальный бинарник приложения, но не в исходный код репозитория.
+
+---
+
 ### Сборка приложений (EAS Build)
 
 Профили сборок настроены в `eas.json`. Основные команды (см. `package.json`):
