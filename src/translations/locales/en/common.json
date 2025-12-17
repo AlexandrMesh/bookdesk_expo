@@ -38,5 +38,6 @@
   "confirmationDeleteTitle": "Confirm the action",
   "confirmationDeleteDescription": "Are you sure you want to delete?",
   "syncingData": "Syncing data...",
-  "boardSettings": "Board Settings"
+  "boardSettings": "Board Settings",
+  "boardVisibility": "Board visibility"
 }

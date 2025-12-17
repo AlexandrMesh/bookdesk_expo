@@ -38,5 +38,6 @@
   "confirmationDeleteTitle": "Подтвердите действие",
   "confirmationDeleteDescription": "Вы действительно хотите удалить?",
   "syncingData": "Синхронизация данных...",
-  "boardSettings": "Настройки досок"
+  "boardSettings": "Настройки досок",
+  "boardVisibility": "Видимость досок"
 }
