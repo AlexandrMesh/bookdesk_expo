@@ -22,6 +22,7 @@ export default () => {
       groqApiKey: process.env.GROQ_API_KEY,
       googleBooksApiKey: process.env.GOOGLE_BOOKS_API_KEY,
       googleSearchApiKey: process.env.GOOGLE_SEARCH_API_KEY,
+      openRouterApiKey: process.env.OPENROUTER_API_KEY,
     },
   };
 };

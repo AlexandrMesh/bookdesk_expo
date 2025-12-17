@@ -18,14 +18,19 @@ const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 // Groq API - Free tier: 30 RPM, 14,400 requests/day
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
+// OpenRouter API - Fallback for regions where Groq is blocked (e.g., Russia)
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
 // API keys are provided via Expo config (extra) from env/EAS secrets
 const extra = (Constants.expoConfig?.extra || {}) as {
   groqApiKey?: string;
   googleBooksApiKey?: string;
+  openRouterApiKey?: string;
 };
 
 const GROQ_API_KEY = extra.groqApiKey ?? '';
 const GOOGLE_BOOKS_API_KEY = extra.googleBooksApiKey ?? '';
+const OPENROUTER_API_KEY = extra.openRouterApiKey ?? '';
 
 export interface IRecommendedBook {
   id: string;
@@ -279,6 +284,61 @@ const analyzeUserLibrary = (userBooks: IBook[]) => {
 };
 
 /**
+ * Call OpenRouter API as fallback (works in Russia)
+ */
+const callOpenRouterAPI = async (systemPrompt: string, userPrompt: string): Promise<AIRecommendation[]> => {
+  if (!OPENROUTER_API_KEY) {
+    throw new Error('OpenRouter API key not configured');
+  }
+
+  try {
+    const response = await axios.post(
+      OPENROUTER_API_URL,
+      {
+        model: 'meta-llama/llama-3.1-8b-instruct:free',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.85,
+        max_tokens: 2500,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://bookdesk.app',
+          'X-Title': 'BookDesk',
+        },
+        timeout: 45000,
+      },
+    );
+
+    const content = response.data.choices?.[0]?.message?.content;
+    if (!content) {
+      throw new Error('Empty OpenRouter response');
+    }
+
+    // Try to parse JSON from response (may contain extra text)
+    let jsonContent = content;
+    const jsonMatch = content.match(/\{[\s\S]*"recommendations"[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonContent = jsonMatch[0];
+    }
+
+    const parsed = JSON.parse(jsonContent);
+    const recs = parsed.recommendations || [];
+    return recs.filter((r: AIRecommendation) => r && r.title && typeof r.title === 'string');
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error) && error.response?.status === 429) {
+      throw new Error('RATE_LIMIT_EXCEEDED');
+    }
+    console.error('OpenRouter API error:', error);
+    throw error;
+  }
+};
+
+/**
  * Call Groq AI to analyze user's library and get book recommendations
  */
 const getAIRecommendations = async (userBooks: IBook[], apiKey: string, previousTitles: string[] = []): Promise<AIRecommendation[]> => {
@@ -397,6 +457,7 @@ Response strictly in JSON:
 
   const userPrompt = userPromptParts.join('\n\n');
 
+  // Try Groq first, then fallback to OpenRouter
   try {
     const response = await axios.post(
       GROQ_API_URL,
@@ -434,8 +495,15 @@ Response strictly in JSON:
       console.warn('Groq API rate limit reached');
       throw new Error('RATE_LIMIT_EXCEEDED');
     }
-    console.error('Groq AI error:', error);
-    throw error;
+    
+    // Try OpenRouter as fallback (for regions where Groq is blocked)
+    console.warn('Groq API failed, trying OpenRouter fallback...');
+    try {
+      return await callOpenRouterAPI(systemPrompt, userPrompt);
+    } catch (fallbackError) {
+      console.error('OpenRouter fallback also failed:', fallbackError);
+      throw error; // Throw original error
+    }
   }
 };
 
@@ -499,6 +567,7 @@ const getDefaultAIRecommendations = async (apiKey: string, previousTitles: strin
     ? `\n\nОтвет строго в JSON:\n{"recommendations": [{"title": "Название", "author": "Автор"}]}`
     : `\n\nResponse strictly in JSON:\n{"recommendations": [{"title": "Title", "author": "Author"}]}`;
 
+  // Try Groq first, then fallback to OpenRouter
   try {
     const response = await axios.post(
       GROQ_API_URL,
@@ -536,8 +605,15 @@ const getDefaultAIRecommendations = async (apiKey: string, previousTitles: strin
       console.warn('Groq API rate limit reached');
       throw new Error('RATE_LIMIT_EXCEEDED');
     }
-    console.error('Groq AI error:', error);
-    throw error;
+    
+    // Try OpenRouter as fallback (for regions where Groq is blocked)
+    console.warn('Groq API failed in getDefaultAIRecommendations, trying OpenRouter fallback...');
+    try {
+      return await callOpenRouterAPI(systemPrompt, userPrompt);
+    } catch (fallbackError) {
+      console.error('OpenRouter fallback also failed:', fallbackError);
+      throw error; // Throw original error
+    }
   }
 };
 
