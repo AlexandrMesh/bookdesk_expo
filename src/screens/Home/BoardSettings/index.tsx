@@ -109,15 +109,18 @@ const BoardSettings = () => {
           {BOARDS.map((boardKey, idx) => {
             const isVisible = !localHiddenBoards.includes(boardKey);
             const isLast = idx === BOARDS.length - 1;
+            const visibleCount = BOARDS.length - localHiddenBoards.length;
+            const isLastVisible = isVisible && visibleCount === 1;
+            const isDisabled = isSaving || isLastVisible;
             return (
               <TouchableOpacity
                 key={boardKey}
-                style={[styles.item, isLast && styles.itemLast, isSaving && styles.itemDisabled]}
+                style={[styles.item, isLast && styles.itemLast, isDisabled && styles.itemDisabled]}
                 onPress={() => handleToggle(boardKey)}
-                disabled={isSaving}
+                disabled={isDisabled}
               >
                 {isVisible ? (
-                  <CheckboxCheckedIcon width={24} height={24} fill={themeColors.success} />
+                  <CheckboxCheckedIcon width={24} height={24} fill={isLastVisible ? themeColors.neutral_medium : themeColors.success} />
                 ) : (
                   <CheckboxBlankIcon width={24} height={24} fill={themeColors.neutral_medium} />
                 )}
