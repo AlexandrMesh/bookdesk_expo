@@ -2,6 +2,7 @@ import { RootState } from '~redux/store/configureStore';
 
 type StateWithBooks = Pick<RootState, 'books'>;
 type StateWithCustomBook = Pick<RootState, 'customBook'>;
+type StateWithApp = Pick<RootState, 'app'>;
 
 // Books selectors
 const getBooks = (state: StateWithBooks) => state.books;
@@ -15,3 +16,7 @@ const getAddCustomBookSteps = (state: StateWithCustomBook) => getAddCustomBook(s
 const getAddCustomBookStep3 = (state: StateWithCustomBook) => getAddCustomBookSteps(state)[3];
 const getEditableCategory = (state: StateWithCustomBook) => getAddCustomBookStep3(state).editableCategory;
 export const getExpandedCategories = (state: StateWithCustomBook) => getEditableCategory(state).expanded;
+
+// App selectors
+const getApp = (state: StateWithApp) => state.app;
+export const getHiddenBoards = (state: StateWithApp) => getApp(state)?.hiddenBoards ?? [];

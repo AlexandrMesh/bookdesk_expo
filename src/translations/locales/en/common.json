@@ -37,5 +37,6 @@
   "retry": "Retry",
   "confirmationDeleteTitle": "Confirm the action",
   "confirmationDeleteDescription": "Are you sure you want to delete?",
-  "syncingData": "Syncing data..."
+  "syncingData": "Syncing data...",
+  "boardSettings": "Board Settings"
 }

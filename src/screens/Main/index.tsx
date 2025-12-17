@@ -38,6 +38,7 @@ import {
   SEARCH_ROUTE,
   STAT_NAVIGATOR_ROUTE,
   STAT_ROUTE,
+  BOARD_SETTINGS_ROUTE,
 } from '~constants/routes';
 import { useAppUpdates } from '~hooks/useAppUpdates';
 import { initializationComplete } from '~redux/actions/authActions';
@@ -80,6 +81,7 @@ import { APP_CONFIG, initializeAppConfig } from '../../config/appConfig';
 const Search = lazy(() => import('~screens/Search'));
 const BookNote = lazy(() => import('~screens/Home/BookNote'));
 const Filtering = lazy(() => import('~screens/Home/Filtering'));
+const BoardSettings = lazy(() => import('~screens/Home/BoardSettings'));
 const CategoryChooser = lazy(() => import('~screens/CustomBooks/AddCustomBook/CategoryChooser'));
 const AddCustomBook = lazy(() => import('~screens/CustomBooks/AddCustomBook'));
 const EditCustomBook = lazy(() => import('~screens/CustomBooks/EditCustomBook'));
@@ -242,6 +244,13 @@ const HomeNavigator = () => {
         {() => (
           <InSuspense>
             <Filtering />
+          </InSuspense>
+        )}
+      </Stack.Screen>
+      <Stack.Screen name={BOARD_SETTINGS_ROUTE} options={{ title: t('common:boardSettings') }}>
+        {() => (
+          <InSuspense>
+            <BoardSettings />
           </InSuspense>
         )}
       </Stack.Screen>

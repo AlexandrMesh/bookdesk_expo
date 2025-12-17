@@ -27,3 +27,4 @@ export const GOAL_DETAILS = 'GoalDetails';
 export const BOOKS_STATISTIC_ROUTE = 'Books';
 export const PAGES_STATISTIC_ROUTE = 'Pages';
 export const RATING_STATISTIC_ROUTE = 'Rating';
+export const BOARD_SETTINGS_ROUTE = 'BoardSettings';

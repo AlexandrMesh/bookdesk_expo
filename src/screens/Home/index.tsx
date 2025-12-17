@@ -1,12 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { Animated, Dimensions, Easing, LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Dimensions, Easing, LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SceneMap, TabView } from 'react-native-tab-view';
 
 import { useAppSelector } from '~hooks';
+import SettingsIcon from '~assets/settings.svg';
+import { BOARD_SETTINGS_ROUTE } from '~constants/routes';
+import { getHiddenBoards } from '~redux/selectors/common';
 
 import { PENDING } from '~constants/loadingStatuses';
 import useNetworkStatus from '~hooks/useNetworkStatus';
@@ -41,10 +45,14 @@ type TabMeasurement = {
   width: number;
 };
 
+const VALID_BOARD_KEYS = ['recommended', 'planned', 'inProgress', 'completed'];
+
 const Home = () => {
   const { t } = useTranslation('books');
   const themeColors = useThemeColors();
   const styles = useThemedStyles(createStyles);
+  const navigation = useNavigation<any>();
+  const hiddenBoards = useAppSelector(getHiddenBoards);
   const [index, setIndex] = useState(0);
   const [tabMeasurements, setTabMeasurements] = useState<Map<number, TabMeasurement>>(new Map());
   const [measurementsReady, setMeasurementsReady] = useState(false);
@@ -115,6 +123,12 @@ const Home = () => {
 
   const renderLazyPlaceholder = () => <View style={{ flex: 1, backgroundColor: themeColors.primary_dark }} />;
 
+  // Validate hiddenBoards - only allow valid board keys
+  const validHiddenBoards = useMemo(() => {
+    if (!Array.isArray(hiddenBoards)) return [];
+    return hiddenBoards.filter((key) => VALID_BOARD_KEYS.includes(key));
+  }, [hiddenBoards]);
+
   const routes = useMemo(() => {
     const baseRoutes = [
       { key: 'planned', title: t('planned') },
@@ -122,12 +136,24 @@ const Home = () => {
       { key: 'completed', title: t('completed') },
     ];
 
-    if (showRecommendedTab) {
-      return [{ key: 'recommended', title: t('recommended') }, ...baseRoutes];
+    const allRoutes = showRecommendedTab
+      ? [{ key: 'recommended', title: t('recommended') }, ...baseRoutes]
+      : baseRoutes;
+
+    // Only filter if we have valid hidden boards
+    if (validHiddenBoards.length === 0) {
+      return allRoutes;
     }
 
-    return baseRoutes;
-  }, [t, showRecommendedTab]);
+    const filteredRoutes = allRoutes.filter((route) => !validHiddenBoards.includes(route.key));
+
+    // Always show at least one board (planned as fallback)
+    if (filteredRoutes.length === 0) {
+      return [{ key: 'planned', title: t('planned') }];
+    }
+
+    return filteredRoutes;
+  }, [t, showRecommendedTab, validHiddenBoards]);
 
   // Select the appropriate scene renderer based on whether recommended tab is shown
   const renderScene = showRecommendedTab ? renderSceneWithRecommendations : renderSceneWithoutRecommendations;
@@ -233,26 +259,33 @@ const Home = () => {
 
   // Мемоизируем расчеты для индикатора чтобы избежать пересоздания интерполяций
   const indicatorData = useMemo(() => {
-    if (!measurementsReady || tabMeasurements.size !== routes.length) {
+    if (!measurementsReady || tabMeasurements.size !== routes.length || routes.length === 0) {
       return null;
     }
 
-    const inputRange = routes.map((_, i) => i);
+    // inputRange must have at least 2 elements for interpolation
+    const inputRange = routes.length === 1 ? [0, 1] : routes.map((_, i) => i);
 
     // Находим максимальную ширину для базового размера индикатора
     const measurements = Array.from(tabMeasurements.values());
-    const maxWidth = Math.max(...measurements.map((m) => m.width));
+    const maxWidth = Math.max(...measurements.map((m) => m.width), 100);
 
     // Получаем массивы позиций и ширин для интерполяции
-    const outputRangeX = inputRange.map((i) => {
-      const measurement = tabMeasurements.get(i);
-      return measurement?.x ?? 0;
-    });
+    const outputRangeX =
+      routes.length === 1
+        ? [tabMeasurements.get(0)?.x ?? 0, tabMeasurements.get(0)?.x ?? 0]
+        : inputRange.map((i) => {
+            const measurement = tabMeasurements.get(i);
+            return measurement?.x ?? 0;
+          });
 
-    const outputRangeWidth = inputRange.map((i) => {
-      const measurement = tabMeasurements.get(i);
-      return measurement?.width ?? 100;
-    });
+    const outputRangeWidth =
+      routes.length === 1
+        ? [tabMeasurements.get(0)?.width ?? 100, tabMeasurements.get(0)?.width ?? 100]
+        : inputRange.map((i) => {
+            const measurement = tabMeasurements.get(i);
+            return measurement?.width ?? 100;
+          });
 
     return {
       inputRange,
@@ -266,12 +299,14 @@ const Home = () => {
     () =>
       StyleSheet.create({
         container: {
+          flexDirection: 'row',
+          alignItems: 'center',
           backgroundColor: themeColors.primary_dark,
           borderBottomWidth: 1,
           borderColor: themeColors.neutral_medium,
         },
         scrollView: {
-          flexGrow: 0,
+          flex: 1,
         },
         scrollContent: {
           paddingHorizontal: 2,
@@ -289,6 +324,12 @@ const Home = () => {
           height: 2,
           backgroundColor: themeColors.neutral_light,
         },
+        settingsButton: {
+          paddingHorizontal: 12,
+          paddingVertical: 12,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
       }),
     [themeColors],
   );
@@ -297,66 +338,7 @@ const Home = () => {
     (props: { position?: Animated.AnimatedInterpolation<number> }) => {
       const { position } = props;
 
-      if (!position || !indicatorData) {
-        return (
-          <View style={tabBarStyles.container}>
-            <ScrollView
-              ref={scrollViewRef}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              bounces={false}
-              style={tabBarStyles.scrollView}
-              contentContainerStyle={tabBarStyles.scrollContent}
-            >
-              {routes.map((route, i) => {
-                const isFocused = index === i;
-                const isRecommendedTab = route.key === 'recommended';
-                const shouldBlink = isRecommendedTab && isRecommendationsLoading && !isFocused;
-
-                return (
-                  <Pressable
-                    key={route.key}
-                    onLayout={(event) => handleTabLayout(i, event)}
-                    onPress={() => handleTabPress(i)}
-                    style={tabBarStyles.tab}
-                  >
-                    {shouldBlink ? (
-                      <Animated.Text style={[styles.tabBarLabel, { color: themeColors.accent, opacity: blinkAnim }]}>{route.title}</Animated.Text>
-                    ) : (
-                      <Text style={[styles.tabBarLabel, { color: isFocused ? themeColors.neutral_light : themeColors.neutral_medium }]}>
-                        {route.title}
-                      </Text>
-                    )}
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
-        );
-      }
-
-      const { inputRange, maxWidth, outputRangeX, outputRangeWidth } = indicatorData;
-
-      // scaleX для изменения ширины (вместо width)
-      const scaleX = position.interpolate({
-        inputRange,
-        outputRange: outputRangeWidth.map((w) => w / maxWidth),
-        extrapolate: 'clamp',
-      });
-
-      // translateX с компенсацией для scaleX (чтобы масштабирование шло от левого края)
-      const translateX = position.interpolate({
-        inputRange,
-        outputRange: outputRangeX.map((x, i) => {
-          // Компенсация: scaleX масштабирует от центра, поэтому при уменьшении
-          // элемент смещается вправо. Нужно сдвинуть его обратно влево.
-          const width = outputRangeWidth[i];
-          const offset = (maxWidth - width) / 2;
-          return x - offset;
-        }),
-        extrapolate: 'clamp',
-      });
-
+      // Always render tabs, even without position/indicatorData
       return (
         <View style={tabBarStyles.container}>
           <ScrollView
@@ -384,17 +366,41 @@ const Home = () => {
                 </Pressable>
               );
             })}
-            <Animated.View
-              style={[
-                tabBarStyles.indicator,
-                {
-                  width: maxWidth,
-                  opacity: indicatorVisible ? 1 : 0,
-                  transform: [{ translateX }, { scaleX }],
-                },
-              ]}
-            />
+            {position && indicatorData && (
+              <Animated.View
+                style={[
+                  tabBarStyles.indicator,
+                  {
+                    width: indicatorData.maxWidth,
+                    opacity: indicatorVisible ? 1 : 0,
+                    transform: [
+                      {
+                        translateX: position.interpolate({
+                          inputRange: indicatorData.inputRange,
+                          outputRange: indicatorData.outputRangeX.map((x, i) => {
+                            const width = indicatorData.outputRangeWidth[i];
+                            const offset = (indicatorData.maxWidth - width) / 2;
+                            return x - offset;
+                          }),
+                          extrapolate: 'clamp',
+                        }),
+                      },
+                      {
+                        scaleX: position.interpolate({
+                          inputRange: indicatorData.inputRange,
+                          outputRange: indicatorData.outputRangeWidth.map((w) => w / indicatorData.maxWidth),
+                          extrapolate: 'clamp',
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              />
+            )}
           </ScrollView>
+          <TouchableOpacity style={tabBarStyles.settingsButton} onPress={() => navigation.navigate(BOARD_SETTINGS_ROUTE)}>
+            <SettingsIcon width={20} height={20} fill={themeColors.neutral_medium} />
+          </TouchableOpacity>
         </View>
       );
     },
@@ -410,6 +416,7 @@ const Home = () => {
       themeColors,
       isRecommendationsLoading,
       blinkAnim,
+      navigation,
     ],
   );
 

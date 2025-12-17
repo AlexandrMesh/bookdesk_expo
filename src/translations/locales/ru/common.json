@@ -37,5 +37,6 @@
   "retry": "Проверить",
   "confirmationDeleteTitle": "Подтвердите действие",
   "confirmationDeleteDescription": "Вы действительно хотите удалить?",
-  "syncingData": "Синхронизация данных..."
+  "syncingData": "Синхронизация данных...",
+  "boardSettings": "Настройки досок"
 }

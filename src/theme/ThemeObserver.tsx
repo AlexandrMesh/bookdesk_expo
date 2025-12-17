@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { Appearance } from 'react-native';
 
 import { useAppDispatch, useAppSelector } from '~hooks';
+import { loadBoardSettings } from '~redux/actions/appActions';
 import { setSystemTheme, setThemeMode } from '~redux/actions/themeActions';
 import { getThemeMode } from '~redux/selectors/theme';
 import { loadThemeMode, saveThemeMode } from '~utils/storage/themePreferences';
@@ -33,6 +34,7 @@ const ThemeObserver: React.FC<Props> = ({ children }) => {
         saveThemeMode('auto');
       }
     })();
+    dispatch(loadBoardSettings());
   }, [dispatch]);
 
   useEffect(() => {

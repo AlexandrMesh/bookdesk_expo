@@ -1,9 +1,39 @@
-import { createAsyncThunk } from '@reduxjs/toolkit';
+import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
 
-import { AppThunkAPI } from '~redux/store/configureStore';
+import { AppThunkAPI, RootState } from '~redux/store/configureStore';
 import { initDatabase, loadProfile, saveProfile } from '~utils/boardStorage';
+import { clearHiddenBoards, loadHiddenBoards, saveHiddenBoards } from '~utils/storage/boardPreferences';
 
 const PREFIX = 'APP';
+
+export const setHiddenBoards = createAction<string[]>(`${PREFIX}/setHiddenBoards`);
+
+export const toggleBoardVisibility = createAsyncThunk<string[], string, { state: RootState }>(
+  `${PREFIX}/toggleBoardVisibility`,
+  async (boardKey, { getState }) => {
+    const currentHiddenBoards = getState().app.hiddenBoards ?? [];
+    const index = currentHiddenBoards.indexOf(boardKey);
+    let newHiddenBoards: string[];
+    if (index === -1) {
+      newHiddenBoards = [...currentHiddenBoards, boardKey];
+    } else {
+      newHiddenBoards = currentHiddenBoards.filter((key) => key !== boardKey);
+    }
+    await saveHiddenBoards(newHiddenBoards);
+    return newHiddenBoards;
+  },
+);
+
+export const loadBoardSettings = createAsyncThunk(`${PREFIX}/loadBoardSettings`, async () => {
+  // Clear any corrupted data on first load - remove this after fix
+  await clearHiddenBoards();
+  return [];
+});
+
+export const resetBoardSettings = createAsyncThunk(`${PREFIX}/resetBoardSettings`, async () => {
+  await clearHiddenBoards();
+  return [];
+});
 
 export const supportApp = createAsyncThunk(`${PREFIX}/supportApp`, async (confirmed: boolean, _thunkAPI: AppThunkAPI) => {
   try {
