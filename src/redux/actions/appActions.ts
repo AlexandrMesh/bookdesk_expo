@@ -25,9 +25,8 @@ export const toggleBoardVisibility = createAsyncThunk<string[], string, { state:
 );
 
 export const loadBoardSettings = createAsyncThunk(`${PREFIX}/loadBoardSettings`, async () => {
-  // Clear any corrupted data on first load - remove this after fix
-  await clearHiddenBoards();
-  return [];
+  const hiddenBoards = await loadHiddenBoards();
+  return hiddenBoards;
 });
 
 export const resetBoardSettings = createAsyncThunk(`${PREFIX}/resetBoardSettings`, async () => {

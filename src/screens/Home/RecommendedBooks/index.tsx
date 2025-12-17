@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { useAppDispatch, useAppSelector } from '~hooks';
 
 import { PLANNED, IN_PROGRESS, COMPLETED } from '~constants/boardType';
+import { getHiddenBoards } from '~redux/selectors/common';
 import { PENDING, SUCCEEDED, FAILED, IDLE } from '~constants/loadingStatuses';
 import useNetworkStatus from '~hooks/useNetworkStatus';
 import { loadRecommendations, refreshRecommendations } from '~redux/actions/recommendationsActions';
@@ -42,6 +43,8 @@ const RecommendedBooks = () => {
   const recommendations = useAppSelector(getRecommendations);
   const loadingStatus = useAppSelector(getRecommendationsLoadingStatus);
   const error = useAppSelector(getRecommendationsError);
+  const hiddenBoards = useAppSelector(getHiddenBoards);
+  const isRecommendedBoardHidden = hiddenBoards.includes('recommended');
 
   // Get user's total book count from all boards
   const plannedBoard = useAppSelector(deriveBoard(PLANNED));
@@ -156,23 +159,23 @@ const RecommendedBooks = () => {
     }
   }, [loadingStatus, star1Opacity, star2Opacity, star3Opacity, star4Opacity, star1Scale, star2Scale, star3Scale, star4Scale]);
 
-  // Auto-load recommendations on mount (only if online)
-  // Triggers when: component mounts AND (status is IDLE AND no recommendations) AND online
+  // Auto-load recommendations on mount (only if online and board is visible)
+  // Triggers when: component mounts AND (status is IDLE AND no recommendations) AND online AND board is not hidden
   useEffect(() => {
-    if (loadingStatus === IDLE && recommendations.length === 0 && isOnline) {
+    if (loadingStatus === IDLE && recommendations.length === 0 && isOnline && !isRecommendedBoardHidden) {
       dispatch(loadRecommendations(false));
     }
-  }, [loadingStatus, recommendations.length, dispatch, isOnline]);
+  }, [loadingStatus, recommendations.length, dispatch, isOnline, isRecommendedBoardHidden]);
 
-  // Auto-refresh when language changes (only if online)
+  // Auto-refresh when language changes (only if online and board is visible)
   useEffect(() => {
     const currentLanguage = i18n.language;
-    if (previousLanguageRef.current !== currentLanguage && loadingStatus !== PENDING && isOnline) {
+    if (previousLanguageRef.current !== currentLanguage && loadingStatus !== PENDING && isOnline && !isRecommendedBoardHidden) {
       previousLanguageRef.current = currentLanguage;
       // Refresh recommendations with new language
       dispatch(refreshRecommendations());
     }
-  }, [i18n.language, loadingStatus, dispatch, isOnline]);
+  }, [i18n.language, loadingStatus, dispatch, isOnline, isRecommendedBoardHidden]);
 
   const handleRefresh = useCallback(() => {
     if (!isOnline) {

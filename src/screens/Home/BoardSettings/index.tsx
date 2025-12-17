@@ -9,6 +9,7 @@ import { setHiddenBoards } from '~redux/actions/appActions';
 import { getHiddenBoards } from '~redux/selectors/common';
 import { useThemeColors } from '~theme/hooks';
 import { saveHiddenBoards } from '~utils/storage/boardPreferences';
+import Button from '~UI/Button';
 
 import CheckboxCheckedIcon from '~assets/checkbox-checked.svg';
 import CheckboxBlankIcon from '~assets/checkbox-blank.svg';
@@ -21,9 +22,10 @@ const BoardSettings = () => {
   const dispatch = useAppDispatch();
   const navigation = useNavigation();
   const savedHiddenBoards = useAppSelector(getHiddenBoards);
-  
+
   // Local state for editing
   const [localHiddenBoards, setLocalHiddenBoards] = useState<string[]>(savedHiddenBoards);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleToggle = useCallback((boardKey: string) => {
     setLocalHiddenBoards((prev) => {
@@ -36,10 +38,16 @@ const BoardSettings = () => {
   }, []);
 
   const handleSave = useCallback(async () => {
-    await saveHiddenBoards(localHiddenBoards);
-    dispatch(setHiddenBoards(localHiddenBoards));
-    navigation.goBack();
-  }, [localHiddenBoards, dispatch, navigation]);
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      await saveHiddenBoards(localHiddenBoards);
+      dispatch(setHiddenBoards(localHiddenBoards));
+      navigation.goBack();
+    } catch (error) {
+      setIsSaving(false);
+    }
+  }, [localHiddenBoards, dispatch, navigation, isSaving]);
 
   const styles = StyleSheet.create({
     container: {
@@ -79,27 +87,24 @@ const BoardSettings = () => {
       color: themeColors.neutral_light,
       marginLeft: 12,
     },
+    itemDisabled: {
+      opacity: 0.5,
+    },
     footer: {
       padding: 16,
-      paddingBottom: 24,
-    },
-    saveButton: {
-      backgroundColor: themeColors.accent,
-      borderRadius: 12,
-      paddingVertical: 14,
+      paddingBottom: 16,
       alignItems: 'center',
     },
-    saveButtonText: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: themeColors.neutral_lightest,
+    saveButton: {
+      minWidth: 120,
+      paddingHorizontal: 24,
     },
   });
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <View style={styles.content}>
-        <Text style={styles.sectionTitle}>{t('common:boardVisibility', 'Видимость досок')}</Text>
+        <Text style={styles.sectionTitle}>{t('common:boardVisibility')}</Text>
         <View style={styles.boardsList}>
           {BOARDS.map((boardKey, idx) => {
             const isVisible = !localHiddenBoards.includes(boardKey);
@@ -107,8 +112,9 @@ const BoardSettings = () => {
             return (
               <TouchableOpacity
                 key={boardKey}
-                style={[styles.item, isLast && styles.itemLast]}
+                style={[styles.item, isLast && styles.itemLast, isSaving && styles.itemDisabled]}
                 onPress={() => handleToggle(boardKey)}
+                disabled={isSaving}
               >
                 {isVisible ? (
                   <CheckboxCheckedIcon width={24} height={24} fill={themeColors.success} />
@@ -122,9 +128,13 @@ const BoardSettings = () => {
         </View>
       </View>
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>{t('common:save')}</Text>
-        </TouchableOpacity>
+        <Button
+          title={t('common:save')}
+          onPress={handleSave}
+          isLoading={isSaving}
+          disabled={isSaving}
+          style={styles.saveButton}
+        />
       </View>
     </SafeAreaView>
   );
