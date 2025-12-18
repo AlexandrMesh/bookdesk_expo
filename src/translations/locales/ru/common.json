@@ -39,5 +39,5 @@
   "confirmationDeleteDescription": "Вы действительно хотите удалить?",
   "syncingData": "Синхронизация данных...",
   "boardSettings": "Настройки досок",
-  "boardVisibility": "Видимость досок"
+  "boardVisibility": "Видимость и порядок досок"
 }

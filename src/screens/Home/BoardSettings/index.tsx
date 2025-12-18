@@ -13,6 +13,7 @@ import { useAppDispatch, useAppSelector } from '~hooks';
 
 import CheckboxBlankIcon from '~assets/checkbox-blank.svg';
 import CheckboxCheckedIcon from '~assets/checkbox-checked.svg';
+import { SECONDARY } from '~constants/themes';
 import { setHiddenBoards, setBoardOrder } from '~redux/actions/appActions';
 import { getHiddenBoards, getBoardOrder } from '~redux/selectors/common';
 import { useThemeColors } from '~theme/hooks';
@@ -92,8 +93,8 @@ const DraggableBoardItem: React.FC<DraggableBoardItemProps> = ({
     return {
       borderTopWidth: isTarget && isAbove ? 3 : 0,
       borderBottomWidth: isTarget && !isAbove ? 3 : 0,
-      borderTopColor: themeColors.accent,
-      borderBottomColor: themeColors.accent,
+      borderTopColor: themeColors.primary_medium,
+      borderBottomColor: themeColors.primary_medium,
     };
   });
 
@@ -192,6 +193,11 @@ const BoardSettings = () => {
     });
   }, []);
 
+  const handleReset = useCallback(() => {
+    setLocalHiddenBoards([]);
+    setLocalBoardOrder([...BOARDS]);
+  }, []);
+
   const handleSave = useCallback(async () => {
     if (isSaving) return;
     setIsSaving(true);
@@ -201,7 +207,7 @@ const BoardSettings = () => {
       dispatch(setHiddenBoards(localHiddenBoards));
       dispatch(setBoardOrder(localBoardOrder));
       navigation.goBack();
-    } catch (error) {
+    } catch {
       setIsSaving(false);
     }
   }, [localHiddenBoards, localBoardOrder, dispatch, navigation, isSaving]);
@@ -228,33 +234,16 @@ const BoardSettings = () => {
       borderRadius: 12,
       overflow: 'hidden',
     },
-    item: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: 14,
-      paddingHorizontal: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: themeColors.neutral_medium,
-    },
-    itemLast: {
-      borderBottomWidth: 0,
-    },
-    itemText: {
-      fontSize: 16,
-      color: themeColors.neutral_light,
-      marginLeft: 12,
-    },
-    itemDisabled: {
-      opacity: 0.5,
-    },
     footer: {
       padding: 16,
       paddingBottom: 16,
-      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: 12,
     },
-    saveButton: {
-      minWidth: 120,
-      paddingHorizontal: 24,
+    button: {
+      flex: 1,
+      maxWidth: 160,
     },
   });
 
@@ -289,7 +278,8 @@ const BoardSettings = () => {
           </View>
         </View>
         <View style={styles.footer}>
-          <Button title={t('common:save')} onPress={handleSave} isLoading={isSaving} disabled={isSaving} style={styles.saveButton} />
+          <Button title={t('common:reset')} onPress={handleReset} disabled={isSaving} style={styles.button} theme={SECONDARY} />
+          <Button title={t('common:save')} onPress={handleSave} isLoading={isSaving} disabled={isSaving} style={styles.button} />
         </View>
       </SafeAreaView>
     </GestureHandlerRootView>
