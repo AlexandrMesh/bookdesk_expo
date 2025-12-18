@@ -1,22 +1,23 @@
 import React, { useCallback, useState, useEffect } from 'react';
+
 import { View, Text, StyleSheet } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, runOnJS } from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+
 import { MaterialIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
+import { GestureHandlerRootView, Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, runOnJS, SharedValue } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppDispatch, useAppSelector } from '~hooks';
+
+import CheckboxBlankIcon from '~assets/checkbox-blank.svg';
+import CheckboxCheckedIcon from '~assets/checkbox-checked.svg';
 import { setHiddenBoards, setBoardOrder } from '~redux/actions/appActions';
 import { getHiddenBoards, getBoardOrder } from '~redux/selectors/common';
 import { useThemeColors } from '~theme/hooks';
-import { saveHiddenBoards, saveBoardOrder } from '~utils/storage/boardPreferences';
 import Button from '~UI/Button';
-
-import CheckboxCheckedIcon from '~assets/checkbox-checked.svg';
-import CheckboxBlankIcon from '~assets/checkbox-blank.svg';
+import { saveHiddenBoards, saveBoardOrder } from '~utils/storage/boardPreferences';
 
 const BOARDS = ['recommended', 'planned', 'inProgress', 'completed'] as const;
 const ITEM_HEIGHT = 56;
@@ -31,6 +32,8 @@ interface DraggableBoardItemProps {
   onDragEnd: (from: number, to: number) => void;
   t: any;
   themeColors: any;
+  draggedIndex: SharedValue<number>;
+  targetIndex: SharedValue<number>;
 }
 
 const DraggableBoardItem: React.FC<DraggableBoardItemProps> = ({
@@ -43,6 +46,8 @@ const DraggableBoardItem: React.FC<DraggableBoardItemProps> = ({
   onDragEnd,
   t,
   themeColors,
+  draggedIndex,
+  targetIndex,
 }) => {
   const translateY = useSharedValue(0);
   const isDragging = useSharedValue(false);
@@ -51,21 +56,26 @@ const DraggableBoardItem: React.FC<DraggableBoardItemProps> = ({
   const panGesture = Gesture.Pan()
     .onStart(() => {
       isDragging.value = true;
+      draggedIndex.value = index;
       contextY.value = translateY.value;
     })
     .onUpdate((event) => {
       translateY.value = contextY.value + event.translationY;
+      const moveBy = Math.round(translateY.value / ITEM_HEIGHT);
+      targetIndex.value = index + moveBy;
     })
     .onEnd(() => {
       const moveBy = Math.round(translateY.value / ITEM_HEIGHT);
       const newIndex = index + moveBy;
-      
+
       if (moveBy !== 0) {
         runOnJS(onDragEnd)(index, newIndex);
       }
-      
+
       translateY.value = withSpring(0);
       isDragging.value = false;
+      draggedIndex.value = -1;
+      targetIndex.value = -1;
     });
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -75,44 +85,50 @@ const DraggableBoardItem: React.FC<DraggableBoardItemProps> = ({
     opacity: isDragging.value ? 0.9 : 1,
   }));
 
+  const dropIndicatorStyle = useAnimatedStyle(() => {
+    const isTarget = targetIndex.value === index && draggedIndex.value !== -1 && draggedIndex.value !== index;
+    const isAbove = targetIndex.value === index && draggedIndex.value > index;
+
+    return {
+      borderTopWidth: isTarget && isAbove ? 3 : 0,
+      borderBottomWidth: isTarget && !isAbove ? 3 : 0,
+      borderTopColor: themeColors.accent,
+      borderBottomColor: themeColors.accent,
+    };
+  });
+
   return (
     <Animated.View style={[animatedStyle]}>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingVertical: 14,
-          paddingHorizontal: 16,
-          borderBottomWidth: 1,
-          borderBottomColor: themeColors.neutral_medium,
-          backgroundColor: themeColors.primary_darkest,
-          opacity: isDisabled ? 0.5 : 1,
-        }}
+      <Animated.View
+        style={[
+          {
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingVertical: 14,
+            paddingHorizontal: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: themeColors.neutral_medium,
+            backgroundColor: themeColors.primary_darkest,
+            opacity: isDisabled ? 0.5 : 1,
+          },
+          dropIndicatorStyle,
+        ]}
       >
         <GestureDetector gesture={panGesture}>
           <Animated.View style={{ marginRight: 12, padding: 4 }}>
-            <MaterialIcons name="drag-indicator" size={24} color={themeColors.neutral_medium} />
+            <MaterialIcons name='drag-indicator' size={24} color={themeColors.neutral_medium} />
           </Animated.View>
         </GestureDetector>
-        
-        <View
-          style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
-          onTouchEnd={() => !isDisabled && onToggle(boardKey)}
-        >
+
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }} onTouchEnd={() => !isDisabled && onToggle(boardKey)}>
           {isVisible ? (
-            <CheckboxCheckedIcon 
-              width={24} 
-              height={24} 
-              fill={isLastVisible ? themeColors.neutral_medium : themeColors.success} 
-            />
+            <CheckboxCheckedIcon width={24} height={24} fill={isLastVisible ? themeColors.neutral_medium : themeColors.success} />
           ) : (
             <CheckboxBlankIcon width={24} height={24} fill={themeColors.neutral_medium} />
           )}
-          <Text style={{ fontSize: 16, color: themeColors.neutral_light, marginLeft: 12 }}>
-            {t(`books:${boardKey}`)}
-          </Text>
+          <Text style={{ fontSize: 16, color: themeColors.neutral_light, marginLeft: 12 }}>{t(`books:${boardKey}`)}</Text>
         </View>
-      </View>
+      </Animated.View>
     </Animated.View>
   );
 };
@@ -139,6 +155,10 @@ const BoardSettings = () => {
   const [localHiddenBoards, setLocalHiddenBoards] = useState<string[]>(savedHiddenBoards);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Shared values for drag and drop visual feedback
+  const draggedIndex = useSharedValue(-1);
+  const targetIndex = useSharedValue(-1);
+
   // Update local board order when saved order changes
   useEffect(() => {
     if (savedBoardOrder && savedBoardOrder.length > 0) {
@@ -160,14 +180,14 @@ const BoardSettings = () => {
     setLocalBoardOrder((prev) => {
       const newOrder = [...prev];
       const boundedToIndex = Math.max(0, Math.min(toIndex, newOrder.length - 1));
-      
+
       if (fromIndex === boundedToIndex) {
         return prev;
       }
-      
+
       const [movedItem] = newOrder.splice(fromIndex, 1);
       newOrder.splice(boundedToIndex, 0, movedItem);
-      
+
       return newOrder;
     });
   }, []);
@@ -261,19 +281,15 @@ const BoardSettings = () => {
                   onDragEnd={handleDragEnd}
                   t={t}
                   themeColors={themeColors}
+                  draggedIndex={draggedIndex}
+                  targetIndex={targetIndex}
                 />
               );
             })}
           </View>
         </View>
         <View style={styles.footer}>
-          <Button
-            title={t('common:save')}
-            onPress={handleSave}
-            isLoading={isSaving}
-            disabled={isSaving}
-            style={styles.saveButton}
-          />
+          <Button title={t('common:save')} onPress={handleSave} isLoading={isSaving} disabled={isSaving} style={styles.saveButton} />
         </View>
       </SafeAreaView>
     </GestureHandlerRootView>
