@@ -10,7 +10,7 @@ import { SceneMap, TabView } from 'react-native-tab-view';
 import { useAppSelector } from '~hooks';
 import SettingsIcon from '~assets/settings.svg';
 import { BOARD_SETTINGS_ROUTE } from '~constants/routes';
-import { getHiddenBoards } from '~redux/selectors/common';
+import { getHiddenBoards, getBoardOrder } from '~redux/selectors/common';
 
 import { PENDING } from '~constants/loadingStatuses';
 import useNetworkStatus from '~hooks/useNetworkStatus';
@@ -53,6 +53,7 @@ const Home = () => {
   const styles = useThemedStyles(createStyles);
   const navigation = useNavigation<any>();
   const hiddenBoards = useAppSelector(getHiddenBoards);
+  const boardOrder = useAppSelector(getBoardOrder);
   const [index, setIndex] = useState(0);
   const [tabMeasurements, setTabMeasurements] = useState<Map<number, TabMeasurement>>(new Map());
   const [measurementsReady, setMeasurementsReady] = useState(false);
@@ -130,30 +131,37 @@ const Home = () => {
   }, [hiddenBoards]);
 
   const routes = useMemo(() => {
-    const baseRoutes = [
-      { key: 'planned', title: t('planned') },
-      { key: 'inProgress', title: t('inProgress') },
-      { key: 'completed', title: t('completed') },
-    ];
-
-    const allRoutes = showRecommendedTab
-      ? [{ key: 'recommended', title: t('recommended') }, ...baseRoutes]
-      : baseRoutes;
-
-    // Only filter if we have valid hidden boards
-    if (validHiddenBoards.length === 0) {
-      return allRoutes;
-    }
-
-    const filteredRoutes = allRoutes.filter((route) => !validHiddenBoards.includes(route.key));
+    // Define default board order
+    const defaultBoards = ['recommended', 'planned', 'inProgress', 'completed'];
+    
+    // Use saved board order if available, otherwise use default
+    const orderedBoardKeys = boardOrder.length > 0 ? boardOrder : defaultBoards;
+    
+    // Create routes based on the ordered board keys
+    const orderedRoutes = orderedBoardKeys
+      .filter((key) => {
+        // Filter out recommended tab if it shouldn't be shown
+        if (key === 'recommended' && !showRecommendedTab) {
+          return false;
+        }
+        // Filter out hidden boards
+        if (validHiddenBoards.includes(key)) {
+          return false;
+        }
+        return VALID_BOARD_KEYS.includes(key);
+      })
+      .map((key) => ({
+        key,
+        title: t(key),
+      }));
 
     // Always show at least one board (planned as fallback)
-    if (filteredRoutes.length === 0) {
+    if (orderedRoutes.length === 0) {
       return [{ key: 'planned', title: t('planned') }];
     }
 
-    return filteredRoutes;
-  }, [t, showRecommendedTab, validHiddenBoards]);
+    return orderedRoutes;
+  }, [t, showRecommendedTab, validHiddenBoards, boardOrder]);
 
   // Select the appropriate scene renderer based on whether recommended tab is shown
   const renderScene = showRecommendedTab ? renderSceneWithRecommendations : renderSceneWithoutRecommendations;

@@ -20,3 +20,4 @@ export const getExpandedCategories = (state: StateWithCustomBook) => getEditable
 // App selectors
 const getApp = (state: StateWithApp) => state.app;
 export const getHiddenBoards = (state: StateWithApp) => getApp(state)?.hiddenBoards ?? [];
+export const getBoardOrder = (state: StateWithApp) => getApp(state)?.boardOrder ?? [];

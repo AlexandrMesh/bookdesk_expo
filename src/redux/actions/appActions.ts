@@ -2,11 +2,12 @@ import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
 
 import { AppThunkAPI, RootState } from '~redux/store/configureStore';
 import { initDatabase, loadProfile, saveProfile } from '~utils/boardStorage';
-import { clearHiddenBoards, loadHiddenBoards, saveHiddenBoards } from '~utils/storage/boardPreferences';
+import { clearHiddenBoards, loadHiddenBoards, saveHiddenBoards, loadBoardOrder, saveBoardOrder, clearBoardOrder } from '~utils/storage/boardPreferences';
 
 const PREFIX = 'APP';
 
 export const setHiddenBoards = createAction<string[]>(`${PREFIX}/setHiddenBoards`);
+export const setBoardOrder = createAction<string[]>(`${PREFIX}/setBoardOrder`);
 
 export const toggleBoardVisibility = createAsyncThunk<string[], string, { state: RootState }>(
   `${PREFIX}/toggleBoardVisibility`,
@@ -26,13 +27,23 @@ export const toggleBoardVisibility = createAsyncThunk<string[], string, { state:
 
 export const loadBoardSettings = createAsyncThunk(`${PREFIX}/loadBoardSettings`, async () => {
   const hiddenBoards = await loadHiddenBoards();
-  return hiddenBoards;
+  const boardOrder = await loadBoardOrder();
+  return { hiddenBoards, boardOrder };
 });
 
 export const resetBoardSettings = createAsyncThunk(`${PREFIX}/resetBoardSettings`, async () => {
   await clearHiddenBoards();
-  return [];
+  await clearBoardOrder();
+  return { hiddenBoards: [], boardOrder: [] };
 });
+
+export const updateBoardOrder = createAsyncThunk<string[], string[], { state: RootState }>(
+  `${PREFIX}/updateBoardOrder`,
+  async (boardOrder) => {
+    await saveBoardOrder(boardOrder);
+    return boardOrder;
+  },
+);
 
 export const supportApp = createAsyncThunk(`${PREFIX}/supportApp`, async (confirmed: boolean, _thunkAPI: AppThunkAPI) => {
   try {
