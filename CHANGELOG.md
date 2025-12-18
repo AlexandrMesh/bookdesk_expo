@@ -2,6 +2,11 @@
 
 ## bookdesk
 
+## 6.3.0
+###### 2025-12-18
+- [New] New endpoint for AI recommendations (first openrouter and fallback Groq)
+- [New] Board settings screen with order and visibility settings
+
 ## 6.2.2
 ###### 2025-12-04
 - [Fix] API keys are in the `.env` for local dev and in the `eas secrets` for the prod builds
