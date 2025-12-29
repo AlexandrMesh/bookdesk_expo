@@ -78,3 +78,34 @@ export const convertBookCoverToBase64 = async (coverPath: string, imgUrl: string
     return null;
   }
 };
+
+/**
+ * Универсальная функция для конвертации любой обложки в base64
+ * Конвертирует http/https/file/content URI в base64 для локального хранения
+ * Если обложка уже в формате data:image или это относительный путь (серверная обложка), возвращает без изменений
+ */
+export const convertAnyCoverToBase64 = async (coverPath: string): Promise<string | null> => {
+  try {
+    // Если обложка уже в формате data:image, возвращаем её
+    if (coverPath.startsWith('data:image')) {
+      return coverPath;
+    }
+
+    // Конвертируем только абсолютные URI (http, https, file, content)
+    // Относительные пути (серверные обложки) оставляем как есть
+    if (
+      coverPath.startsWith('http://') ||
+      coverPath.startsWith('https://') ||
+      coverPath.startsWith('file://') ||
+      coverPath.startsWith('content://')
+    ) {
+      return await convertImageToBase64(coverPath);
+    }
+
+    // Для относительных путей возвращаем без изменений (это серверные обложки)
+    return coverPath;
+  } catch (error) {
+    console.error(`Error converting cover to base64: ${coverPath}`, error);
+    return null;
+  }
+};

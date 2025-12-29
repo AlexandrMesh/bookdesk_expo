@@ -160,13 +160,28 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
           dispatch(loadCategories(true));
         }
 
+        // Convert cover URL to base64 for offline storage (http/https/file/content URI)
+        let finalCoverPath = coverUrl || undefined;
+        if (finalCoverPath) {
+          try {
+            const { convertAnyCoverToBase64 } = await import('~utils/imageConverter');
+            const base64Cover = await convertAnyCoverToBase64(finalCoverPath);
+            if (base64Cover) {
+              finalCoverPath = base64Cover;
+            }
+          } catch (error) {
+            console.error('Failed to convert recommended book cover to base64:', error);
+            // Continue with original path if conversion fails
+          }
+        }
+
         // Create book object
         const newBook: IBook = {
           bookId,
           title,
           authorsList: displayAuthor ? [displayAuthor] : [],
           pages: pages || 0,
-          coverPath: coverUrl || undefined,
+          coverPath: finalCoverPath,
           bookStatus: newStatus,
           added,
           categoryPath,
@@ -198,7 +213,7 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
             title: title || '',
             pages: pages || 0,
             authorsList: displayAuthor ? [displayAuthor] : [],
-            coverPath: coverUrl,
+            coverPath: finalCoverPath,
             added,
             categoryPath,
             categoryValue,

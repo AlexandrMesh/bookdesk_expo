@@ -14,6 +14,7 @@ import i18n from '~translations/i18n';
 import { BookStatus } from '~types/books';
 import type { IBook } from '~types/books';
 import { loadSuggestedCovers as loadSuggestedCoversUtil } from '~utils/coversLoader';
+import { convertAnyCoverToBase64 } from '~utils/imageConverter';
 
 const PREFIX = 'CUSTOM_BOOKS';
 
@@ -59,6 +60,20 @@ export const addCustomBook = createAsyncThunk(`${PREFIX}/addCustomBook`, async (
     const bookId = `custom_${Date.now()}`;
     const added = Date.now();
 
+    // Конвертируем обложку в base64 для локального хранения (http/https/file/content URI)
+    let coverPath = (params.coverPath as string) || undefined;
+    if (coverPath) {
+      try {
+        const base64Cover = await convertAnyCoverToBase64(coverPath);
+        if (base64Cover) {
+          coverPath = base64Cover;
+        }
+      } catch (error) {
+        console.error('Failed to convert cover to base64:', error);
+        // Продолжаем с оригинальным путем, если конвертация не удалась
+      }
+    }
+
     // Сохраняем дату/статус локально
     try {
       const { saveBookDate } = await import('~utils/boardStorage');
@@ -75,7 +90,7 @@ export const addCustomBook = createAsyncThunk(`${PREFIX}/addCustomBook`, async (
       authorsList: (params.authorsList as string[]) || [],
       annotation: '',
       bookStatus: (bookStatus as BookStatus) || null,
-      coverPath: (params.coverPath as string) || undefined,
+      coverPath,
       added,
       categoryPath: params.categoryPath as string,
     };
@@ -119,6 +134,20 @@ export const updateUserCustomBook = createAsyncThunk(
     { dispatch }: AppThunkAPI,
   ) => {
     try {
+      // Конвертируем обложку в base64 для локального хранения (http/https/file/content URI)
+      let coverPath = params.coverPath;
+      if (coverPath) {
+        try {
+          const base64Cover = await convertAnyCoverToBase64(coverPath);
+          if (base64Cover) {
+            coverPath = base64Cover;
+          }
+        } catch (error) {
+          console.error('Failed to convert cover to base64:', error);
+          // Продолжаем с оригинальным путем, если конвертация не удалась
+        }
+      }
+
       // Локальное обновление: обновляем книгу в Redux и кэше
       const response = {
         bookId: params.bookId,
@@ -127,7 +156,7 @@ export const updateUserCustomBook = createAsyncThunk(
         authorsList: params.authorsList,
         annotation: params.annotation || '',
         bookStatus: params.bookStatus,
-        coverPath: params.coverPath,
+        coverPath,
         categoryPath: params.categoryPath,
       };
       dispatch(updateBookOnBoardAndSearch(response));

@@ -41,7 +41,7 @@ const CoverViewer = () => {
             source={{ uri: coverUrl }}
             contentFit='contain'
             transition={200}
-            cachePolicy='memory-disk'
+            cachePolicy={coverUrl.startsWith('data:image') ? 'none' : 'memory-disk'}
             onError={(error) => {
               // eslint-disable-next-line no-console
               console.error('❌ [CoverViewer] Ошибка загрузки изображения:', error);

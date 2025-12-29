@@ -8,12 +8,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { SceneMap, TabView } from 'react-native-tab-view';
 
 import { useAppSelector } from '~hooks';
-import SettingsIcon from '~assets/settings.svg';
-import { BOARD_SETTINGS_ROUTE } from '~constants/routes';
-import { getHiddenBoards, getBoardOrder } from '~redux/selectors/common';
 
+import SettingsIcon from '~assets/settings.svg';
 import { PENDING } from '~constants/loadingStatuses';
+import { BOARD_SETTINGS_ROUTE } from '~constants/routes';
 import useNetworkStatus from '~hooks/useNetworkStatus';
+import { getHiddenBoards, getBoardOrder } from '~redux/selectors/common';
 import { getRecommendations, getRecommendationsLoadingStatus, getRecommendationsLastUpdated } from '~redux/selectors/recommendations';
 import { useThemeColors } from '~theme/hooks';
 import { useThemedStyles } from '~theme/useThemedStyles';
@@ -87,8 +87,9 @@ const Home = () => {
   }, []);
 
   // Determine if we should show the Recommended tab
-  // Show if: has recommendations in Redux OR has cached recommendations OR is online (can load)
-  const showRecommendedTab = hasRecommendations || hasCachedRecommendations === true || isOnline;
+  // Show when: online (can load recommendations) OR has cached recommendations
+  // Hide only when offline AND no cached recommendations
+  const showRecommendedTab = isOnline || hasCachedRecommendations === true;
 
   // Blinking animation for "Recommended" tab when loading
   const blinkAnim = useRef(new Animated.Value(1)).current;
@@ -133,10 +134,10 @@ const Home = () => {
   const routes = useMemo(() => {
     // Define default board order
     const defaultBoards = ['recommended', 'planned', 'inProgress', 'completed'];
-    
+
     // Use saved board order if available, otherwise use default
     const orderedBoardKeys = boardOrder.length > 0 ? boardOrder : defaultBoards;
-    
+
     // Create routes based on the ordered board keys
     const orderedRoutes = orderedBoardKeys
       .filter((key) => {
