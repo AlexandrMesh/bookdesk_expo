@@ -4,10 +4,9 @@ import { Dimensions, Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { Image } from 'expo-image';
 
-import CloseIcon from '~assets/close.svg';
-
 import { useAppDispatch, useAppSelector } from '~hooks';
 
+import CloseIcon from '~assets/close.svg';
 import { COVER_VIEWER } from '~constants/modalTypes';
 import { hideModal } from '~redux/actions/booksActions';
 import { getActiveModal, getCoverUrl } from '~redux/selectors/books';
@@ -28,7 +27,6 @@ const CoverViewer = () => {
     return null;
   }
 
-
   return (
     <Modal visible={isVisible} transparent={true} animationType='fade' onRequestClose={handleClose}>
       <Pressable style={styles.overlay} onPress={handleClose}>
@@ -43,11 +41,9 @@ const CoverViewer = () => {
             transition={200}
             cachePolicy={coverUrl.startsWith('data:image') ? 'none' : 'memory-disk'}
             onError={(error) => {
-              // eslint-disable-next-line no-console
               console.error('❌ [CoverViewer] Ошибка загрузки изображения:', error);
             }}
-            onLoad={() => {
-            }}
+            onLoad={() => {}}
           />
         </View>
       </Pressable>
@@ -91,4 +87,3 @@ const styles = StyleSheet.create({
 });
 
 export default CoverViewer;
-
