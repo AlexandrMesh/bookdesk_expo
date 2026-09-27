@@ -21,6 +21,7 @@ import { useThemedStyles } from '~theme/useThemedStyles';
 import Button from '~UI/Button';
 import { Spinner } from '~UI/Spinner';
 import Input from '~UI/TextInput';
+import { DEFAULT_COVER_SOURCE } from '~utils/coverUtils';
 import { getValidationFailure, validationTypes } from '~utils/validation';
 
 import createStyles from './styles';
@@ -116,7 +117,7 @@ const BookNote: FC = () => {
       {params?.coverUri ? (
         <Image style={styles.coverThumb} source={{ uri: params.coverUri }} contentFit='cover' transition={150} />
       ) : (
-        <View style={[styles.coverThumb, styles.coverPlaceholder]} />
+        <Image style={styles.coverThumb} source={DEFAULT_COVER_SOURCE} contentFit='cover' transition={150} />
       )}
       <View style={styles.bookTitleWrapper}>
         <Text style={[styles.title, styles.lightColor]} numberOfLines={2} ellipsizeMode='tail'>

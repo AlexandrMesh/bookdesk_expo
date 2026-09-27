@@ -8,11 +8,9 @@ import { useBackHandler } from '@react-native-community/hooks';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 
-import { DEFAULT_COVER } from '~constants/customBooks';
 import { FAILED, PENDING, SUCCEEDED } from '~constants/loadingStatuses';
 import { SECONDARY } from '~constants/themes';
 import { useAppDispatch, useAppSelector } from '~hooks';
-import useGetImgUrl from '~hooks/useGetImgUrl';
 import useNetworkStatus from '~hooks/useNetworkStatus';
 import { loadSuggestedCovers, selectCover, setAvailableStep, setCurrentStep, setShouldAddCover } from '~redux/actions/customBookActions';
 import {
@@ -27,6 +25,7 @@ import { useThemedStyles } from '~theme/useThemedStyles';
 import Button from '~UI/Button';
 import RadioButton from '~UI/RadioButton';
 import { Spinner } from '~UI/Spinner';
+import { DEFAULT_COVER_SOURCE } from '~utils/coverUtils';
 
 import createStyles from './styles';
 
@@ -48,7 +47,6 @@ const Step2 = () => {
   const suggestedCoversData = useAppSelector(getSuggestedCoversData);
   const selectedCover = useAppSelector(getSelectedCover);
 
-  const imgUrl = useGetImgUrl();
   const isOnline = useNetworkStatus();
   const [isPickingFromDevice, setIsPickingFromDevice] = useState(false);
 
@@ -61,6 +59,8 @@ const Step2 = () => {
     dispatch(setShouldAddCover(true));
     // Очистим выбранную обложку с устройства, чтобы запустить загрузку предложенных обложек
     dispatch(selectCover(''));
+    // Force a new search even if previous attempt returned nothing
+    dispatch(loadSuggestedCovers());
   };
 
   const pickImageFromDevice = async () => {
@@ -98,7 +98,7 @@ const Step2 = () => {
     return true;
   });
 
-  const isFindCoverDisabled = !isOnline || !!(shouldAddCover && !isSelectedFromDevice);
+  const isFindCoverDisabled = !isOnline || (shouldAddCover === true && !isSelectedFromDevice && loadingDataStatus === PENDING);
 
   useEffect(() => {
     // Загружаем только если у нас включен поиск, ещё ничего не выбрано и нет загруженных обложек
@@ -138,14 +138,7 @@ const Step2 = () => {
               <View>
                 <View style={[styles.defaultCover, styles.selectedCover]}>
                   <RadioButton style={styles.selectedCoverRadioButton as ViewStyle} isSelected />
-                  {imgUrl && (
-                    <Image
-                      style={styles.cover as ImageStyle}
-                      source={{
-                        uri: `${imgUrl}/${DEFAULT_COVER}.webp`,
-                      }}
-                    />
-                  )}
+                  <Image style={styles.cover as ImageStyle} source={DEFAULT_COVER_SOURCE} contentFit='cover' />
                 </View>
               </View>
             </View>
@@ -162,11 +155,7 @@ const Step2 = () => {
           {shouldAddCover && !isSelectedFromDevice && !isPickingFromDevice && loadingDataStatus === FAILED && (
             <View style={styles.errorMessageWrapper}>
               <Text style={styles.errorMessage}>{t('customBook:coversNotFound')}</Text>
-              <Button
-                style={styles.uploadButton}
-                onPress={pickImageFromDevice}
-                title={t('customBook:upload')}
-              />
+              <Button style={styles.uploadButton} onPress={pickImageFromDevice} title={t('customBook:upload')} />
             </View>
           )}
 

@@ -1,9 +1,9 @@
 import React, { FC, memo, useCallback, useEffect, useMemo, useState } from 'react';
 
-import { Text, ToastAndroid, TouchableOpacity, View, Pressable } from 'react-native';
+import { Text, ToastAndroid, TouchableOpacity, View, Pressable, Image as RNImage } from 'react-native';
 
 import { Image } from 'expo-image';
-import { BookOpen, ZoomIn } from 'lucide-react-native';
+import { ZoomIn } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
 
@@ -19,6 +19,8 @@ import { useThemedStyles } from '~theme/useThemedStyles';
 import { BookStatus, IBook } from '~types/books';
 import Dropdown from '~UI/Dropdown';
 import { IRecommendedBook } from '~utils/aiRecommendations';
+import { CATALOG_COVER_ASSETS } from '~utils/catalogCoverAssets';
+import { DEFAULT_COVER_SOURCE } from '~utils/coverUtils';
 
 import createStyles from './styles';
 
@@ -35,6 +37,10 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [localAddedStatus, setLocalAddedStatus] = useState<BookStatus | null>(null);
   const [coverError, setCoverError] = useState(false);
+
+  useEffect(() => {
+    setCoverError(false);
+  }, [coverUrl]);
 
   // Get all boards to check if book exists
   const plannedBoard = useSelector(deriveBoard(PLANNED));
@@ -246,20 +252,29 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
     [themeColors],
   );
 
+  const localCover = CATALOG_COVER_ASSETS[book.id];
+  const coverSource = localCover || (coverUrl ? { uri: coverUrl } : DEFAULT_COVER_SOURCE);
+
   const handleCoverPress = useCallback(() => {
-    // Use the same URL that's already loaded and cached by expo-image
-    // No additional network request needed
+    if (localCover) {
+      const resolved = RNImage.resolveAssetSource(localCover);
+      if (resolved?.uri) {
+        dispatch(setCoverUrl(resolved.uri));
+        dispatch(showModal(COVER_VIEWER));
+      }
+      return;
+    }
     if (coverUrl) {
       dispatch(setCoverUrl(coverUrl));
       dispatch(showModal(COVER_VIEWER));
     }
-  }, [coverUrl, dispatch]);
+  }, [localCover, coverUrl, dispatch]);
 
   const handleCoverError = useCallback(() => {
     setCoverError(true);
   }, []);
 
-  const showCover = coverUrl && !coverError;
+  const showCover = !coverError;
 
   const buttonLabel = currentStatus ? t(currentStatus) : t('common:add');
   const statusColor = getStatusColor(currentStatus);
@@ -273,10 +288,15 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
               <Pressable onPress={handleCoverPress} style={styles.coverPressable}>
                 <Image
                   style={styles.cover}
-                  source={{ uri: coverUrl }}
-                  contentFit='contain'
-                  transition={0}
-                  cachePolicy='memory-disk'
+                  source={coverSource}
+                  contentFit='cover'
+                  transition={150}
+                  cachePolicy={
+                    typeof coverSource === 'number' ||
+                    (typeof coverSource === 'object' && 'uri' in coverSource && String(coverSource.uri || '').startsWith('data:image'))
+                      ? 'none'
+                      : 'memory-disk'
+                  }
                   recyclingKey={book.id}
                   onError={handleCoverError}
                 />
@@ -285,12 +305,7 @@ const RecommendedBookItemComponent: FC<Props> = ({ book }) => {
                 </View>
               </Pressable>
             ) : (
-              <View style={[styles.coverPlaceholder, { backgroundColor: themeColors.neutral_medium }]}>
-                <BookOpen size={40} color={themeColors.neutral_light} />
-                <Text style={[styles.coverPlaceholderText, styles.lightColor]} numberOfLines={2}>
-                  {title}
-                </Text>
-              </View>
+              <Image style={styles.cover} source={DEFAULT_COVER_SOURCE} contentFit='cover' />
             )}
           </View>
           <View style={styles.buttonsWrapper}>

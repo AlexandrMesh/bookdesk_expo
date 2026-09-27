@@ -20,7 +20,8 @@
     "update:production": "eas update --platform android --channel production",
     "update:list:preview": "eas update:list",
     "update:list:production": "eas update:list",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "covers:download": "node scripts/downloadCatalogCovers.cjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

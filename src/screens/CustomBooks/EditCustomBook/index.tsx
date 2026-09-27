@@ -28,6 +28,7 @@ import RadioButton from '~UI/RadioButton';
 import { Spinner } from '~UI/Spinner';
 import Input from '~UI/TextInput';
 import { loadSuggestedCovers } from '~utils/coversLoader';
+import { DEFAULT_COVER_SOURCE, resolveCoverImageSource } from '~utils/coverUtils';
 import { getValidationFailure, validationTypes } from '~utils/validation';
 
 import createStyles from './styles';
@@ -84,8 +85,7 @@ const EditCustomBook = () => {
   const [shouldAddCover, setShouldAddCover] = useState<boolean | undefined>(initialCoverPath === DEFAULT_COVER ? false : true);
   const [selectedCover, setSelectedCover] = useState<string>(initialCoverPath === DEFAULT_COVER ? '' : initialCoverPath);
 
-  useEffect(() => {
-  }, []);
+  useEffect(() => {}, []);
 
   useEffect(() => {
     if (params.categoryPath) {
@@ -120,7 +120,8 @@ const EditCustomBook = () => {
     !draftIsSelectedInSuggestedList &&
     !draftIsCurrentCover &&
     (draftSelectedCover.startsWith('file:') || draftSelectedCover.startsWith('content:') || draftSelectedCover.startsWith('data:'));
-  const isDraftFindCoverDisabled = !isOnline || !!(draftShouldAddCover && !draftIsSelectedFromDevice && !draftIsCurrentCover);
+  const isDraftFindCoverDisabled =
+    !isOnline || (draftShouldAddCover === true && !draftIsSelectedFromDevice && !draftIsCurrentCover && draftLoadingDataStatus === 'pending');
 
   const suggestedCoversExist = suggestedCoversData.length > 0;
   const isSelectedInSuggestedList = !!selectedCover && suggestedCoversData.some((item) => item.coverPath === selectedCover);
@@ -236,7 +237,7 @@ const EditCustomBook = () => {
         try {
           const items = await loadSuggestedCovers(_title);
           setDraftSuggestedCoversData(items);
-          setDraftLoadingDataStatus('succeeded');
+          setDraftLoadingDataStatus(items.length > 0 ? 'succeeded' : 'failed');
         } catch (error) {
           console.error('Error loading suggested covers:', error);
           setDraftLoadingDataStatus('failed');
@@ -298,375 +299,341 @@ const EditCustomBook = () => {
 
   const displayDeleteConfirmation = useDisplayAlert(handleDeleteBook);
 
-  const getImageUri = (cover: string) => {
-    if (!cover || cover === DEFAULT_COVER) {
-      // Для дефолтной обложки всегда возвращаем URI, даже если imgUrl еще не готов
-      const uri = imgUrl ? `${imgUrl}/${DEFAULT_COVER}.webp` : '';
-      return uri;
-    }
-    const lower = String(cover);
-    const isAbsolute = /^https?:\/\//i.test(lower) || lower.startsWith('file:') || lower.startsWith('content:') || lower.startsWith('data:');
-    if (isAbsolute) {
-      return cover;
-    }
-    const uri = imgUrl ? `${imgUrl}/${cover}.webp` : '';
-    return uri;
-  };
+  const getImageSource = (cover: string) => resolveCoverImageSource(cover, imgUrl);
 
-  const currentCoverThumb = useMemo(() => {
+  const currentCoverSource = useMemo(() => {
     const cover = selectedCover || initialCoverPath;
-    const uri = getImageUri(cover);
-    return uri;
+    return getImageSource(cover);
   }, [selectedCover, initialCoverPath, imgUrl]);
 
   return (
     <>
       <View style={styles.wrapper}>
         <View style={styles.container}>
-        <ScrollView style={styles.inputWrapper} keyboardShouldPersistTaps='handled'>
-          <View>
-            <Text style={styles.subTitle}>
-              {t('customBook:bookTitle')}
-              {t('common:required')}
-            </Text>
-            <Input
-              placeholder={t('customBook:enterBookTitle')}
-              disabled={isSaving}
-              onChangeText={handleChangeTitle}
-              value={_title as string}
-              error={titleError}
-              shouldDisplayClearButton={!!_title}
-              onClear={() => setTitle(null)}
-            />
-          </View>
-
-          {/* Cover block with thumbnail and Change button */}
-        <View style={styles.block}>
-          <Text style={styles.subTitle}>{t('customBook:bookCover')}</Text>
-          <View style={styles.editThumbWrapper}>
-            <View style={styles.editThumbCover}>
-              {currentCoverThumb ? (
-                <Image
-                  style={styles.cover as ImageStyle}
-                  source={{
-                    uri: currentCoverThumb,
-                  }}
-                  onError={() => {}}
-                  onLoad={() => {}}
-                />
-              ) : (
-                <View style={styles.coverPlaceholder} />
-              )}
-            </View>
-            <Button
-              style={styles.editChangeButton}
-              titleStyle={styles.buttonTitle}
-              title={t('common:edit')}
-              onPress={() => setIsCoverModalVisible(true)}
-            />
-          </View>
-        </View>
-
-        <View style={styles.block}>
-          <Text style={styles.subTitle}>{t('customBook:genre')}</Text>
-          <View style={styles.blockWrapper}>
-            <Pressable style={[styles.inputBlockWrapper, displayedCategoryLabel ? styles.activeInputWrapper : {}]} onPress={showCategoryChooser}>
-              <Text numberOfLines={1} style={[styles.inputLabel, displayedCategoryLabel ? styles.activeInputLabel : {}]}>
-                {displayedCategoryLabel || t('customBook:noGenre')}
+          <ScrollView style={styles.inputWrapper} keyboardShouldPersistTaps='handled'>
+            <View>
+              <Text style={styles.subTitle}>
+                {t('customBook:bookTitle')}
+                {t('common:required')}
               </Text>
-            </Pressable>
-            <Button style={styles.mainButton} onPress={showCategoryChooser} title={t('common:choose')} />
-          </View>
-        </View>
+              <Input
+                placeholder={t('customBook:enterBookTitle')}
+                disabled={isSaving}
+                onChangeText={handleChangeTitle}
+                value={_title as string}
+                error={titleError}
+                shouldDisplayClearButton={!!_title}
+                onClear={() => setTitle(null)}
+              />
+            </View>
 
-          {/* Cover selection modal (reuses step 2 logic) */}
-          <Modal
-            visible={isCoverModalVisible}
-            transparent
-            animationType='slide'
-            onShow={() => {
-              // Backup current state
-              backupSelectedCoverRef.current = selectedCover;
-              backupShouldAddCoverRef.current = shouldAddCover;
-              // Initialize draft state from current state
-              if (initialCoverPath === DEFAULT_COVER || shouldAddCover === false) {
-                // У книги нет обложки — сразу выставляем режим "Без обложки"
-                setDraftShouldAddCover(false);
-                setDraftSelectedCover(DEFAULT_COVER);
-              } else {
-                setDraftShouldAddCover(shouldAddCover);
-                setDraftSelectedCover(selectedCover);
-              }
-              setDraftIsPickingFromDevice(false);
-              setDraftSuggestedCoversData([]);
-              setDraftLoadingDataStatus('idle');
-            }}
-            onRequestClose={() => {
-              // discard changes
-              setSelectedCover(backupSelectedCoverRef.current);
-              setShouldAddCover(backupShouldAddCoverRef.current);
-              setIsCoverModalVisible(false);
-            }}
-          >
-            <View style={styles.wrapper}>
-              <View style={styles.container}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalHeaderTitle}>{t('customBook:bookCover')}</Text>
-                  <Pressable
-                    onPress={() => {
-                      // discard changes
-                      setSelectedCover(backupSelectedCoverRef.current);
-                      setShouldAddCover(backupShouldAddCoverRef.current);
-                      setIsCoverModalVisible(false);
-                    }}
-                  >
-                    <CloseIcon width={CLOSE_ICON.width} height={CLOSE_ICON.height} fill={colors.neutral_light} />
-                  </Pressable>
+            {/* Cover block with thumbnail and Change button */}
+            <View style={styles.block}>
+              <Text style={styles.subTitle}>{t('customBook:bookCover')}</Text>
+              <View style={styles.editThumbWrapper}>
+                <View style={styles.editThumbCover}>
+                  <Image style={styles.cover as ImageStyle} source={currentCoverSource} contentFit='cover' onError={() => {}} onLoad={() => {}} />
                 </View>
-                <ScrollView style={styles.inputWrapper} keyboardShouldPersistTaps='handled'>
-                  {draftShouldAddCover === undefined && <Text style={styles.suggestionLabel}>{t('customBook:chooseTheOptionForBookCover')}</Text>}
+                <Button
+                  style={styles.editChangeButton}
+                  titleStyle={styles.buttonTitle}
+                  title={t('common:edit')}
+                  onPress={() => setIsCoverModalVisible(true)}
+                />
+              </View>
+            </View>
 
-                  <View style={styles.buttonsWrapper}>
-                    {initialCoverPath !== DEFAULT_COVER && (
+            <View style={styles.block}>
+              <Text style={styles.subTitle}>{t('customBook:genre')}</Text>
+              <View style={styles.blockWrapper}>
+                <Pressable style={[styles.inputBlockWrapper, displayedCategoryLabel ? styles.activeInputWrapper : {}]} onPress={showCategoryChooser}>
+                  <Text numberOfLines={1} style={[styles.inputLabel, displayedCategoryLabel ? styles.activeInputLabel : {}]}>
+                    {displayedCategoryLabel || t('customBook:noGenre')}
+                  </Text>
+                </Pressable>
+                <Button style={styles.mainButton} onPress={showCategoryChooser} title={t('common:choose')} />
+              </View>
+            </View>
+
+            {/* Cover selection modal (reuses step 2 logic) */}
+            <Modal
+              visible={isCoverModalVisible}
+              transparent
+              animationType='slide'
+              onShow={() => {
+                // Backup current state
+                backupSelectedCoverRef.current = selectedCover;
+                backupShouldAddCoverRef.current = shouldAddCover;
+                // Initialize draft state from current state
+                if (initialCoverPath === DEFAULT_COVER || shouldAddCover === false) {
+                  // У книги нет обложки — сразу выставляем режим "Без обложки"
+                  setDraftShouldAddCover(false);
+                  setDraftSelectedCover(DEFAULT_COVER);
+                } else {
+                  setDraftShouldAddCover(shouldAddCover);
+                  setDraftSelectedCover(selectedCover);
+                }
+                setDraftIsPickingFromDevice(false);
+                setDraftSuggestedCoversData([]);
+                setDraftLoadingDataStatus('idle');
+              }}
+              onRequestClose={() => {
+                // discard changes
+                setSelectedCover(backupSelectedCoverRef.current);
+                setShouldAddCover(backupShouldAddCoverRef.current);
+                setIsCoverModalVisible(false);
+              }}
+            >
+              <View style={styles.wrapper}>
+                <View style={styles.container}>
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalHeaderTitle}>{t('customBook:bookCover')}</Text>
+                    <Pressable
+                      onPress={() => {
+                        // discard changes
+                        setSelectedCover(backupSelectedCoverRef.current);
+                        setShouldAddCover(backupShouldAddCoverRef.current);
+                        setIsCoverModalVisible(false);
+                      }}
+                    >
+                      <CloseIcon width={CLOSE_ICON.width} height={CLOSE_ICON.height} fill={colors.neutral_light} />
+                    </Pressable>
+                  </View>
+                  <ScrollView style={styles.inputWrapper} keyboardShouldPersistTaps='handled'>
+                    {draftShouldAddCover === undefined && <Text style={styles.suggestionLabel}>{t('customBook:chooseTheOptionForBookCover')}</Text>}
+
+                    <View style={styles.buttonsWrapper}>
+                      {initialCoverPath !== DEFAULT_COVER && (
+                        <Button
+                          disabled={draftIsCurrentCover}
+                          theme={SECONDARY}
+                          style={styles.button as ViewStyle}
+                          titleStyle={styles.buttonTitle}
+                          onPress={handleSelectCurrentCover}
+                          title={t('customBook:currentCover')}
+                        />
+                      )}
                       <Button
-                        disabled={draftIsCurrentCover}
+                        disabled={draftShouldAddCover === false}
                         theme={SECONDARY}
                         style={styles.button as ViewStyle}
                         titleStyle={styles.buttonTitle}
-                        onPress={handleSelectCurrentCover}
-                        title={t('customBook:currentCover')}
+                        onPress={handlePressOnWithoutCover}
+                        title={t('customBook:withoutCover')}
                       />
-                    )}
-                    <Button
-                      disabled={draftShouldAddCover === false}
-                      theme={SECONDARY}
-                      style={styles.button as ViewStyle}
-                      titleStyle={styles.buttonTitle}
-                      onPress={handlePressOnWithoutCover}
-                      title={t('customBook:withoutCover')}
-                    />
-                    <Button
-                      disabled={isDraftFindCoverDisabled}
-                      style={styles.button}
-                      titleStyle={styles.buttonTitle}
-                      onPress={handleFindCover}
-                      title={t('customBook:findCover')}
-                    />
-                    <Button style={styles.button} titleStyle={styles.buttonTitle} onPress={pickImageFromDevice} title={t('common:choose')} />
-                  </View>
+                      <Button
+                        disabled={isDraftFindCoverDisabled}
+                        style={styles.button}
+                        titleStyle={styles.buttonTitle}
+                        onPress={handleFindCover}
+                        title={t('customBook:findCover')}
+                      />
+                      <Button style={styles.button} titleStyle={styles.buttonTitle} onPress={pickImageFromDevice} title={t('common:choose')} />
+                    </View>
 
-                  <ScrollView style={styles.contentWrapper} keyboardShouldPersistTaps='handled'>
-                    {draftShouldAddCover === false && !draftIsPickingFromDevice && (
-                      <View style={styles.defaultCoverWrapper}>
-                        <Text style={styles.suggestionLabel}>{t('customBook:theExampleOfTheBookCover')}</Text>
-                        <View>
-                          <View style={[styles.defaultCover, styles.selectedCover]}>
-                            <RadioButton style={styles.selectedCoverRadioButton as ViewStyle} isSelected />
-                            {imgUrl && (
-                              <Image
-                                style={styles.cover as ImageStyle}
-                                source={{
-                                  uri: `${imgUrl}/${DEFAULT_COVER}.webp`,
-                                }}
-                              />
-                            )}
+                    <ScrollView style={styles.contentWrapper} keyboardShouldPersistTaps='handled'>
+                      {draftShouldAddCover === false && !draftIsPickingFromDevice && (
+                        <View style={styles.defaultCoverWrapper}>
+                          <Text style={styles.suggestionLabel}>{t('customBook:theExampleOfTheBookCover')}</Text>
+                          <View>
+                            <View style={[styles.defaultCover, styles.selectedCover]}>
+                              <RadioButton style={styles.selectedCoverRadioButton as ViewStyle} isSelected />
+                              <Image style={styles.cover as ImageStyle} source={DEFAULT_COVER_SOURCE} contentFit='cover' />
+                            </View>
                           </View>
                         </View>
-                      </View>
-                    )}
+                      )}
 
-                    {(draftIsPickingFromDevice ||
-                      (draftShouldAddCover && !draftIsSelectedFromDevice && !draftIsCurrentCover && draftLoadingDataStatus === 'pending')) && (
-                      <View style={styles.contentSpinnerWrapper}>
-                        <Spinner />
-                      </View>
-                    )}
-
-                    {/* Сообщение об ошибке при загрузке обложек */}
-                    {draftShouldAddCover &&
-                      !draftIsSelectedFromDevice &&
-                      !draftIsCurrentCover &&
-                      !draftIsPickingFromDevice &&
-                      draftLoadingDataStatus === 'failed' && (
-                        <View style={styles.errorMessageWrapper}>
-                          <Text style={styles.errorMessage}>{t('customBook:coversNotFound')}</Text>
-                          <Button style={styles.uploadButton} onPress={pickImageFromDevice} title={t('customBook:upload')} />
+                      {(draftIsPickingFromDevice ||
+                        (draftShouldAddCover && !draftIsSelectedFromDevice && !draftIsCurrentCover && draftLoadingDataStatus === 'pending')) && (
+                        <View style={styles.contentSpinnerWrapper}>
+                          <Spinner />
                         </View>
                       )}
 
-                    {draftShouldAddCover && !draftIsPickingFromDevice && draftIsSelectedFromDevice && (
-                      <View style={styles.deviceCoverWrapper}>
-                        <View style={[styles.coverWrapper, styles.selectedCover]}>
-                          <RadioButton style={styles.selectedCoverRadioButton as ViewStyle} isSelected={true} />
-                          <Image
-                            style={styles.cover as ImageStyle}
-                            source={{
-                              uri: draftSelectedCover,
-                            }}
-                          />
-                        </View>
-                      </View>
-                    )}
+                      {/* Сообщение об ошибке при загрузке обложек */}
+                      {draftShouldAddCover &&
+                        !draftIsSelectedFromDevice &&
+                        !draftIsCurrentCover &&
+                        !draftIsPickingFromDevice &&
+                        draftLoadingDataStatus === 'failed' && (
+                          <View style={styles.errorMessageWrapper}>
+                            <Text style={styles.errorMessage}>{t('customBook:coversNotFound')}</Text>
+                            <Button style={styles.uploadButton} onPress={pickImageFromDevice} title={t('customBook:upload')} />
+                          </View>
+                        )}
 
-                    {draftShouldAddCover === true && !draftIsPickingFromDevice && draftIsCurrentCover && (
-                      <View style={styles.deviceCoverWrapper}>
-                        <Text style={styles.suggestionLabel}>{t('customBook:currentCover')}</Text>
-                        <View style={[styles.coverWrapper, styles.selectedCover]}>
-                          <RadioButton style={styles.selectedCoverRadioButton as ViewStyle} isSelected={true} />
-                          <Image
-                            style={styles.cover as ImageStyle}
-                            source={{
-                              uri: getImageUri(draftSelectedCover),
-                            }}
-                          />
-                        </View>
-                      </View>
-                    )}
-
-                    {draftShouldAddCover &&
-                      !draftIsSelectedFromDevice &&
-                      !draftIsCurrentCover &&
-                      !draftIsPickingFromDevice &&
-                      draftLoadingDataStatus === 'succeeded' &&
-                      draftSuggestedCoversData.length > 0 && (
-                        <View style={styles.suggestedCovers}>
-                          <Text style={styles.suggestionLabel}>{t('customBook:chooseTheBookCover')}</Text>
-                          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.coversScrollContent}>
-                            {draftSuggestedCoversData.map((item) => {
-                              const selected = draftSelectedCover === item.coverPath;
-                              return (
-                                <Pressable
-                                  key={item.coverPath}
-                                  style={[styles.coverWrapper, selected && styles.selectedCover]}
-                                  onPress={() => setDraftSelectedCover(item.coverPath)}
-                                >
-                                  <RadioButton style={styles.selectedCoverRadioButton as ViewStyle} isSelected={selected} />
-                                  <Image
-                                    style={styles.cover as ImageStyle}
-                                    source={{
-                                      uri: item.coverPath,
-                                    }}
-                                  />
-                                </Pressable>
-                              );
-                            })}
-                          </ScrollView>
+                      {draftShouldAddCover && !draftIsPickingFromDevice && draftIsSelectedFromDevice && (
+                        <View style={styles.deviceCoverWrapper}>
+                          <View style={[styles.coverWrapper, styles.selectedCover]}>
+                            <RadioButton style={styles.selectedCoverRadioButton as ViewStyle} isSelected={true} />
+                            <Image
+                              style={styles.cover as ImageStyle}
+                              source={{
+                                uri: draftSelectedCover,
+                              }}
+                            />
+                          </View>
                         </View>
                       )}
+
+                      {draftShouldAddCover === true && !draftIsPickingFromDevice && draftIsCurrentCover && (
+                        <View style={styles.deviceCoverWrapper}>
+                          <Text style={styles.suggestionLabel}>{t('customBook:currentCover')}</Text>
+                          <View style={[styles.coverWrapper, styles.selectedCover]}>
+                            <RadioButton style={styles.selectedCoverRadioButton as ViewStyle} isSelected={true} />
+                            <Image
+                              style={styles.cover as ImageStyle}
+                              source={resolveCoverImageSource(draftSelectedCover, imgUrl)}
+                              contentFit='cover'
+                            />
+                          </View>
+                        </View>
+                      )}
+
+                      {draftShouldAddCover &&
+                        !draftIsSelectedFromDevice &&
+                        !draftIsCurrentCover &&
+                        !draftIsPickingFromDevice &&
+                        draftLoadingDataStatus === 'succeeded' &&
+                        draftSuggestedCoversData.length > 0 && (
+                          <View style={styles.suggestedCovers}>
+                            <Text style={styles.suggestionLabel}>{t('customBook:chooseTheBookCover')}</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.coversScrollContent}>
+                              {draftSuggestedCoversData.map((item) => {
+                                const selected = draftSelectedCover === item.coverPath;
+                                return (
+                                  <Pressable
+                                    key={item.coverPath}
+                                    style={[styles.coverWrapper, selected && styles.selectedCover]}
+                                    onPress={() => setDraftSelectedCover(item.coverPath)}
+                                  >
+                                    <RadioButton style={styles.selectedCoverRadioButton as ViewStyle} isSelected={selected} />
+                                    <Image
+                                      style={styles.cover as ImageStyle}
+                                      source={{
+                                        uri: item.coverPath,
+                                      }}
+                                    />
+                                  </Pressable>
+                                );
+                              })}
+                            </ScrollView>
+                          </View>
+                        )}
+                    </ScrollView>
                   </ScrollView>
-                </ScrollView>
-                <View style={styles.footerButtonsWrapper}>
-                  <Button
-                    theme={SECONDARY}
-                    style={styles.footerButton}
-                    onPress={() => {
-                      // discard changes
-                      setSelectedCover(backupSelectedCoverRef.current);
-                      setShouldAddCover(backupShouldAddCoverRef.current);
-                      setIsCoverModalVisible(false);
-                    }}
-                    title={t('common:back')}
-                  />
-                  <Button
-                    style={styles.footerButton}
-                    onPress={() => {
-                      // apply draft changes to main state
-                      setSelectedCover(draftSelectedCover);
-                      setShouldAddCover(draftShouldAddCover);
-                      setIsCoverModalVisible(false);
-                    }}
-                    title={t('common:save')}
-                  />
+                  <View style={styles.footerButtonsWrapper}>
+                    <Button
+                      theme={SECONDARY}
+                      style={styles.footerButton}
+                      onPress={() => {
+                        // discard changes
+                        setSelectedCover(backupSelectedCoverRef.current);
+                        setShouldAddCover(backupShouldAddCoverRef.current);
+                        setIsCoverModalVisible(false);
+                      }}
+                      title={t('common:back')}
+                    />
+                    <Button
+                      style={styles.footerButton}
+                      onPress={() => {
+                        // apply draft changes to main state
+                        setSelectedCover(draftSelectedCover);
+                        setShouldAddCover(draftShouldAddCover);
+                        setIsCoverModalVisible(false);
+                      }}
+                      title={t('common:save')}
+                    />
+                  </View>
                 </View>
               </View>
+            </Modal>
+
+            <View>
+              <Text style={styles.subTitle}>{t('customBook:pages')}</Text>
+              <Input
+                placeholder={t('customBook:enterPagesCount')}
+                disabled={isSaving}
+                onChangeText={handleChangePages}
+                value={_pages as string}
+                error={pagesError}
+                shouldDisplayClearButton={!!_pages}
+                onClear={() => setPages(null)}
+                inputMode='numeric'
+              />
             </View>
-          </Modal>
 
-          <View>
-            <Text style={styles.subTitle}>{t('customBook:pages')}</Text>
-            <Input
-              placeholder={t('customBook:enterPagesCount')}
-              disabled={isSaving}
-              onChangeText={handleChangePages}
-              value={_pages as string}
-              error={pagesError}
-              shouldDisplayClearButton={!!_pages}
-              onClear={() => setPages(null)}
-              inputMode='numeric'
-            />
+            <View style={styles.block}>
+              <Text style={styles.subTitle}>{t('customBook:authorsList')}</Text>
+              {authors.map(({ id, name, error }) => (
+                <View style={styles.authorWrapper} key={id}>
+                  <Input
+                    wrapperClassName={styles.authorsNameInputWrapper}
+                    disabled={isSaving}
+                    placeholder={t('customBook:enterAuthorsName')}
+                    onChangeText={(value) => handleAuthorChange(value, id)}
+                    value={name as string}
+                    error={error}
+                    shouldDisplayClearButton={!!name}
+                    onClear={() => updateAuthor(id, '', null)}
+                  />
+                  <Pressable style={styles.removeAuthorButton} onPress={() => removeAuthor(id)}>
+                    <CloseIcon width={CLOSE_ICON.width} height={CLOSE_ICON.height} fill={colors.neutral_light} />
+                  </Pressable>
+                </View>
+              ))}
+
+              <Button
+                disabled={authors.length > 2 || isSaving}
+                style={[styles.button, styles.addAuthorButton]}
+                titleStyle={styles.footerButtonTitle}
+                onPress={handleAddAuthor}
+                title={t(authors.length > 0 ? 'customBook:addAnotherAuthor' : 'customBook:addAuthor')}
+              />
+            </View>
+          </ScrollView>
+
+          <View style={[styles.footerContainer, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+            <View style={styles.footerButtonsWrapper}>
+              <Button
+                disabled={isSaving || isDeleting}
+                theme={SECONDARY}
+                style={styles.footerButton}
+                titleStyle={styles.footerButtonTitle}
+                onPress={() => navigation.goBack()}
+                title={t('common:back')}
+              />
+              <Button
+                disabled={isSaving || isDeleting}
+                theme={SECONDARY}
+                style={[styles.footerButton, styles.deleteButton]}
+                titleStyle={styles.footerButtonTitle}
+                onPress={displayDeleteConfirmation}
+                title={t('common:delete', { defaultValue: 'Удалить' })}
+              />
+              <Button
+                style={styles.footerButton}
+                titleStyle={styles.footerButtonTitle}
+                disabled={!isValidForm || isSaving || isDeleting}
+                onPress={handleEditBook}
+                title={t('common:save')}
+              />
+            </View>
           </View>
-
-          <View style={styles.block}>
-            <Text style={styles.subTitle}>{t('customBook:authorsList')}</Text>
-            {authors.map(({ id, name, error }) => (
-              <View style={styles.authorWrapper} key={id}>
-                <Input
-                  wrapperClassName={styles.authorsNameInputWrapper}
-                  disabled={isSaving}
-                  placeholder={t('customBook:enterAuthorsName')}
-                  onChangeText={(value) => handleAuthorChange(value, id)}
-                  value={name as string}
-                  error={error}
-                  shouldDisplayClearButton={!!name}
-                  onClear={() => updateAuthor(id, '', null)}
-                />
-                <Pressable style={styles.removeAuthorButton} onPress={() => removeAuthor(id)}>
-                  <CloseIcon width={CLOSE_ICON.width} height={CLOSE_ICON.height} fill={colors.neutral_light} />
-                </Pressable>
-              </View>
-            ))}
-
-            <Button
-              disabled={authors.length > 2 || isSaving}
-              style={[styles.button, styles.addAuthorButton]}
-              titleStyle={styles.footerButtonTitle}
-              onPress={handleAddAuthor}
-              title={t(authors.length > 0 ? 'customBook:addAnotherAuthor' : 'customBook:addAuthor')}
-            />
-          </View>
-        </ScrollView>
-
-        <View style={[styles.footerContainer, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-          <View style={styles.footerButtonsWrapper}>
-            <Button
-              disabled={isSaving || isDeleting}
-              theme={SECONDARY}
-              style={styles.footerButton}
-              titleStyle={styles.footerButtonTitle}
-              onPress={() => navigation.goBack()}
-              title={t('common:back')}
-            />
-            <Button
-              disabled={isSaving || isDeleting}
-              theme={SECONDARY}
-              style={[styles.footerButton, styles.deleteButton]}
-              titleStyle={styles.footerButtonTitle}
-              onPress={displayDeleteConfirmation}
-              title={t('common:delete', { defaultValue: 'Удалить' })}
-            />
-            <Button
-              style={styles.footerButton}
-              titleStyle={styles.footerButtonTitle}
-              disabled={!isValidForm || isSaving || isDeleting}
-              onPress={handleEditBook}
-              title={t('common:save')}
-            />
-          </View>
-        </View>
-
         </View>
         {isSaving && <Spinner backgroundColor='rgba(0, 0, 0, 0.5)' />}
       </View>
       <Modal visible={isCategoryModalVisible} animationType='slide' onRequestClose={() => setIsCategoryModalVisible(false)}>
-      <View style={styles.categoryModalWrapper}>
-        <View style={styles.categoryModalHeader}>
-          <Text style={styles.modalHeaderTitle}>{t('customBook:genre')}</Text>
-          <Pressable onPress={() => setIsCategoryModalVisible(false)}>
-            <CloseIcon width={CLOSE_ICON.width} height={CLOSE_ICON.height} fill={colors.neutral_light} />
-          </Pressable>
+        <View style={styles.categoryModalWrapper}>
+          <View style={styles.categoryModalHeader}>
+            <Text style={styles.modalHeaderTitle}>{t('customBook:genre')}</Text>
+            <Pressable onPress={() => setIsCategoryModalVisible(false)}>
+              <CloseIcon width={CLOSE_ICON.width} height={CLOSE_ICON.height} fill={colors.neutral_light} />
+            </Pressable>
+          </View>
+          <CategoryChooser onClose={() => setIsCategoryModalVisible(false)} />
         </View>
-        <CategoryChooser onClose={() => setIsCategoryModalVisible(false)} />
-      </View>
       </Modal>
     </>
   );

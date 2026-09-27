@@ -23,6 +23,7 @@ import { useThemeColors } from '~theme/hooks';
 import { useThemedStyles } from '~theme/useThemedStyles';
 import { BookStatus, IBook } from '~types/books';
 import Button from '~UI/Button';
+import { isDefaultCover, resolveCoverImageSource } from '~utils/coverUtils';
 
 import createStyles from './styles';
 import ModifiedDate from '../../ModifiedDate';
@@ -75,63 +76,46 @@ const BookItemComponent: FC<Props> = ({ bookItem, itemStyle, imgUrl, isEditable:
     });
   }, [navigation, bookId, title, pages, authorsList, annotation, bookStatus, coverPath, categoryPath, categoryLabel]);
 
+  const imageSource = useMemo(() => resolveCoverImageSource(coverPath, imgUrl), [coverPath, imgUrl]);
   const imageUri = useMemo(() => {
-    if (!coverPath) return '';
-    const lower = String(coverPath);
-
-    // Если обложка уже в формате data:image, используем её напрямую
-    if (lower.startsWith('data:image')) {
-      return coverPath;
+    if (typeof imageSource === 'number') return null;
+    if (imageSource && typeof imageSource === 'object' && 'uri' in imageSource) {
+      return imageSource.uri || null;
     }
-
-    // Если это абсолютный URL (http/https/file/content), используем его напрямую
-    if (/^https?:\/\//i.test(lower) || lower.startsWith('file:') || lower.startsWith('content:')) {
-      return coverPath;
-    }
-
-    // Для относительных путей формируем URL с imgUrl
-    if (!imgUrl) return '';
-    const hasWebpExtension = lower.endsWith('.webp');
-    const finalCoverPath = hasWebpExtension ? coverPath : `${coverPath}.webp`;
-
-    return `${imgUrl}/${finalCoverPath}`;
-  }, [coverPath, imgUrl]);
-
-  const getImageUri = useCallback(() => imageUri, [imageUri]);
+    return null;
+  }, [imageSource]);
+  const canZoom = !!imageUri && !isDefaultCover(coverPath);
 
   const handleCoverPress = useCallback(() => {
-    if (coverPath) {
-      const fullUrl = getImageUri();
-      dispatch(setCoverUrl(fullUrl));
+    if (canZoom && imageUri) {
+      dispatch(setCoverUrl(imageUri));
       dispatch(showModal(COVER_VIEWER));
     }
-  }, [coverPath, getImageUri, dispatch]);
+  }, [canZoom, imageUri, dispatch]);
 
   return (
     <View style={[styles.wrapper, itemStyle]}>
       <View style={styles.bookItem}>
         <View style={styles.leftSide}>
           <View style={styles.coverWrapper}>
-            {coverPath && imageUri ? (
+            {canZoom ? (
               <Pressable onPress={handleCoverPress} style={styles.coverPressable}>
                 <Image
-                  key={`${bookId}-${coverPath.substring(0, 50)}`}
+                  key={`${bookId}-${String(coverPath).substring(0, 50)}`}
                   style={styles.cover}
-                  source={{
-                    uri: imageUri,
-                  }}
-                  cachePolicy={imageUri.startsWith('data:image') ? 'none' : 'memory-disk'}
+                  source={imageSource}
+                  cachePolicy={imageUri?.startsWith('data:image') ? 'none' : 'memory-disk'}
                   contentFit='cover'
                   transition={200}
                   priority='high'
-                  recyclingKey={`${bookId}-${coverPath.substring(0, 50)}`}
+                  recyclingKey={`${bookId}-${String(coverPath).substring(0, 50)}`}
                 />
                 <View style={styles.zoomIconContainer}>
                   <ZoomIn size={20} color={themeColors.neutral_white} />
                 </View>
               </Pressable>
             ) : (
-              <View style={[styles.cover, { backgroundColor: themeColors.neutral_medium }]} />
+              <Image key={`${bookId}-cover`} style={styles.cover} source={imageSource} contentFit='cover' transition={200} priority='high' />
             )}
           </View>
           <View>
@@ -153,11 +137,7 @@ const BookItemComponent: FC<Props> = ({ bookItem, itemStyle, imgUrl, isEditable:
             )}
           <View style={styles.info}>
             {categoryLabel ? (
-              <TouchableOpacity
-                style={styles.categoryBadge}
-                onPress={() => ToastAndroid.show(categoryLabel, ToastAndroid.SHORT)}
-                activeOpacity={0.7}
-              >
+              <TouchableOpacity style={styles.categoryBadge} onPress={() => ToastAndroid.show(categoryLabel, ToastAndroid.SHORT)} activeOpacity={0.7}>
                 <Text style={styles.categoryText} numberOfLines={1} ellipsizeMode='tail'>
                   {categoryLabel}
                 </Text>

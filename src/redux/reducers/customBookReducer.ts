@@ -315,7 +315,8 @@ export default createReducer(defaultState, (builder) => {
     })
     .addCase(customBooksActions.loadSuggestedCovers.fulfilled, (state, action) => {
       state.add.steps[2].suggestedCovers.data = action.payload;
-      state.add.steps[2].suggestedCovers.loadingDataStatus = SUCCEEDED;
+      // Empty result should surface the "not found" UI (same as failed)
+      state.add.steps[2].suggestedCovers.loadingDataStatus = action.payload?.length ? SUCCEEDED : FAILED;
     })
     .addCase(customBooksActions.loadSuggestedCovers.rejected, (state) => {
       state.add.steps[2].suggestedCovers.loadingDataStatus = FAILED;

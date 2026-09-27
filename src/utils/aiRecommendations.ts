@@ -11,17 +11,17 @@ import Constants from 'expo-constants';
 
 import i18n from '~translations/i18n';
 import { IBook } from '~types/books';
+import { fetchPersonalizedFromCatalog, fetchPopularFromCatalog, matchCatalogRecommendation } from '~utils/catalogRecommendations';
+import { searchOpenLibraryBook } from '~utils/openLibraryRecommendations';
 
-const RECOMMENDATIONS_CACHE_KEY = 'book_recommendations_cache';
+const RECOMMENDATIONS_CACHE_KEY = 'book_recommendations_cache_v6';
 const PREVIOUS_RECOMMENDATIONS_KEY = 'previous_recommendations_titles';
 const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-// Groq API - Free tier: 30 RPM, 14,400 requests/day
+// Groq API — often geo-blocked in RU (403). Prefer OpenRouter; Open Library is keyless fallback.
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL = 'openai/gpt-oss-20b';
 
-// OpenRouter API - Fallback for regions where Groq is blocked (e.g., Russia)
-
-// API keys are provided via Expo config (extra) from env/EAS secrets
 const extra = (Constants.expoConfig?.extra || {}) as {
   groqApiKey?: string;
   googleBooksApiKey?: string;
@@ -31,6 +31,17 @@ const extra = (Constants.expoConfig?.extra || {}) as {
 const GROQ_API_KEY = extra.groqApiKey ?? '';
 const GOOGLE_BOOKS_API_KEY = extra.googleBooksApiKey ?? '';
 const OPENROUTER_API_KEY = extra.openRouterApiKey ?? '';
+const GOOGLE_BOOKS_HAS_KEY = Boolean(GOOGLE_BOOKS_API_KEY);
+
+const isAppRussian = () => (i18n.language || 'en').toLowerCase().startsWith('ru');
+const CYRILLIC_TEXT_RE = /[А-Яа-яЁёІіЇїЄєҐґ]/;
+const hasCyrillicText = (text?: string) => !!text && CYRILLIC_TEXT_RE.test(text);
+
+/** EN locale: only Latin titles/authors (no Cyrillic). */
+const isLocaleCompatibleBook = (book: { title?: string; author?: string }): boolean => {
+  if (isAppRussian()) return true;
+  return !hasCyrillicText(book.title) && !hasCyrillicText(book.author);
+};
 
 export interface IRecommendedBook {
   id: string;
@@ -363,8 +374,7 @@ const callOpenRouterAPI = async (systemPrompt: string, userPrompt: string): Prom
  * Call Groq AI to analyze user's library and get book recommendations
  */
 const getAIRecommendations = async (userBooks: IBook[], apiKey: string, previousTitles: string[] = []): Promise<AIRecommendation[]> => {
-  const { language } = i18n;
-  const isRussian = language === 'ru';
+  const isRussian = isAppRussian();
 
   // Analyze user's library
   const { favoriteBooks, topAuthors, topGenres, allBooks } = analyzeUserLibrary(userBooks);
@@ -473,36 +483,44 @@ SELECTION STRATEGY:
 4. 20% — potential discoveries (quality books in adjacent genres)
 
 Response strictly in JSON:
-{"recommendations": [{"title": "Title", "author": "Author"}]}`);
+{"recommendations": [{"title": "Title", "author": "Author"}]}
+IMPORTANT: Use English titles and author names only. Never use Cyrillic.`);
   }
 
   const userPrompt = userPromptParts.join('\n\n');
 
-  // Try OpenRouter first, then fallback to Groq
-  try {
-    console.warn('Using OpenRouter API (primary)');
-    return await callOpenRouterAPI(systemPrompt, userPrompt);
-  } catch (openRouterError) {
-    console.warn('OpenRouter failed, trying Groq fallback...', openRouterError);
+  if (OPENROUTER_API_KEY) {
+    try {
+      console.warn('Using OpenRouter API (primary)');
+      return await callOpenRouterAPI(systemPrompt, userPrompt);
+    } catch (openRouterError) {
+      console.warn('OpenRouter failed, trying Groq fallback...', openRouterError);
+    }
+  } else {
+    console.warn('OpenRouter API key not configured, skipping');
   }
 
-  // Fallback to Groq
+  const groqKey = apiKey || GROQ_API_KEY;
+  if (!groqKey) {
+    throw new Error('NO_AI_KEYS');
+  }
+
   try {
     const response = await axios.post(
       GROQ_API_URL,
       {
-        model: 'llama-3.1-8b-instant',
+        model: GROQ_MODEL,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        temperature: 0.85, // Higher for more variety
+        temperature: 0.85,
         max_tokens: 2500,
         response_format: { type: 'json_object' },
       },
       {
         headers: {
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${groqKey}`,
           'Content-Type': 'application/json',
         },
         timeout: 30000,
@@ -516,15 +534,20 @@ Response strictly in JSON:
 
     const parsed = JSON.parse(content);
     const recs = parsed.recommendations || [];
-    // Filter out invalid recommendations
     return recs.filter((r: AIRecommendation) => r && r.title && typeof r.title === 'string');
   } catch (error: unknown) {
-    // Handle rate limit errors specifically
-    if (axios.isAxiosError(error) && error.response?.status === 429) {
-      console.warn('Groq API rate limit reached');
-      throw new Error('RATE_LIMIT_EXCEEDED');
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      if (status === 429) {
+        console.warn('Groq API rate limit reached');
+        throw new Error('RATE_LIMIT_EXCEEDED');
+      }
+      if (status === 401 || status === 403) {
+        console.warn(`Groq unavailable (${status}): invalid key or region blocked — using Open Library`);
+        throw new Error('GROQ_UNAVAILABLE');
+      }
     }
-    console.error('Groq fallback also failed:', error);
+    console.warn('Groq fallback failed:', error);
     throw error;
   }
 };
@@ -533,8 +556,7 @@ Response strictly in JSON:
  * Get default recommendations for new users (popular bestsellers)
  */
 const getDefaultAIRecommendations = async (apiKey: string, previousTitles: string[] = []): Promise<AIRecommendation[]> => {
-  const { language } = i18n;
-  const isRussian = language === 'ru';
+  const isRussian = isAppRussian();
 
   // Format previous recommendations for exclusion
   const previousText = previousTitles.length > 0 ? previousTitles.slice(0, 30).join(', ') : '';
@@ -587,22 +609,29 @@ const getDefaultAIRecommendations = async (apiKey: string, previousTitles: strin
 
   userPrompt += isRussian
     ? `\n\nОтвет строго в JSON:\n{"recommendations": [{"title": "Название", "author": "Автор"}]}`
-    : `\n\nResponse strictly in JSON:\n{"recommendations": [{"title": "Title", "author": "Author"}]}`;
+    : `\n\nResponse strictly in JSON:\n{"recommendations": [{"title": "Title", "author": "Author"}]}\nIMPORTANT: English titles and author names only. Never use Cyrillic.`;
 
-  // Try OpenRouter first, then fallback to Groq
-  try {
-    console.warn('Using OpenRouter API for default recommendations (primary)');
-    return await callOpenRouterAPI(systemPrompt, userPrompt);
-  } catch (openRouterError) {
-    console.warn('OpenRouter failed for default recommendations, trying Groq fallback...', openRouterError);
+  if (OPENROUTER_API_KEY) {
+    try {
+      console.warn('Using OpenRouter API for default recommendations (primary)');
+      return await callOpenRouterAPI(systemPrompt, userPrompt);
+    } catch (openRouterError) {
+      console.warn('OpenRouter failed for default recommendations, trying Groq fallback...', openRouterError);
+    }
+  } else {
+    console.warn('OpenRouter API key not configured, skipping default AI');
   }
 
-  // Fallback to Groq
+  const groqKey = apiKey || GROQ_API_KEY;
+  if (!groqKey) {
+    throw new Error('NO_AI_KEYS');
+  }
+
   try {
     const response = await axios.post(
       GROQ_API_URL,
       {
-        model: 'llama-3.1-8b-instant',
+        model: GROQ_MODEL,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
@@ -613,7 +642,7 @@ const getDefaultAIRecommendations = async (apiKey: string, previousTitles: strin
       },
       {
         headers: {
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${groqKey}`,
           'Content-Type': 'application/json',
         },
         timeout: 30000,
@@ -627,15 +656,20 @@ const getDefaultAIRecommendations = async (apiKey: string, previousTitles: strin
 
     const parsed = JSON.parse(content);
     const recs = parsed.recommendations || [];
-    // Filter out invalid recommendations
     return recs.filter((r: AIRecommendation) => r && r.title && typeof r.title === 'string');
   } catch (error: unknown) {
-    // Handle rate limit errors specifically
-    if (axios.isAxiosError(error) && error.response?.status === 429) {
-      console.warn('Groq API rate limit reached');
-      throw new Error('RATE_LIMIT_EXCEEDED');
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      if (status === 429) {
+        console.warn('Groq API rate limit reached');
+        throw new Error('RATE_LIMIT_EXCEEDED');
+      }
+      if (status === 401 || status === 403) {
+        console.warn(`Groq unavailable (${status}): invalid key or region blocked — using Open Library`);
+        throw new Error('GROQ_UNAVAILABLE');
+      }
     }
-    console.error('Groq fallback also failed for default recommendations:', error);
+    console.warn('Groq fallback failed for default recommendations:', error);
     throw error;
   }
 };
@@ -654,17 +688,19 @@ const GOOGLE_BOOKS_RATE_LIMIT = 10; // requests per second
 const GOOGLE_BOOKS_RESET_INTERVAL = 1000; // 1 second
 
 /**
- * Search book in Google Books API with rate limiting
+ * Resolve book details: Google Books (if keyed) → Open Library (keyless)
  */
 const searchGoogleBooks = async (title: string, author: string, retryCount = 0): Promise<IRecommendedBook | null> => {
-  // Rate limiting: reset counter every second
+  if (!GOOGLE_BOOKS_HAS_KEY) {
+    return (await searchOpenLibraryBook(title, author)) as IRecommendedBook | null;
+  }
+
   const now = Date.now();
   if (now - googleBooksLastResetTime >= GOOGLE_BOOKS_RESET_INTERVAL) {
     googleBooksRequestCount = 0;
     googleBooksLastResetTime = now;
   }
 
-  // If we've made too many requests, wait
   if (googleBooksRequestCount >= GOOGLE_BOOKS_RATE_LIMIT) {
     await delay(GOOGLE_BOOKS_RESET_INTERVAL);
     googleBooksRequestCount = 0;
@@ -675,7 +711,7 @@ const searchGoogleBooks = async (title: string, author: string, retryCount = 0):
 
   try {
     const query = author ? `intitle:"${title}" inauthor:${author}` : `intitle:"${title}"`;
-    const langRestrict = i18n.language === 'ru' ? '&langRestrict=ru' : '';
+    const langRestrict = isAppRussian() ? '&langRestrict=ru' : '&langRestrict=en';
 
     const response = await axios.get(
       `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=3&orderBy=relevance${langRestrict}&printType=books&key=${GOOGLE_BOOKS_API_KEY}`,
@@ -683,7 +719,6 @@ const searchGoogleBooks = async (title: string, author: string, retryCount = 0):
     );
 
     if (!response.data.items || response.data.items.length === 0) {
-      // Try without author
       googleBooksRequestCount++;
       const fallbackResponse = await axios.get(
         `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(title)}&maxResults=3&orderBy=relevance${langRestrict}&printType=books&key=${GOOGLE_BOOKS_API_KEY}`,
@@ -691,12 +726,11 @@ const searchGoogleBooks = async (title: string, author: string, retryCount = 0):
       );
 
       if (!fallbackResponse.data.items || fallbackResponse.data.items.length === 0) {
-        return null;
+        return (await searchOpenLibraryBook(title, author)) as IRecommendedBook | null;
       }
       response.data.items = fallbackResponse.data.items;
     }
 
-    // Find best match
     const item = response.data.items[0];
     const volumeInfo = item.volumeInfo || {};
     const imageLinks = volumeInfo.imageLinks || {};
@@ -711,18 +745,16 @@ const searchGoogleBooks = async (title: string, author: string, retryCount = 0):
           .replace('zoom=1', 'zoom=0')
       : undefined;
 
-    // Skip books without covers
     if (!coverUrlHQ) {
-      return null;
+      return (await searchOpenLibraryBook(title, author)) as IRecommendedBook | null;
     }
 
-    // Translate genre via API if Russian language is selected
     let genreRu: string | undefined;
     if (genre) {
       genreRu = await translateGenreViaAPI(genre);
     }
 
-    return {
+    const result: IRecommendedBook = {
       id: item.id || `google_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       title: volumeInfo.title || title,
       author: volumeInfo.authors?.join(', ') || author || '',
@@ -732,19 +764,24 @@ const searchGoogleBooks = async (title: string, author: string, retryCount = 0):
       genre: genre,
       genreRu: genreRu,
     };
+
+    if (!isLocaleCompatibleBook(result)) {
+      return null;
+    }
+
+    return result;
   } catch (error: unknown) {
-    // Handle rate limit errors with retry
     if (axios.isAxiosError(error) && error.response?.status === 429) {
       if (retryCount < 3) {
         console.warn(`Google Books API rate limit, retrying in ${(retryCount + 1) * 2}s...`);
-        await delay((retryCount + 1) * 2000); // Exponential backoff: 2s, 4s, 6s
+        await delay((retryCount + 1) * 2000);
         return searchGoogleBooks(title, author, retryCount + 1);
       }
-      console.warn('Google Books API rate limit exceeded after retries');
-      return null;
+      console.warn('Google Books rate limit exceeded, falling back to Open Library');
+      return (await searchOpenLibraryBook(title, author)) as IRecommendedBook | null;
     }
-    console.error('Google Books API error:', error);
-    return null;
+    console.error('Google Books API error, falling back to Open Library:', error);
+    return (await searchOpenLibraryBook(title, author)) as IRecommendedBook | null;
   }
 };
 
@@ -821,47 +858,72 @@ export const generateRecommendations = async (userBooks: IBook[], forceNew: bool
   const previousTitles = forceNew ? await getPreviousRecommendationTitles() : [];
 
   const recommendations: IRecommendedBook[] = [];
-  // Exclude user's existing books AND previous recommendations
   const seenTitles = new Set<string>([...booksWithTitles.map((b) => b.title?.toLowerCase().trim() || ''), ...previousTitles]);
   const seenIds = new Set<string>();
 
-  try {
-    // Get AI recommendations with exclusion lists
-    const aiRecs = await getAIRecommendations(booksWithTitles, GROQ_API_KEY, previousTitles);
+  // 1) API first (OpenRouter / Groq) — use live results when available
+  if (OPENROUTER_API_KEY || GROQ_API_KEY) {
+    try {
+      console.warn('Fetching recommendations from AI API...');
+      const aiRecs = await getAIRecommendations(booksWithTitles, GROQ_API_KEY, previousTitles);
 
-    // Fetch each book from Google Books with rate limiting
-    for (const rec of shuffleArray(aiRecs)) {
-      if (recommendations.length >= 20) break;
+      for (const rec of shuffleArray(aiRecs)) {
+        if (recommendations.length >= 20) break;
+        if (!rec || !rec.title) continue;
 
-      // Skip invalid recommendations
-      if (!rec || !rec.title) continue;
+        const titleLower = rec.title.toLowerCase().trim();
+        if (seenTitles.has(titleLower)) continue;
+        if (!isAppRussian() && hasCyrillicText(rec.title)) continue;
 
-      const titleLower = rec.title.toLowerCase().trim();
-      // Skip if already in user's library or previously recommended
-      if (seenTitles.has(titleLower)) continue;
+        // Prefer bundled catalog match (same book + local cover for RU/EN)
+        const catalogMatch = matchCatalogRecommendation(rec.title, rec.author || '');
+        if (catalogMatch && !seenIds.has(catalogMatch.id) && isLocaleCompatibleBook(catalogMatch)) {
+          seenTitles.add(titleLower);
+          seenTitles.add(catalogMatch.title.toLowerCase().trim());
+          seenIds.add(catalogMatch.id);
+          recommendations.push(catalogMatch);
+          continue;
+        }
 
-      // Small delay between requests to avoid rate limiting
-      if (recommendations.length > 0) {
-        await delay(150);
+        if (recommendations.length > 0) {
+          await delay(100);
+        }
+
+        const book = await searchGoogleBooks(rec.title, rec.author || '');
+        if (book && !seenIds.has(book.id) && isQualityBook(book) && isLocaleCompatibleBook(book)) {
+          const fetchedTitleLower = book.title.toLowerCase().trim();
+          if (seenTitles.has(fetchedTitleLower)) continue;
+
+          seenTitles.add(titleLower);
+          seenTitles.add(fetchedTitleLower);
+          seenIds.add(book.id);
+          recommendations.push(book);
+        }
       }
+    } catch (error) {
+      console.warn('AI recommendations unavailable:', error);
+    }
+  }
 
-      const book = await searchGoogleBooks(rec.title, rec.author || '');
-      if (book && !seenIds.has(book.id) && isQualityBook(book)) {
-        // Double-check the fetched book title isn't in exclusion list
-        const fetchedTitleLower = book.title.toLowerCase().trim();
-        if (seenTitles.has(fetchedTitleLower)) continue;
-
+  // 2) Local curated catalog if API empty / incomplete
+  if (recommendations.length < 8) {
+    try {
+      console.warn('API empty/short — using local catalog fallback...');
+      const catalogBooks = await fetchPersonalizedFromCatalog(booksWithTitles, previousTitles, 20);
+      for (const book of catalogBooks) {
+        if (recommendations.length >= 20) break;
+        if (!isLocaleCompatibleBook(book)) continue;
+        const titleLower = book.title.toLowerCase().trim();
+        if (seenTitles.has(titleLower) || seenIds.has(book.id)) continue;
         seenTitles.add(titleLower);
-        seenTitles.add(fetchedTitleLower);
         seenIds.add(book.id);
         recommendations.push(book);
       }
+    } catch (catalogError) {
+      console.warn('Catalog recommendations failed:', catalogError);
     }
-  } catch (error) {
-    console.error('Error generating recommendations:', error);
   }
 
-  // Cache results
   if (recommendations.length > 0) {
     await cacheRecommendations(recommendations, userBooksHash);
   }
@@ -888,42 +950,68 @@ export const generateDefaultRecommendations = async (forceNew: boolean = false):
   const seenTitles = new Set<string>(previousTitles);
   const seenIds = new Set<string>();
 
-  try {
-    // Get AI recommendations for new users with exclusion list
-    const aiRecs = await getDefaultAIRecommendations(GROQ_API_KEY, previousTitles);
+  // 1) API first
+  if (OPENROUTER_API_KEY || GROQ_API_KEY) {
+    try {
+      console.warn('Fetching default recommendations from AI API...');
+      const aiRecs = await getDefaultAIRecommendations(GROQ_API_KEY, previousTitles);
 
-    // Fetch each book from Google Books with rate limiting
-    for (const rec of shuffleArray(aiRecs)) {
-      if (recommendations.length >= 20) break;
+      for (const rec of shuffleArray(aiRecs)) {
+        if (recommendations.length >= 20) break;
+        if (!rec || !rec.title) continue;
 
-      // Skip invalid recommendations
-      if (!rec || !rec.title) continue;
+        const titleLower = rec.title.toLowerCase().trim();
+        if (seenTitles.has(titleLower)) continue;
+        if (!isAppRussian() && hasCyrillicText(rec.title)) continue;
 
-      const titleLower = rec.title.toLowerCase().trim();
-      if (seenTitles.has(titleLower)) continue;
+        const catalogMatch = matchCatalogRecommendation(rec.title, rec.author || '');
+        if (catalogMatch && !seenIds.has(catalogMatch.id) && isLocaleCompatibleBook(catalogMatch)) {
+          seenTitles.add(titleLower);
+          seenTitles.add(catalogMatch.title.toLowerCase().trim());
+          seenIds.add(catalogMatch.id);
+          recommendations.push(catalogMatch);
+          continue;
+        }
 
-      // Small delay between requests to avoid rate limiting
-      if (recommendations.length > 0) {
-        await delay(150);
+        if (recommendations.length > 0) {
+          await delay(100);
+        }
+
+        const book = await searchGoogleBooks(rec.title, rec.author || '');
+        if (book && !seenIds.has(book.id) && isQualityBook(book) && isLocaleCompatibleBook(book)) {
+          const fetchedTitleLower = book.title.toLowerCase().trim();
+          if (seenTitles.has(fetchedTitleLower)) continue;
+
+          seenTitles.add(titleLower);
+          seenTitles.add(fetchedTitleLower);
+          seenIds.add(book.id);
+          recommendations.push(book);
+        }
       }
+    } catch (error) {
+      console.warn('Default AI recommendations unavailable:', error);
+    }
+  }
 
-      const book = await searchGoogleBooks(rec.title, rec.author || '');
-      if (book && !seenIds.has(book.id) && isQualityBook(book)) {
-        // Double-check the fetched book title isn't in exclusion list
-        const fetchedTitleLower = book.title.toLowerCase().trim();
-        if (seenTitles.has(fetchedTitleLower)) continue;
-
+  // 2) Local catalog fallback
+  if (recommendations.length < 8) {
+    try {
+      console.warn('API empty/short — using local catalog fallback...');
+      const catalogBooks = await fetchPopularFromCatalog(previousTitles, 20);
+      for (const book of catalogBooks) {
+        if (recommendations.length >= 20) break;
+        if (!isLocaleCompatibleBook(book)) continue;
+        const titleLower = book.title.toLowerCase().trim();
+        if (seenTitles.has(titleLower) || seenIds.has(book.id)) continue;
         seenTitles.add(titleLower);
-        seenTitles.add(fetchedTitleLower);
         seenIds.add(book.id);
         recommendations.push(book);
       }
+    } catch (catalogError) {
+      console.warn('Catalog default recommendations failed:', catalogError);
     }
-  } catch (error) {
-    console.error('Error generating default recommendations:', error);
   }
 
-  // Cache results
   if (recommendations.length > 0) {
     await cacheRecommendations(recommendations, 'default');
   }

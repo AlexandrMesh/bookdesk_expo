@@ -1,5 +1,4 @@
 import axios from 'axios';
-import Constants from 'expo-constants';
 
 import { RU } from '~constants/languages';
 import i18n from '~translations/i18n';
@@ -8,46 +7,50 @@ export interface ICover {
   coverPath: string;
 }
 
-const extra = (Constants.expoConfig?.extra || {}) as {
-  googleSearchApiKey?: string;
-};
+const OL_SEARCH = 'https://openlibrary.org/search.json';
+const REQUEST_TIMEOUT = 12000;
 
-const GOOGLE_SEARCH_API_KEY = extra.googleSearchApiKey ?? '';
-const GOOGLE_SEARCH_ENGINE_ID = '42a8480a652154a54';
-const GOOGLE_SEARCH_API_URL = 'https://www.googleapis.com/customsearch/v1';
+const coverUrlFromId = (coverId: number, size: 'M' | 'L' = 'L') => `https://covers.openlibrary.org/b/id/${coverId}-${size}.jpg`;
 
 /**
- * Загружает предложенные обложки для книги из Google Custom Search API
- * @param bookName - название книги
- * @returns массив обложек с путями
+ * Suggested covers from Open Library (keyless).
  */
 export const loadSuggestedCovers = async (bookName: string): Promise<ICover[]> => {
+  const title = bookName.trim();
+  if (!title) return [];
+
   try {
-    const { language } = i18n;
-    const query = language === RU ? `${bookName.trim()} книга` : `${bookName.trim()} book`;
-    const gl = language === RU ? 'ru' : 'us';
+    const isRu = (i18n.language || '').toLowerCase().startsWith(RU);
+    const fieldList = 'key,title,cover_i,edition_count';
 
-    const { data } = await axios.get(GOOGLE_SEARCH_API_URL, {
-      params: {
-        gl,
-        searchType: 'image',
-        key: GOOGLE_SEARCH_API_KEY,
-        q: query,
-        cx: GOOGLE_SEARCH_ENGINE_ID,
-        num: 10,
-      },
-    });
+    const queries: Array<Record<string, string | number>> = [
+      { title, limit: 24, fields: fieldList, ...(isRu ? { language: 'rus' } : {}) },
+      { q: title, limit: 24, fields: fieldList },
+      { title, limit: 24, fields: fieldList },
+    ];
 
-    const items =
-      (data as unknown as { items?: Array<{ fileFormat?: string; link: string }> }).items
-        ?.filter(({ fileFormat }) => fileFormat === 'image/jpeg' || fileFormat === 'image/png' || fileFormat === 'image/webp')
-        .map(({ link }) => ({
-          coverPath: link,
-        })) || [];
+    const seen = new Set<number>();
+    const covers: ICover[] = [];
 
-    return items;
+    for (const params of queries) {
+      if (covers.length >= 12) break;
+      const { data } = await axios.get(OL_SEARCH, {
+        params,
+        timeout: REQUEST_TIMEOUT,
+        headers: { Accept: 'application/json' },
+      });
+      const docs: Array<{ cover_i?: number; title?: string }> = Array.isArray(data?.docs) ? data.docs : [];
+      for (const doc of docs) {
+        if (!doc?.cover_i || seen.has(doc.cover_i)) continue;
+        seen.add(doc.cover_i);
+        covers.push({ coverPath: coverUrlFromId(doc.cover_i, 'L') });
+        if (covers.length >= 12) break;
+      }
+    }
+
+    return covers;
   } catch (error) {
-    console.error('Error loading suggested covers:', error);
+    console.error('Error loading suggested covers from Open Library:', error);
     throw error;
   }
 };
