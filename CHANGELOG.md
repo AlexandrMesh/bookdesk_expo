@@ -2,6 +2,10 @@
 
 ## bookdesk
 
+## 6.3.1
+###### 2026-09-27
+- [New] Added local recommended books
+
 ## 6.3.0
 ###### 2025-12-18
 - [New] New endpoint for AI recommendations (first openrouter and fallback Groq)
